@@ -757,11 +757,12 @@ const [topbarCompact, setTopbarCompact] = useState(false);
   useEffect(() => {
     console.log("[Meiosis Debug] Dashboard Render Props:", {
       nav,
-      queueLength: queue?.length,
-      patientsLength: patients?.length,
-      appointmentsLength: completedAppointments?.length,
-      scheduleLength: scheduleDays?.length,
-      selectedPatientId
+      queueStatus: queue ? `Ready (${queue.length} items)` : 'Loading...',
+      patientsStatus: patients ? `Ready (${patients.length} items)` : 'Loading...',
+      analyticsStatus: completedAppointments ? `Ready (${completedAppointments.length} items)` : 'Loading...',
+      scheduleStatus: scheduleDays ? `Ready (${scheduleDays.length} items)` : 'Loading...',
+      selectedPatientId,
+      timestamp: new Date().toLocaleTimeString()
     });
   }, [nav, queue, patients, completedAppointments, scheduleDays, selectedPatientId]);
 

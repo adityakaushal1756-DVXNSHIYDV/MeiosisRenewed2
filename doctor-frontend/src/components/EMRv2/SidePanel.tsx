@@ -1,7 +1,9 @@
-import { useState, Fragment } from 'react';
-import { Download } from 'lucide-react';
+import { useState, Fragment, useEffect, useRef } from 'react';
+import { Download, X, Pill, Clock, Activity, ShieldCheck, Calendar, HeartPulse } from 'lucide-react';
 import type { AppointmentEntry } from './types';
 import { assetUrl } from '../../lib/api';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 const TIMING_SLOTS = ['Breakfast', 'Lunch', 'Dinner', 'Night'] as const;
 function patternLabel(code: string | undefined): string {
@@ -24,8 +26,6 @@ function fmtDate(value?: string): string {
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-/* ── Two shared primitives matching PrescriptionModal in EMRTimeline ── */
-
 function MetaTile({
   label, value, border, topBorder,
 }: {
@@ -45,7 +45,7 @@ function MetaTile({
 
 function NoteRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-3 py-4 border-t border-white/5">
       <span className="w-[160px] flex-shrink-0 pt-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-mist/55">
         {label}
       </span>
@@ -56,6 +56,19 @@ function NoteRow({ label, value }: { label: string; value: string }) {
 
 export function SidePanel({ appointment, onClose, accessLevel = 'full' }: SidePanelProps) {
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+  const [isGenerating, setIsGenerating] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Auto-expand all medication instructions on load
+  useEffect(() => {
+    if (appointment?.prescriptions) {
+      const ids = new Set<string>();
+      appointment.prescriptions.forEach(p => {
+        if (p.instructions) ids.add(p.id);
+      });
+      setExpandedNotes(ids);
+    }
+  }, [appointment]);
 
   function toggleNote(id: string) {
     setExpandedNotes(prev => {
@@ -65,6 +78,38 @@ export function SidePanel({ appointment, onClose, accessLevel = 'full' }: SidePa
     });
   }
 
+  const handleDownloadPDF = async () => {
+    if (!modalRef.current) return;
+    setIsGenerating(true);
+    try {
+      const element = modalRef.current;
+      // Hide buttons during capture
+      const actions = element.querySelector('.modal-actions');
+      if (actions) (actions as HTMLElement).style.display = 'none';
+
+      const canvas = await html2canvas(element, {
+        backgroundColor: '#0d1520',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+
+      if (actions) (actions as HTMLElement).style.display = 'flex';
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Prescription_${appointment.doctor.replace(/\s+/g, '_')}_${appointment.startDate}.pdf`);
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const canSeeLabs = accessLevel === 'full' || accessLevel === 'lab';
   const canSeeMeds = accessLevel === 'full';
   const canSeeNotes = accessLevel === 'full';
@@ -73,7 +118,6 @@ export function SidePanel({ appointment, onClose, accessLevel = 'full' }: SidePa
   const meds    = (canSeeMeds ? (appointment.prescriptions ?? []) : []);
   const vitals  = (canSeeVitals ? (appointment.vitals ?? {}) : {});
   const labs    = (canSeeLabs ? (appointment.labs ?? []) : []);
-  const docPath = canSeeMeds ? appointment.documentPath : undefined;
 
   const isActive   = (appointment.status ?? '').toUpperCase() === 'ACTIVE';
   const statusLabel = isActive ? 'Active' : (appointment.status ?? 'Completed');
@@ -87,6 +131,7 @@ export function SidePanel({ appointment, onClose, accessLevel = 'full' }: SidePa
       onClick={onClose}
     >
       <div
+        ref={modalRef}
         className="w-full max-w-[700px] overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0d1520] shadow-[0_32px_100px_rgba(0,0,0,0.75)]"
         onClick={(e) => e.stopPropagation()}
       >
@@ -179,8 +224,6 @@ export function SidePanel({ appointment, onClose, accessLevel = 'full' }: SidePa
                               <button
                                 type="button"
                                 onClick={() => toggleNote(med.id)}
-                                title={expandedNotes.has(med.id) ? 'Hide note' : 'Show note'}
-                                aria-expanded={expandedNotes.has(med.id)}
                                 className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/[0.15] text-[13px] font-bold leading-none text-mist/50 transition-colors hover:border-neon/40 hover:text-neon"
                               >
                                 {expandedNotes.has(med.id) ? '−' : '+'}
@@ -298,21 +341,18 @@ export function SidePanel({ appointment, onClose, accessLevel = 'full' }: SidePa
         )}
 
         {/* ── Actions ── */}
-        <div className="flex gap-3 px-5 py-5">
-          {docPath && (
-            <a
-              href={assetUrl(docPath)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="action-btn flex flex-1 items-center justify-center gap-2 py-3 text-sm"
-            >
-              <Download size={14} /> Download PDF
-            </a>
-          )}
+        <div className="modal-actions flex gap-3 px-5 py-5">
+          <button
+            onClick={handleDownloadPDF}
+            disabled={isGenerating}
+            className="action-btn flex flex-1 items-center justify-center gap-2 py-3 text-sm disabled:opacity-50"
+          >
+            {isGenerating ? 'Generating...' : <><Download size={14} /> Download PDF</>}
+          </button>
           <button
             type="button"
             onClick={onClose}
-            className={`ghost-btn py-3 text-sm ${docPath ? 'flex-1' : 'w-full'}`}
+            className="ghost-btn flex-1 py-3 text-sm"
           >
             Close
           </button>

@@ -7,7 +7,7 @@
 
 /* ── Constants ──────────────────────────────────────────────────────────── */
 const runtimeConfig = window.MEIOSIS_RUNTIME_CONFIG || {};
-const API          = String(runtimeConfig.backendOrigin || 'http://localhost:5000').replace(/\/+$/, '') + '/api';
+const API          = String(runtimeConfig.backendOrigin || 'http://localhost:5002').replace(/\/+$/, '') + '/api';
 const SESSION_KEY  = 'meiosis_auth_session_v1';
 const LINKS_KEY    = 'meiosis_root_links_v1';
 const DRAFT_KEY    = 'meiosis_signup_draft_v3';

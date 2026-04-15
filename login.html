@@ -57,6 +57,19 @@
             <input id="loginPassword" class="auth-input" type="password" placeholder="Enter password" required />
           </label>
 
+          <div class="auth-workspace-toggle">
+            <span class="auth-workspace-hint">Patient Workspace Version</span>
+            <div class="auth-toggle-group">
+              <input type="radio" name="patientWorkspaceMode" value="vite" id="patientWorkspaceVite" checked />
+              <label for="patientWorkspaceVite">Vite App (Beta)</label>
+              
+              <input type="radio" name="patientWorkspaceMode" value="html" id="patientWorkspaceHtml" />
+              <label for="patientWorkspaceHtml">Classic HTML</label>
+              
+              <div class="auth-toggle-glider"></div>
+            </div>
+          </div>
+
           <p id="loginMessage" hidden></p>
 
           <div class="auth-actions">

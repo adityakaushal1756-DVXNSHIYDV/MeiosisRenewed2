@@ -192,9 +192,9 @@
           ? window.location.protocol
           : 'http:';
       const host = window.location.hostname || 'localhost';
-      return { backendOrigin: `${protocol}//${host}:5000` };
+      return { backendOrigin: `${protocol}//${host}:5002` };
     })();
-    const API_BASE_URL = `${String(runtimeConfig.backendOrigin || 'http://localhost:5000').replace(/\/+$/, '')}/api`;
+    const API_BASE_URL = `${String(runtimeConfig.backendOrigin || 'http://localhost:5002').replace(/\/+$/, '')}/api`;
     const AUTH_SESSION_KEY = 'meiosis_auth_session_v1';
 
     function loadSession() {

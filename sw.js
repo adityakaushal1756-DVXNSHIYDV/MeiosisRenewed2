@@ -72,7 +72,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // ── Backend API — Network-first with stale fallback ──
-  if (url.pathname.startsWith('/api/') || url.port === '5000') {
+  if (url.pathname.startsWith('/api/') || url.port === '5002') {
     event.respondWith(networkFirst(request, API_CACHE, 5000));
     return;
   }

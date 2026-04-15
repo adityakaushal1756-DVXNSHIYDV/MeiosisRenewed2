@@ -1139,7 +1139,7 @@ export default function App() {
     window.setTimeout(() => setEmrToast(null), 4000);
   };
 
-  const handleSaveEMR = async () => {
+  const handleSaveEMR = async (severity: any = 'MILD') => {
     if (!effectivePatient || emrSaving) return;
 
     // Snapshot state now — it will be reset before the async call resolves
@@ -1158,6 +1158,7 @@ export default function App() {
       specialty: CURRENT_DOCTOR.specialty,
       mode: 'In-person',
       status: 'Completed',
+      severity: severity, // Injected for local consistency
       purpose: savedEmr.diagnosis || savedEmr.symptoms || savedPatient.visitReason || 'Consultation',
       symptoms:    savedEmr.symptoms    || undefined,
       diagnosis:   savedEmr.diagnosis   || undefined,
@@ -1214,6 +1215,7 @@ export default function App() {
       vitals: savedEmr.vitals,
       symptoms: savedEmr.symptoms,
       diagnosis: savedEmr.diagnosis,
+      severity: severity, // Pass to backend
       advice: savedEmr.advice,
       prescriptionRows: savedEmr.prescriptionRows,
       labTests: savedEmr.labTests,

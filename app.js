@@ -266,10 +266,8 @@ const MEDICATION_STATE_STORAGE_KEY = "meiosis_medication_state_v1";
 const CUSTOM_DOCTORS_STORAGE_KEY = "meiosis_custom_doctors_v1";
 const LAST_PATIENT_KEY = "meiosis_last_patient_id_v1";
 const runtimeConfig = window.MEIOSIS_RUNTIME_CONFIG || {};
-const BACKEND_ORIGIN = String(
-  runtimeConfig.backendOrigin || "http://localhost:5000",
-).replace(/\/+$/, "");
-const API_BASE_URL = `${BACKEND_ORIGIN}/api`;
+const API = String(runtimeConfig.backendOrigin || 'http://localhost:5002').replace(/\/+$/, '') + '/api';
+const API_BASE_URL = API;
 const MESSAGE_ATTACHMENT_PREFIX = "__MEIOSIS_ATTACHMENT__::";
 const THEME_STORAGE_KEY = "meiosis_patient_theme_v2";
 const CUSTOM_THEME_STORAGE_KEY = "meiosis_patient_custom_theme_v1";
@@ -819,7 +817,7 @@ function computePollenRisk(hourly, idx) {
 
 function setWeatherLoadingState(message = "Loading weather...") {
   if (weatherSummary) weatherSummary.textContent = message;
-  if (weatherTemp) weatherTemp.textContent = "--�C";
+  if (weatherTemp) weatherTemp.textContent = "--°C";
   if (weatherHourly)
     weatherHourly.innerHTML =
       '<div class="hour-chip"><p>--</p><strong>--</strong></div>';
@@ -867,9 +865,9 @@ function renderWeather(data, placeLabel) {
   if (weatherSummary)
     weatherSummary.textContent = "Real-time local weather context";
   if (weatherTemp)
-    weatherTemp.textContent = `${Math.round(current.temperature_2m ?? 0)}�C`;
+    weatherTemp.textContent = `${Math.round(current.temperature_2m ?? 0)}°C`;
   if (weatherFeelsLike)
-    weatherFeelsLike.textContent = `${Math.round(current.apparent_temperature ?? 0)}�C`;
+    weatherFeelsLike.textContent = `${Math.round(current.apparent_temperature ?? 0)}°C`;
   if (weatherCondition) weatherCondition.textContent = conditionText;
   if (weatherHumidity)
     weatherHumidity.textContent = `${Math.round(current.relative_humidity_2m ?? 0)}%`;
@@ -966,7 +964,7 @@ function renderWeather(data, placeLabel) {
       chips.push(`
         <div class="hour-chip ${isNow}">
           <div class="hour-head"><p>${t}</p><span class="hour-icon"></span></div>
-          <strong>${Math.round(temps[i] ?? 0)}�C</strong>
+          <strong>${Math.round(temps[i] ?? 0)}°C</strong>
           <p>${cond}</p>
           <p>UV ${Number(uvs[i] ?? 0).toFixed(1)}</p>
         </div>
@@ -990,7 +988,7 @@ function renderWeather(data, placeLabel) {
         month: "short",
       });
       rows.push(
-        `<div class="day-row"><span>${day}</span><span>${Math.round(minT[i] ?? 0)}�/${Math.round(maxT[i] ?? 0)}�</span><span>UV ${Number(maxUv[i] ?? 0).toFixed(1)}</span><span>Rain ${Math.round(precip[i] ?? 0)}%</span></div>`,
+        `<div class="day-row"><span>${day}</span><span>${Math.round(minT[i] ?? 0)}°/${Math.round(maxT[i] ?? 0)}°</span><span>UV ${Number(maxUv[i] ?? 0).toFixed(1)}</span><span>Rain ${Math.round(precip[i] ?? 0)}%</span></div>`,
       );
     }
     weatherDaily.innerHTML =
@@ -1933,7 +1931,7 @@ function buildRxViewHtml(code) {
     ["Chief Complaint: ", "Chief Complaint"],
     ["Subjective: ", "Symptoms"],
     ["Assessment: ", "Diagnosis / Assessment"],
-    ["Plan: ", "Treatment Plan"],
+    ["Plan: ", "Plan"],
   ];
   const noteRows = noteLines
     .flatMap((line) => {

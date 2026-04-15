@@ -70,7 +70,7 @@ export function WelcomeAnimation({ onDone }: { onDone: () => void }) {
 
   // hold → exit after 3.2 s total
   useEffect(() => {
-    const t = setTimeout(() => setPhase('out'), 3200);
+    const t = setTimeout(() => setPhase('out'), 1000);
     return () => clearTimeout(t);
   }, []);
 

@@ -1,6 +1,6 @@
 const runtimeConfig = window.MEIOSIS_RUNTIME_CONFIG || {};
 const BACKEND_ORIGIN = String(
-  runtimeConfig.backendOrigin || "http://localhost:5000",
+  runtimeConfig.backendOrigin || "http://localhost:5002",
 ).replace(/\/+$/, "");
 const DOCTOR_FRONTEND_URL = String(
   runtimeConfig.doctorFrontendUrl || "http://localhost:5173",
@@ -15,12 +15,17 @@ function delay(ms) {
 }
 
 function deriveRootLinks() {
+  const isLocalSession = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+  
+  // Try to use a relative path for the new vite frontend if we are hosted normally, but default to the local Vite port on localhost
+  const patientViteHostname = isLocalSession ? "http://localhost:5174/" : new URL("/patient-frontend/", window.location.href).href;
+
   return {
     login: new URL("./login.html", window.location.href).href,
     signup: new URL("./signup.html", window.location.href).href,
     patient: new URL("./patient.html", window.location.href).href,
+    patientVite: patientViteHostname,
     doctorLaunch: new URL("./doctor-launch.html", window.location.href).href,
-
   };
 }
 
@@ -97,7 +102,20 @@ async function redirectAfterLogin(role, isNewSignup = false) {
     ).href;
     return;
   }
-  window.location.href = rootLinks.patient;
+
+  // Patient pathing... Check radio toggle if it exists
+  let targetUrl = rootLinks.patient; // Default classic HTML
+  const modeRadio = document.querySelector('input[name="patientWorkspaceMode"]:checked');
+  if (modeRadio && modeRadio.value === "vite") {
+    const sessionData = localStorage.getItem(AUTH_SESSION_KEY);
+    const url = new URL(rootLinks.patientVite);
+    if (sessionData) {
+      url.searchParams.set("session", sessionData);
+    }
+    targetUrl = url.toString();
+  }
+  
+  window.location.href = targetUrl;
 }
 
 async function apiPost(path, body) {

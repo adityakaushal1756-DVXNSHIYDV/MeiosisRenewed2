@@ -75,7 +75,7 @@ interface EMRBuilderProps {
   onApplyTemplate: (templateId: string) => void;
   onSaveTemplate: () => boolean;
   isSaving?: boolean;
-  onSaveEMR: () => void;
+  onSaveEMR: (severity: Severity) => void;
   onNavigate?: (key: string) => void;
 }
 
@@ -423,7 +423,7 @@ export function EMRBuilder({
             </button>
             <button
               type="button"
-              onClick={onSaveEMR}
+              onClick={() => onSaveEMR(severity)}
               disabled={isSaving}
               className="action-btn gap-2 py-2 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >

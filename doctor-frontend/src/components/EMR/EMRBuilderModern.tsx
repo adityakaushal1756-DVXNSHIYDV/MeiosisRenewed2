@@ -30,6 +30,8 @@ import { VoiceWave } from "./VoiceWave";
 import { MedicineAutocomplete } from "./MedicineAutocomplete";
 import { HoverRevealSidebar } from "../HoverRevealSidebar";
 
+export type Severity = "LOW" | "MILD" | "SEVERE";
+
 interface EMRBuilderModernProps {
   patientName: string | null;
   patient?: Patient | null;
@@ -56,7 +58,7 @@ interface EMRBuilderModernProps {
   onApplyTemplate: (templateId: string) => void;
   onSaveTemplate: () => boolean;
   isSaving?: boolean;
-  onSaveEMR: () => void;
+  onSaveEMR: (severity: Severity) => void;
   onNavigate?: (key: string) => void;
 }
 
@@ -528,7 +530,6 @@ function Panel({
 }
 
 /* ── Severity picker with iOS pop + neon glow ────────────── */
-type Severity = "LOW" | "MILD" | "SEVERE";
 
 /* Active: same neon theme as Save EMR / action-btn */
 const SEVERITY_ACTIVE_CLS = "border-neon/40 bg-neon/[0.12] text-neon";
@@ -937,7 +938,7 @@ export function EMRBuilderModern({
           {/* Save EMR */}
           <button
             type="button"
-            onClick={onSaveEMR}
+            onClick={() => onSaveEMR(severity)}
             disabled={isSaving}
             className="action-btn gap-1.5 py-1.5 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
           >

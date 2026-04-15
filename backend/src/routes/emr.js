@@ -36,7 +36,8 @@ router.post('/', asyncHandler(async (req, res) => {
     advice,
     prescriptionRows = [],
     labTests,
-    followUpDate
+    followUpDate,
+    severity
   } = req.body;
 
   if (!patientId) {
@@ -85,6 +86,7 @@ router.post('/', asyncHandler(async (req, res) => {
     patientInfo   && `Chief Complaint: ${patientInfo}`,
     symptoms      && `Subjective: ${symptoms}`,
     diagnosis     && `Assessment: ${diagnosis}`,
+    severity      && `Severity: ${severity}`,
     advice        && `Plan: ${advice}`,
     (() => {
       const parts = [
