@@ -1,0 +1,49 @@
+# Environment
+.env.local
+.env.*.local
+.env
+
+# Local development
+.DS_Store
+*.log
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/recommendations.json
+.idea/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Dependencies (managed per package)
+# Note: backend/node_modules and doctor-frontend/node_modules are in their own .gitignore
+
+# Uploads and generated files
+uploads/
+backend/uploads/
+
+# Temporary files
+*.tmp
+.cache/
+
+# OS-specific
+Thumbs.db
+.DS_Store
+
+# VS Code counter (tool)
+.VSCodeCounter/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+*.egg-info/

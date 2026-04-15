@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MEIOSIS Patient Record</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: linear-gradient(135deg, #0b2018, #123928 58%, #1e573a);
+        color: #ecfff5;
+      }
+
+      main {
+        width: min(560px, calc(100vw - 32px));
+        padding: 32px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.24);
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(28px, 5vw, 40px);
+        letter-spacing: 0.06em;
+      }
+
+      p {
+        margin: 0 0 12px;
+        line-height: 1.6;
+        color: rgba(236, 255, 245, 0.86);
+      }
+
+      code {
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>MEIOSIS</h1>
+      <p>This temporary Vercel deployment serves the backend APIs and generated medical documents.</p>
+      <p>If you need the patient-facing scan flow, point it to your frontend deployment URL or keep using local development for that screen.</p>
+      <p>Health check: <code>/health</code></p>
+    </main>
+  </body>
+</html>

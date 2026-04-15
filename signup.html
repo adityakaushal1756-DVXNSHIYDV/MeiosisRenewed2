@@ -1,0 +1,2099 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Join MEIOSIS</title>
+  <!-- PWA -->
+  <meta name="theme-color" content="#0d1b2a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MEIOSIS" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Non-blocking font load: page renders immediately with system font, swaps when Outfit arrives -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" onload="this.rel='stylesheet'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" /></noscript>
+  <style>
+    /* ── Reset ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', system-ui, sans-serif;
+      color: #f0f8ff;
+      background:
+        radial-gradient(ellipse at 70% 0%, rgba(82, 255, 157, 0.09) 0%, transparent 50%),
+        radial-gradient(ellipse at 20% 100%, rgba(131, 212, 255, 0.07) 0%, transparent 45%),
+        linear-gradient(175deg, #010e1c 0%, #041728 55%, #061e35 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Progress bar ──────────────────────────────────── */
+    @keyframes ob-bar-shimmer {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(400%); }
+    }
+
+    #ob-progress {
+      position: fixed;
+      top: 0; left: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #2fcc77, #52ff9d, #2fcc77);
+      border-radius: 0 3px 3px 0;
+      transition: width 600ms cubic-bezier(0.34, 1.2, 0.64, 1);
+      z-index: 200;
+      box-shadow: 0 0 14px rgba(82,255,157,0.6);
+      overflow: hidden;
+    }
+    #ob-progress::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%);
+      width: 30%;
+      animation: ob-bar-shimmer 1.8s ease-in-out infinite;
+      will-change: transform;
+    }
+
+    /* ── Top header ────────────────────────────────────── */
+    #ob-header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 32px;
+      pointer-events: none;
+    }
+
+    .ob-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      pointer-events: all;
+    }
+
+    .ob-brand-mark {
+      width: 38px; height: 38px;
+      display: grid; place-items: center;
+      border-radius: 12px;
+      background: #52ff9d;
+      color: #04131f;
+      font-size: 1rem; font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .ob-brand-name {
+      font-size: 0.95rem; font-weight: 700;
+      color: #fff; letter-spacing: 0.06em;
+    }
+
+    #ob-step-label {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.38);
+      letter-spacing: 0.1em;
+      pointer-events: none;
+    }
+
+    /* ── Main shell ─────────────────────────────────────── */
+    #ob-shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 96px 24px 112px;
+    }
+
+    /* ── Step container ─────────────────────────────────── */
+    #ob-step-container {
+      width: 100%;
+      max-width: 580px;
+      position: relative;
+    }
+
+    /* ── Animations ─────────────────────────────────────── */
+
+    /* Enter: slide + subtle scale — children stagger opacity/rise */
+    @keyframes ob-enter-fwd {
+      0%   { transform: translateX(30px) scale(0.97); }
+      100% { transform: translateX(0)    scale(1); }
+    }
+    @keyframes ob-enter-back {
+      0%   { transform: translateX(-30px) scale(0.97); }
+      100% { transform: translateX(0)     scale(1); }
+    }
+
+    /* Exit: snappy departure */
+    @keyframes ob-exit-to-left {
+      from { opacity: 1; transform: translateX(0) scale(1); }
+      to   { opacity: 0; transform: translateX(-22px) scale(0.95); }
+    }
+    @keyframes ob-exit-to-right {
+      from { opacity: 1; transform: translateX(0) scale(1); }
+      to   { opacity: 0; transform: translateX(22px) scale(0.95); }
+    }
+
+    /* Children: fade + rise + micro spring-pop */
+    @keyframes ob-child-rise {
+      0%   { opacity: 0; transform: translateY(26px) scale(0.96); }
+      62%  { opacity: 1; transform: translateY(-4px) scale(1.015); }
+      100% { opacity: 1; transform: translateY(0)    scale(1); }
+    }
+
+    /* Success screen: rises from below with spring */
+    @keyframes ob-pop-in {
+      0%   { opacity: 0; transform: scale(0.78) translateY(28px); }
+      58%  { opacity: 1; transform: scale(1.04) translateY(-6px); }
+      78%  { transform: scale(0.98) translateY(2px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* Success ring pulse */
+    @keyframes ob-ring-pulse {
+      0%, 100% { box-shadow: 0 0 0 0   rgba(82,255,157,0.3), 0 0 0 0   rgba(82,255,157,0.15); }
+      50%       { box-shadow: 0 0 0 10px rgba(82,255,157,0),  0 0 0 20px rgba(82,255,157,0); }
+    }
+
+    /* ── Enter classes ── */
+    .ob-anim-fwd  { animation: ob-enter-fwd  0.38s cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform; }
+    .ob-anim-back { animation: ob-enter-back 0.38s cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform; }
+    .ob-anim-pop  { animation: ob-pop-in     0.54s cubic-bezier(0.34, 1.4, 0.64, 1) both; will-change: transform, opacity; }
+
+    /* ── Exit classes ── */
+    .ob-exit-left  { animation: ob-exit-to-left  0.19s cubic-bezier(0.4, 0, 1, 0.6) both; pointer-events: none; will-change: transform, opacity; }
+    .ob-exit-right { animation: ob-exit-to-right 0.19s cubic-bezier(0.4, 0, 1, 0.6) both; pointer-events: none; will-change: transform, opacity; }
+
+    /* ── Staggered children ── */
+    .ob-anim-fwd > *, .ob-anim-back > * {
+      animation: ob-child-rise 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
+      will-change: transform, opacity;
+    }
+    .ob-anim-fwd > *:nth-child(1), .ob-anim-back > *:nth-child(1) { animation-delay: 0.05s; }
+    .ob-anim-fwd > *:nth-child(2), .ob-anim-back > *:nth-child(2) { animation-delay: 0.13s; }
+    .ob-anim-fwd > *:nth-child(3), .ob-anim-back > *:nth-child(3) { animation-delay: 0.20s; }
+    .ob-anim-fwd > *:nth-child(4), .ob-anim-back > *:nth-child(4) { animation-delay: 0.26s; }
+    .ob-anim-fwd > *:nth-child(5), .ob-anim-back > *:nth-child(5) { animation-delay: 0.31s; }
+
+    /* ── Question block ─────────────────────────────────── */
+    .ob-question { margin-bottom: 30px; }
+
+    .ob-q-kicker {
+      font-size: 0.75rem;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: rgba(82, 255, 157, 0.8);
+      margin-bottom: 10px;
+      font-weight: 600;
+      text-shadow: 0 0 20px rgba(82,255,157,0.4);
+    }
+
+    .ob-q-title {
+      font-size: clamp(1.75rem, 4.5vw, 2.6rem);
+      font-weight: 700;
+      line-height: 1.1;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+
+    .ob-optional-tag {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.3);
+      letter-spacing: 0.08em;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    .ob-q-sub {
+      font-size: 0.93rem;
+      color: rgba(255, 255, 255, 0.48);
+      line-height: 1.6;
+    }
+
+    /* ── Text / email / number input ────────────────────── */
+    .ob-input-wrap { position: relative; }
+
+    @keyframes ob-input-bloom {
+      from { box-shadow: 0 0 0 0px rgba(82,255,157,0.35); }
+      to   { box-shadow: 0 0 0 4px rgba(82,255,157,0.12); }
+    }
+
+    .ob-input {
+      width: 100%;
+      padding: 18px 20px;
+      background: rgba(255, 255, 255, 0.055);
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      color: #fff;
+      font: inherit;
+      font-size: 1.1rem;
+      outline: none;
+      transition: border-color 220ms, background 220ms, transform 280ms cubic-bezier(0.34,1.4,0.64,1);
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    .ob-input::-webkit-outer-spin-button,
+    .ob-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    .ob-input:focus {
+      border-color: rgba(82, 255, 157, 0.5);
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-1px);
+      animation: ob-input-bloom 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .ob-input.ob-err {
+      border-color: rgba(255, 91, 91, 0.5);
+      box-shadow: 0 0 0 4px rgba(255, 91, 91, 0.1);
+    }
+
+    .ob-input::placeholder { color: rgba(255, 255, 255, 0.25); }
+
+    .ob-input.with-toggle { padding-right: 54px; }
+
+    /* ── Password show / hide ───────────────────────────── */
+    .ob-pw-toggle {
+      position: absolute;
+      right: 17px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      color: rgba(255, 255, 255, 0.38);
+      cursor: pointer; padding: 4px;
+      display: grid; place-items: center;
+      transition: color 150ms;
+    }
+    .ob-pw-toggle:hover { color: rgba(255, 255, 255, 0.75); }
+
+    /* ── Password strength ──────────────────────────────── */
+    .ob-pw-strength {
+      display: flex; gap: 6px; margin-top: 10px;
+    }
+    .ob-pw-bar {
+      flex: 1; height: 4px; border-radius: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      transition: background 300ms;
+    }
+    .ob-pw-bar.weak   { background: #ff6b6b; }
+    .ob-pw-bar.fair   { background: #ffc107; }
+    .ob-pw-bar.good   { background: #7bddff; }
+    .ob-pw-bar.strong { background: #52ff9d; }
+    .ob-pw-hint {
+      font-size: 0.79rem; color: rgba(255,255,255,0.4); margin-top: 7px;
+    }
+
+    /* ── Email availability badge ───────────────────────── */
+    .ob-email-badge {
+      display: none;
+      align-items: center; gap: 7px;
+      margin-top: 10px;
+      font-size: 0.85rem; font-weight: 500;
+    }
+    .ob-email-badge .ob-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: currentColor; flex-shrink: 0;
+    }
+    .ob-email-badge.checking { display: flex; color: #83d4ff; }
+    .ob-email-badge.available { display: flex; color: #52ff9d; }
+    .ob-email-badge.taken     { display: flex; color: #ff6b6b; }
+
+    /* ── Chips (single select) ──────────────────────────── */
+    .ob-chips {
+      display: flex; flex-wrap: wrap; gap: 10px;
+    }
+
+    @keyframes ob-chip-snap {
+      0%   { transform: scale(0.86); }
+      55%  { transform: scale(1.10); }
+      78%  { transform: scale(0.98); }
+      100% { transform: scale(1.05); }
+    }
+
+    .ob-chip {
+      padding: 11px 20px;
+      border-radius: 999px;
+      border: 1.5px solid rgba(255, 255, 255, 0.11);
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.7);
+      font: inherit; font-size: 0.93rem;
+      cursor: pointer;
+      transition: border-color 180ms, background 180ms, color 180ms, box-shadow 200ms,
+                  transform 260ms cubic-bezier(0.34, 1.6, 0.64, 1);
+    }
+
+    .ob-chip:hover {
+      border-color: rgba(255, 255, 255, 0.24);
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff; transform: translateY(-3px) scale(1.04);
+    }
+
+    .ob-chip:active { transform: scale(0.86) !important; transition-duration: 60ms !important; }
+
+    .ob-chip.sel-patient {
+      border-color: rgba(82, 255, 157, 0.65);
+      background: rgba(82, 255, 157, 0.14);
+      color: #9bffca;
+      box-shadow: 0 0 0 1px rgba(82,255,157,0.2), 0 6px 22px rgba(82,255,157,0.18);
+      animation: ob-chip-snap 0.34s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    .ob-chip.sel-doctor {
+      border-color: rgba(131, 212, 255, 0.65);
+      background: rgba(131, 212, 255, 0.14);
+      color: #a9dfff;
+      box-shadow: 0 0 0 1px rgba(131,212,255,0.2), 0 6px 22px rgba(131,212,255,0.18);
+      animation: ob-chip-snap 0.34s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    /* ── Role cards ─────────────────────────────────────── */
+    .ob-role-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @keyframes ob-card-select {
+      0%   { transform: scale(0.96); }
+      55%  { transform: scale(1.04); }
+      80%  { transform: scale(1.01); }
+      100% { transform: scale(1.025); }
+    }
+
+    .ob-role-card {
+      padding: 34px 22px 28px;
+      border-radius: 26px;
+      border: 2px solid rgba(255, 255, 255, 0.07);
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      text-align: center;
+      color: inherit; font: inherit;
+      position: relative; overflow: hidden;
+      transition: border-color 220ms, background 220ms,
+                  transform 320ms cubic-bezier(0.34, 1.5, 0.64, 1),
+                  box-shadow 320ms;
+    }
+
+    /* Shimmer sweep on hover */
+    .ob-role-card::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.07) 50%, transparent 75%);
+      transform: translateX(-120%) skewX(-8deg);
+      transition: transform 0.55s ease;
+      pointer-events: none;
+    }
+    .ob-role-card:hover::after { transform: translateX(140%) skewX(-8deg); }
+
+    .ob-role-card:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.06);
+      transform: translateY(-6px) scale(1.015);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.22);
+    }
+
+    .ob-role-card:active { transform: scale(0.95) !important; transition-duration: 70ms !important; }
+
+    .ob-role-card.sel-patient {
+      border-color: rgba(82, 255, 157, 0.65);
+      background: rgba(82, 255, 157, 0.09);
+      box-shadow: 0 0 0 1px rgba(82,255,157,0.25), 0 20px 60px rgba(82,255,157,0.18);
+      animation: ob-card-select 0.38s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+    }
+
+    .ob-role-card.sel-doctor {
+      border-color: rgba(131, 212, 255, 0.65);
+      background: rgba(131, 212, 255, 0.09);
+      box-shadow: 0 0 0 1px rgba(131,212,255,0.25), 0 20px 60px rgba(131,212,255,0.18);
+      animation: ob-card-select 0.38s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+    }
+
+    .ob-role-icon { font-size: 2.8rem; line-height: 1; margin-bottom: 16px; }
+
+    .ob-role-title {
+      font-size: 1.1rem; font-weight: 700;
+      color: #fff; margin-bottom: 8px;
+    }
+
+    .ob-role-desc {
+      font-size: 0.83rem; color: rgba(255,255,255,0.48); line-height: 1.55;
+    }
+
+    /* ── Specialty search dropdown ──────────────────────── */
+    .ob-dropdown-wrap { position: relative; }
+
+    .ob-dropdown {
+      position: absolute;
+      top: calc(100% + 8px); left: 0; right: 0;
+      background: #061e35;
+      border: 1.5px solid rgba(255, 255, 255, 0.11);
+      border-radius: 20px;
+      overflow: hidden; z-index: 50;
+      max-height: 260px; overflow-y: auto;
+    }
+
+    .ob-dropdown-item {
+      padding: 13px 18px;
+      cursor: pointer;
+      font-size: 0.93rem; color: #c8d8e8;
+      transition: background 130ms;
+    }
+
+    .ob-dropdown-item:hover,
+    .ob-dropdown-item.kbd-focus {
+      background: rgba(82, 255, 157, 0.09);
+      color: #9bffca;
+    }
+
+    /* ── Error message ──────────────────────────────────── */
+    .ob-error-msg {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 14px;
+      padding: 13px 16px;
+      border-radius: 16px;
+      background: rgba(255, 91, 91, 0.09);
+      border: 1px solid rgba(255, 91, 91, 0.18);
+      color: #ffb0b0; font-size: 0.9rem;
+    }
+
+    /* ── Summary review ─────────────────────────────────── */
+    .ob-summary { display: grid; gap: 10px; }
+
+    .ob-summary-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 11px 16px; gap: 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.038);
+      border: 1px solid rgba(255, 255, 255, 0.055);
+    }
+
+    .ob-summary-key {
+      font-size: 0.75rem; text-transform: uppercase;
+      letter-spacing: 0.14em; color: rgba(255,255,255,0.38);
+      flex-shrink: 0;
+    }
+
+    .ob-summary-val {
+      font-size: 0.92rem; color: #e0f0ff; text-align: right;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* ── Consent checkbox ───────────────────────────────── */
+    .ob-consent-label {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 16px 18px; margin-top: 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      cursor: pointer;
+    }
+
+    .ob-consent-label input[type="checkbox"] {
+      width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;
+      accent-color: #52ff9d; cursor: pointer;
+    }
+
+    .ob-consent-text {
+      font-size: 0.87rem; color: rgba(255,255,255,0.48); line-height: 1.6;
+    }
+
+    .ob-consent-text a { color: #83d4ff; text-decoration: none; }
+    .ob-consent-text a:hover { text-decoration: underline; }
+
+    /* ── Bottom nav bar ─────────────────────────────────── */
+    #ob-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 32px 24px;
+      background: linear-gradient(to top, #010e1c 55%, transparent 100%);
+    }
+
+    #ob-back {
+      display: flex; align-items: center; gap: 8px;
+      padding: 13px 22px;
+      border-radius: 999px;
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.65);
+      font: inherit; font-size: 0.93rem;
+      cursor: pointer;
+      transition: border-color 160ms, background 160ms, color 160ms,
+                  transform 220ms cubic-bezier(0.34, 1.5, 0.64, 1);
+    }
+
+    #ob-back:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      transform: translateX(-5px);
+    }
+
+    #ob-back:active { transform: scale(0.94) !important; transition-duration: 70ms !important; }
+
+    .ob-nav-right { display: flex; align-items: center; gap: 12px; }
+
+    #ob-skip {
+      background: none; border: none;
+      color: rgba(255, 255, 255, 0.35);
+      font: inherit; font-size: 0.88rem;
+      cursor: pointer;
+      text-decoration: underline;
+      transition: color 150ms;
+      padding: 8px 4px;
+    }
+    #ob-skip:hover { color: rgba(255, 255, 255, 0.65); }
+
+    #ob-next {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 32px;
+      border-radius: 999px;
+      border: 0;
+      background: #52ff9d;
+      color: #04131f;
+      font: inherit; font-size: 1rem; font-weight: 700;
+      cursor: pointer;
+      position: relative; overflow: hidden;
+      box-shadow: 0 4px 28px rgba(82,255,157,0.32);
+      transition: transform 280ms cubic-bezier(0.34, 1.5, 0.64, 1),
+                  box-shadow 280ms, background 220ms, opacity 220ms;
+    }
+
+    /* Shimmer sweep */
+    #ob-next::before {
+      content: '';
+      position: absolute; top: 0; left: -80%;
+      width: 60%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.36), transparent);
+      transform: skewX(-18deg);
+      transition: left 0.52s ease;
+    }
+    #ob-next:not(:disabled):hover::before { left: 140%; }
+
+    #ob-next:not(:disabled):hover {
+      transform: translateY(-3px) scale(1.04);
+      box-shadow: 0 14px 48px rgba(82,255,157,0.48);
+    }
+
+    #ob-next:active { transform: scale(0.94) !important; transition-duration: 65ms !important; }
+
+    #ob-next:disabled {
+      opacity: 0.4; cursor: not-allowed;
+      transform: none !important; box-shadow: none;
+    }
+
+    #ob-next.mode-doctor {
+      background: #83d4ff; color: #021220;
+      box-shadow: 0 4px 28px rgba(131,212,255,0.32);
+    }
+    #ob-next.mode-doctor:not(:disabled):hover {
+      box-shadow: 0 14px 48px rgba(131,212,255,0.48);
+    }
+
+    /* ── Spinner ────────────────────────────────────────── */
+    @keyframes ob-spin { to { transform: rotate(360deg); } }
+
+    .ob-spinner {
+      width: 20px; height: 20px;
+      border: 2.5px solid rgba(0, 0, 0, 0.2);
+      border-top-color: #04131f;
+      border-radius: 50%;
+      animation: ob-spin 0.65s linear infinite;
+    }
+
+    .ob-spinner.light {
+      border-color: rgba(255,255,255,0.2);
+      border-top-color: #fff;
+    }
+
+    /* ── Success screen ─────────────────────────────────── */
+    .ob-success {
+      text-align: center;
+      padding: 0 16px;
+    }
+
+    .ob-success-ring {
+      width: 90px; height: 90px; border-radius: 50%;
+      background: rgba(82, 255, 157, 0.12);
+      border: 2px solid rgba(82, 255, 157, 0.35);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 28px;
+      font-size: 2.5rem;
+      animation: ob-ring-pulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) 0.4s infinite;
+      box-shadow: 0 0 0 0 rgba(82,255,157,0.3);
+    }
+
+    .ob-success-title {
+      font-size: clamp(1.8rem, 5vw, 2.6rem);
+      font-weight: 700; color: #fff; margin-bottom: 12px;
+    }
+
+    .ob-success-sub {
+      font-size: 1rem; color: rgba(255,255,255,0.5);
+      line-height: 1.65; margin-bottom: 28px;
+      max-width: 420px; margin-left: auto; margin-right: auto;
+    }
+
+    .ob-id-badge {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 24px; margin-bottom: 28px;
+      border-radius: 18px;
+      background: rgba(82, 255, 157, 0.08);
+      border: 1px solid rgba(82, 255, 157, 0.2);
+      color: #9bffca; font-size: 1.1rem; font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    .ob-success-redirect {
+      font-size: 0.87rem; color: rgba(255,255,255,0.35); margin-bottom: 24px;
+    }
+
+    .ob-success-btn {
+      padding: 16px 44px;
+      border-radius: 999px; border: 0;
+      background: #52ff9d; color: #04131f;
+      font: inherit; font-size: 1rem; font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 28px rgba(82, 255, 157, 0.32);
+      transition: transform 150ms, box-shadow 150ms;
+    }
+    .ob-success-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 40px rgba(82, 255, 157, 0.44);
+    }
+
+    /* ── Ambient blob animations ────────────────────────── */
+    @keyframes ob-blob-a {
+      0%, 100% { transform: translate(0, 0); }
+      33%  { transform: translate(40px, -30px); }
+      66%  { transform: translate(-20px, 20px); }
+    }
+    @keyframes ob-blob-b {
+      0%, 100% { transform: translate(0, 0); }
+      40%  { transform: translate(-35px, 25px); }
+      70%  { transform: translate(18px, -18px); }
+    }
+
+    /* ── Dropdown open animation ─────────────────────────── */
+    @keyframes ob-dropdown-open {
+      from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .ob-dropdown[style*="block"] {
+      animation: ob-dropdown-open 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    /* ── Input enhanced focus ────────────────────────────── */
+    .ob-input {
+      transition: border-color 200ms, box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1), background 200ms;
+    }
+
+    /* ── Phone input ─────────────────────────────────────── */
+    .ob-phone-wrap {
+      display: flex;
+      border-radius: 20px;
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.055);
+      overflow: hidden;
+      transition: border-color 200ms, box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1), background 200ms;
+    }
+    .ob-phone-wrap:focus-within {
+      border-color: rgba(82, 255, 157, 0.42);
+      box-shadow: 0 0 0 4px rgba(82, 255, 157, 0.1);
+      background: rgba(255, 255, 255, 0.07);
+    }
+    .ob-phone-wrap.ob-err {
+      border-color: rgba(255, 91, 91, 0.5);
+      box-shadow: 0 0 0 4px rgba(255, 91, 91, 0.1);
+    }
+    .ob-phone-prefix {
+      padding: 18px 14px 18px 20px;
+      font-size: 1.1rem; font-weight: 600;
+      color: rgba(255, 255, 255, 0.45);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      flex-shrink: 0; user-select: none; letter-spacing: 0.02em;
+    }
+    .ob-phone-field {
+      flex: 1; padding: 18px 20px;
+      background: none; border: none;
+      color: #fff; font: inherit; font-size: 1.15rem; outline: none;
+      -moz-appearance: textfield; appearance: textfield; letter-spacing: 0.06em;
+    }
+    .ob-phone-field::-webkit-outer-spin-button,
+    .ob-phone-field::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .ob-phone-field::placeholder { color: rgba(255, 255, 255, 0.22); letter-spacing: 0.04em; }
+
+    /* ── OTP step ─────────────────────────────────────── */
+    .ob-otp-dest {
+      font-size: 0.91rem; color: rgba(255,255,255,0.44); line-height: 1.65; margin-bottom: 32px;
+    }
+    .ob-otp-dest strong { color: rgba(255,255,255,0.82); font-weight: 600; }
+    .ob-otp-group {
+      display: flex; gap: 10px; justify-content: center; margin-bottom: 24px;
+    }
+
+    /* Cell = visual container, input = invisible event receiver, digit = animated char */
+    .ob-otp-cell {
+      position: relative; flex: 1; max-width: 60px; min-width: 40px; height: 72px;
+      border-radius: 18px; flex-shrink: 0;
+      border: 2px solid rgba(255,255,255,0.11);
+      background: rgba(255,255,255,0.05);
+      cursor: text; will-change: transform;
+      transition: border-color 220ms ease, background 220ms ease,
+                  box-shadow 260ms ease,
+                  transform 340ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .ob-otp-cell.focused {
+      border-color: rgba(82,255,157,0.58);
+      background: rgba(82,255,157,0.06);
+      transform: scale(1.04);
+      box-shadow: 0 0 0 3px rgba(82,255,157,0.12), 0 6px 20px rgba(82,255,157,0.08);
+    }
+    .ob-otp-cell.filled {
+      border-color: rgba(82,255,157,0.4);
+      background: rgba(82,255,157,0.08);
+    }
+    .ob-otp-cell.filled.doc {
+      border-color: rgba(131,212,255,0.4);
+      background: rgba(131,212,255,0.08);
+    }
+    .ob-otp-cell.ok {
+      border-color: rgba(82,255,157,0.78);
+      background: rgba(82,255,157,0.15);
+      box-shadow: 0 0 0 5px rgba(82,255,157,0.2), 0 14px 40px rgba(82,255,157,0.2);
+    }
+
+    @keyframes ob-cell-err-flash {
+      0%   { border-color: rgba(255,80,80,0.15); background: rgba(255,80,80,0.03); }
+      45%  { border-color: rgba(255,80,80,0.65); background: rgba(255,80,80,0.1); }
+      100% { border-color: rgba(255,80,80,0.5); background: rgba(255,80,80,0.07); }
+    }
+    .ob-otp-cell.err {
+      box-shadow: 0 0 0 3px rgba(255,80,80,0.1), 0 6px 16px rgba(255,80,80,0.08);
+      animation: ob-cell-err-flash 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .ob-otp-input {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      background: transparent; border: none; outline: none;
+      color: transparent; caret-color: transparent;
+      font-size: 1.75rem; text-align: center; cursor: text; z-index: 2;
+    }
+    .ob-otp-digit {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.75rem; font-weight: 700; color: #fff;
+      pointer-events: none; user-select: none; z-index: 1;
+      will-change: transform, opacity;
+    }
+
+    /* Digit drop-in: falls from above with gentle spring */
+    @keyframes ob-dig-in {
+      0%   { opacity: 0; transform: translateY(-12px) scale(0.7); }
+      55%  { opacity: 1; transform: translateY(3px) scale(1.06); }
+      78%  { transform: translateY(-1px) scale(0.97); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    /* Digit erase: slides down and fades (backspace) */
+    @keyframes ob-dig-out {
+      0%   { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(10px) scale(0.7); }
+    }
+    /* Digit error: floats upward (wrong code) */
+    @keyframes ob-dig-err {
+      0%   { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-12px) scale(0.65); }
+    }
+    /* Cell nudge when a digit lands */
+    @keyframes ob-cell-land {
+      0%   { transform: scale(1.04); }
+      35%  { transform: scale(1.10) translateY(-2px); }
+      60%  { transform: scale(0.94) translateY(1px); }
+      80%  { transform: scale(1.03); }
+      100% { transform: scale(1); }
+    }
+    /* Cell nudge on backspace erase */
+    @keyframes ob-cell-erase {
+      0%   { transform: scale(1); }
+      35%  { transform: scale(0.91) translateY(2px); }
+      65%  { transform: scale(1.03); }
+      100% { transform: scale(1); }
+    }
+    /* Per-box win bounce (staggered via JS) */
+    @keyframes ob-cell-win {
+      0%   { transform: scale(1); }
+      32%  { transform: scale(1.14) translateY(-4px); }
+      58%  { transform: scale(0.93) translateY(2px); }
+      78%  { transform: scale(1.04); }
+      100% { transform: scale(1); }
+    }
+    /* Next-cell pulse hint */
+    @keyframes ob-cell-await {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.04); }
+      100% { transform: scale(1); }
+    }
+    .ob-otp-cell.awaiting { animation: ob-cell-await 0.38s cubic-bezier(0.34,1.4,0.64,1) both; }
+
+    /* Group shake for wrong code */
+    @keyframes ob-otp-shake {
+      0%,100% { transform: translateX(0); }
+      15%  { transform: translateX(-7px); }
+      30%  { transform: translateX(6px); }
+      45%  { transform: translateX(-5px); }
+      60%  { transform: translateX(3px); }
+      75%  { transform: translateX(-2px); }
+    }
+    .ob-otp-group.shake { animation: ob-otp-shake 0.46s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+
+    .ob-otp-resend {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      font-size: 0.86rem; color: rgba(255,255,255,0.32); margin-top: 4px;
+    }
+    #ob-otp-resend-btn {
+      background: none; border: none; color: #83d4ff;
+      font: inherit; font-size: 0.86rem; cursor: pointer;
+      text-decoration: underline; padding: 0; transition: color 150ms;
+    }
+    #ob-otp-resend-btn:hover { color: #b8e8ff; }
+    #ob-otp-resend-btn:disabled { color: rgba(255,255,255,0.26); cursor: default; text-decoration: none; }
+
+    /* ── Social auth buttons ─────────────────────────────── */
+    .ob-social-btn {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      width: 100%; padding: 14px 20px;
+      border-radius: 20px;
+      border: 1.5px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: #fff; font: inherit; font-size: 0.97rem; font-weight: 500;
+      cursor: pointer;
+      transition: border-color 200ms, background 200ms,
+                  transform 280ms cubic-bezier(0.34,1.5,0.64,1);
+      will-change: transform;
+    }
+    .ob-social-btn:hover {
+      border-color: rgba(255,255,255,0.26);
+      background: rgba(255,255,255,0.09);
+      transform: translateY(-2px) scale(1.01);
+    }
+    .ob-social-btn:active { transform: scale(0.96) !important; transition-duration: 70ms !important; }
+    .ob-social-divider {
+      display: flex; align-items: center; gap: 14px;
+      margin: 18px 0; color: rgba(255,255,255,0.3);
+      font-size: 0.82rem; letter-spacing: 0.06em;
+    }
+    .ob-social-divider::before, .ob-social-divider::after {
+      content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.09);
+    }
+
+    /* ── Responsive ─────────────────────────────────────── */
+    @media (max-width: 560px) {
+      .ob-role-grid { grid-template-columns: 1fr; }
+      #ob-nav { padding: 14px 18px 20px; }
+      #ob-header { padding: 14px 18px; }
+      #ob-shell { padding: 78px 18px 100px; }
+      .ob-q-title { font-size: 1.55rem; }
+      #ob-next { padding: 14px 22px; font-size: 0.95rem; }
+      #ob-back { padding: 12px 16px; }
+    }
+  </style>
+
+  <!-- Supabase (email OTP) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.js?v=3"></script>
+  <script>
+    // ⚠ Replace with your Supabase project credentials.
+    // Supabase Dashboard → Project Settings → API → Project URL & anon/public key
+    window._supabase = supabase.createClient(
+      'https://gvlannjlmcifhupftxth.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2bGFubmpsbWNpZmh1cGZ0eHRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNTk2NzgsImV4cCI6MjA4NzkzNTY3OH0.J2EJjCElJjP5lcnA1nz3aJuPTlUDnJfQOQh8crdteEs'
+    );
+  </script>
+</head>
+<body>
+  <!-- Ambient background blobs -->
+  <div style="position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;">
+    <div style="position:absolute;width:600px;height:600px;top:-15%;left:-10%;border-radius:50%;background:radial-gradient(circle,rgba(82,255,157,0.07) 0%,transparent 70%);animation:ob-blob-a 18s ease-in-out infinite;will-change:transform;"></div>
+    <div style="position:absolute;width:500px;height:500px;bottom:-10%;right:-8%;border-radius:50%;background:radial-gradient(circle,rgba(131,212,255,0.06) 0%,transparent 70%);animation:ob-blob-b 22s ease-in-out infinite;will-change:transform;"></div>
+  </div>
+
+  <!-- Progress bar -->
+  <div id="ob-progress" style="width: 0%"></div>
+
+  <!-- Header -->
+  <header id="ob-header">
+    <a href="./login.html" class="ob-brand" title="Back to login">
+      <div class="ob-brand-mark">M</div>
+      <span class="ob-brand-name">MEIOSIS</span>
+    </a>
+    <span id="ob-step-label"></span>
+  </header>
+
+  <!-- Step content -->
+  <main id="ob-shell">
+    <div id="ob-step-container">
+      <!-- Rendered by signup.js -->
+    </div>
+  </main>
+
+  <!-- Bottom nav -->
+  <nav id="ob-nav">
+    <button id="ob-back" type="button" style="visibility: hidden">← Back</button>
+    <div class="ob-nav-right">
+      <button id="ob-skip" type="button" style="display: none">Skip for now</button>
+      <button id="ob-next" type="button">Continue →</button>
+    </div>
+  </nav>
+
+  <script>
+'use strict';
+
+const runtimeConfig = window.MEIOSIS_RUNTIME_CONFIG || {};
+const API         = String(runtimeConfig.backendOrigin || 'http://localhost:5000').replace(/\/+$/, '') + '/api';
+const SESSION_KEY = 'meiosis_auth_session_v1';
+const LINKS_KEY   = 'meiosis_root_links_v1';
+const DRAFT_KEY   = 'meiosis_signup_draft_v3';
+
+const SPECIALTIES = [
+  'General Medicine','General Surgery','Cardiology','Dermatology',
+  'Endocrinology','Gastroenterology','Gynecology & Obstetrics',
+  'Hematology','Nephrology','Neurology','Oncology','Ophthalmology',
+  'Orthopedics','Otolaryngology (ENT)','Pediatrics','Psychiatry',
+  'Pulmonology','Radiology','Rheumatology','Sports Medicine',
+  'Urology','Anesthesiology','Emergency Medicine','Pathology'
+];
+
+const CONDITIONS = [
+  'Hypertension','Type 2 Diabetes','Type 1 Diabetes','Asthma',
+  'Heart Disease','Chronic Kidney Disease','Thyroid Disorder',
+  'Arthritis','COPD','Depression / Anxiety','Migraine','Obesity',
+  'Anemia','Epilepsy','High Cholesterol','Osteoporosis','Sleep Apnea'
+];
+
+const state = {
+  role: null, stepIndex: 0, data: {},
+  emailStatus: null, backendOnline: false,
+  submitting: false, error: null,
+};
+
+const COMMON_STEPS = [
+  { id:'role', type:'role-select' },
+  { id:'name', type:'text', label:"What's your full name?", placeholder:'e.g. Rahul Sharma or Dr. Priya Nair', hint:'This appears on your prescriptions and patient records.', autocomplete:'name', required:true },
+  { id:'email', type:'email', label:"What's your email address?", placeholder:'you@example.com', hint:"This is your login. We'll never spam you.", autocomplete:'email', required:true },
+  { id:'emailOtp', type:'email-otp', label:'Verify your email', hint:"Enter the 6-digit code we sent to your inbox.", required:true },
+  { id:'password', type:'password', label:'Create a strong password', hint:'At least 8 characters. Mix letters, numbers, and symbols for best security.', required:true },
+  { id:'confirmPassword', type:'confirm-password', label:'Confirm your password', hint:'Re-enter the password to make sure it matches.', required:true },
+];
+
+const PATIENT_STEPS = [
+  { id:'dob', type:'date', label:'When were you born?', hint:'Helps doctors understand age-related health context.', optional:true },
+  { id:'gender', type:'chips', label:'How do you identify?', hint:'Used for personalised health recommendations. Completely optional.', options:['Male','Female','Non-binary','Prefer not to say'], optional:true },
+  { id:'bloodGroup', type:'chips', label:"What's your blood group?", hint:"Critical information for emergencies. Skip if you're unsure.", options:['A+','A\u2212','B+','B\u2212','AB+','AB\u2212','O+','O\u2212','Unknown'], optional:true },
+  { id:'conditions', type:'multi-chips', label:'Any existing health conditions?', hint:'Helps your doctor prepare before your first visit. Select all that apply.', options:CONDITIONS, optional:true },
+  { id:'emergencyContact', type:'text', label:'Who should we call in an emergency?', placeholder:'Name and phone number', hint:'Completely optional \u2014 you can add this later from your dashboard.', optional:true },
+  { id:'phone', type:'phone', label:"What's your phone number?", hint:'For appointment reminders and critical health alerts. We\u2019ll verify it now.', required:true },
+  { id:'phoneOtp', type:'phone-otp', label:'Verify your number', required:true },
+  { id:'consent', type:'final-patient' },
+];
+
+const DOCTOR_STEPS = [
+  { id:'specialty', type:'search-select', label:'What is your medical specialization?', placeholder:'Search specialties...', hint:'Start typing to filter the list. Select your primary specialty.', options:SPECIALTIES, required:true },
+  { id:'qualification', type:'text', label:'Your highest medical qualification?', placeholder:'MBBS, MD, DM, MS, DNB\u2026', hint:'Shown on prescriptions and your public doctor profile.', required:true },
+  { id:'registrationNumber', type:'text', label:'Medical council registration number', placeholder:'State or national medical council reg. no.', hint:'Optional now \u2014 needed for full verification later.', optional:true },
+  { id:'yearsExperience', type:'number', label:'Years of clinical experience?', placeholder:'e.g. 8', hint:'Total years of post-qualification clinical practice.', required:true },
+  { id:'hospital', type:'text', label:'Hospital or clinic you practice at?', placeholder:'Apollo Hospital, Private Clinic, AIIMS\u2026', hint:'Your primary place of work shown to patients.', required:true },
+  { id:'consultFee', type:'number', label:'Consultation fee (\u20b9)?', placeholder:'e.g. 800', hint:'The fee patients pay per consultation. You can update this anytime.', required:true },
+  { id:'consultMode', type:'chips', label:'How do you see patients?', hint:'Choose your preferred consultation mode.', options:['In-person','Online','Both'], required:true },
+  { id:'phone', type:'phone', label:"What's your phone number?", hint:'For patient alerts and critical clinic notifications. We\u2019ll verify it now.', required:true },
+  { id:'phoneOtp', type:'phone-otp', label:'Verify your number', required:true },
+  { id:'agreement', type:'final-doctor' },
+];
+
+function getSteps() {
+  if (!state.role) return COMMON_STEPS;
+  return [...COMMON_STEPS, ...(state.role === 'DOCTOR' ? DOCTOR_STEPS : PATIENT_STEPS)];
+}
+function currentStep() { return getSteps()[state.stepIndex]; }
+function totalSteps()  { return getSteps().length; }
+function isFinalStep(s){ return s && (s.type === 'final-patient' || s.type === 'final-doctor'); }
+
+function saveDraft() {
+  try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify({role:state.role,stepIndex:state.stepIndex,data:state.data})); } catch(e){}
+}
+function loadDraft() {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (d.role) state.role = d.role;
+    if (typeof d.stepIndex === 'number') state.stepIndex = d.stepIndex;
+    if (d.data && typeof d.data === 'object') state.data = d.data;
+    const steps = getSteps();
+    if (state.stepIndex >= steps.length) state.stepIndex = 0;
+  } catch(e){}
+}
+function clearDraft() { try { sessionStorage.removeItem(DRAFT_KEY); } catch(e){} }
+
+async function checkBackend() {
+  try {
+    const r = await fetch(API.replace('/api','') + '/health', {cache:'no-store'});
+    state.backendOnline = r.ok;
+  } catch(e) { state.backendOnline = false; }
+}
+
+let _emailDebounce = null;
+async function checkEmailAvailability(email) {
+  state.emailStatus = 'checking'; renderEmailBadge();
+  try {
+    const r = await fetch(API + '/auth/check-email?email=' + encodeURIComponent(email));
+    if (!r.ok) { state.emailStatus = null; renderEmailBadge(); return; }
+    const d = await r.json();
+    state.emailStatus = d.available ? 'available' : 'taken';
+  } catch(e) { state.emailStatus = null; }
+  renderEmailBadge();
+}
+function renderEmailBadge() {
+  const el = document.getElementById('ob-email-badge');
+  if (!el) return;
+  el.className = 'ob-email-badge';
+  if (!state.emailStatus) { el.style.display = 'none'; return; }
+  el.classList.add(state.emailStatus);
+  const labels = { checking:'• Checking availability\u2026', available:'\u2713 Email is available', taken:'\u2715 Already registered \u2014 try logging in instead' };
+  el.innerHTML = '<span class="ob-dot"></span>' + escHtml(labels[state.emailStatus] || '');
+}
+
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function escAttr(s) { return String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function iconEye() {
+  return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+}
+
+function render(animClass) {
+  if (animClass === undefined) animClass = 'ob-anim-fwd';
+  if (window._otpCountdown) { clearInterval(window._otpCountdown); window._otpCountdown = null; }
+  var step = currentStep();
+  if (!step) { state.stepIndex = 0; step = currentStep(); }
+  if (!step) return;
+  var total = totalSteps();
+  var pct = Math.round(((state.stepIndex + 1) / total) * 100);
+  var isPatient = state.role === 'PATIENT';
+  var isDoctor  = state.role === 'DOCTOR';
+  var final = isFinalStep(step);
+
+  var prog = document.getElementById('ob-progress');
+  if (prog) prog.style.width = pct + '%';
+
+  var lbl = document.getElementById('ob-step-label');
+  if (lbl) lbl.textContent = state.stepIndex > 0 ? ('Step ' + state.stepIndex + ' of ' + (total - 1)) : '';
+
+  var back = document.getElementById('ob-back');
+  if (back) back.style.visibility = state.stepIndex > 0 ? 'visible' : 'hidden';
+
+  var skip = document.getElementById('ob-skip');
+  if (skip) skip.style.display = (step.optional && !final) ? 'inline' : 'none';
+
+  var next = document.getElementById('ob-next');
+  if (next) {
+    next.classList.toggle('mode-doctor', isDoctor);
+    next.disabled = state.submitting || (step.type === 'role-select' && !state.role) || step.type === 'email-otp' || step.type === 'phone-otp';
+    if (state.submitting) {
+      next.innerHTML = '<span class="ob-spinner"></span>';
+    } else if (final) {
+      next.textContent = 'Create Account \u2192';
+    } else if (step.type === 'role-select') {
+      next.textContent = state.role ? 'Continue \u2192' : 'Choose a role first';
+    } else {
+      next.textContent = 'Continue \u2192';
+    }
+  }
+
+  var container = document.getElementById('ob-step-container');
+  if (!container) return;
+
+  var newWrapper = document.createElement('div');
+  if (animClass) newWrapper.className = animClass;
+  newWrapper.innerHTML = buildStepHTML(step, isPatient, isDoctor);
+
+  var oldWrapper = container.firstElementChild;
+  if (oldWrapper) {
+    /* Exit: remove from flow so new content can set the container height */
+    var exitClass = (animClass === 'ob-anim-back') ? 'ob-exit-right' : 'ob-exit-left';
+    oldWrapper.style.cssText = 'position:absolute;top:0;left:0;right:0;pointer-events:none;z-index:1;';
+    container.style.position = 'relative';
+    oldWrapper.className = exitClass;
+    /* New content enters while old content exits */
+    container.appendChild(newWrapper);
+    /* Clean up old wrapper after exit animation (220ms + small buffer) */
+    var _done = false;
+    var _cleanup = function() {
+      if (_done) return; _done = true;
+      if (oldWrapper.parentNode) oldWrapper.parentNode.removeChild(oldWrapper);
+      container.style.position = '';
+    };
+    oldWrapper.addEventListener('animationend', _cleanup, { once: true });
+    setTimeout(_cleanup, 340);
+  } else {
+    container.appendChild(newWrapper);
+  }
+
+  attachStepBehaviour(step);
+}
+
+function buildStepHTML(step, isPatient, isDoctor) {
+  if (step.type === 'role-select')   return buildRoleSelect();
+  if (step.type === 'final-patient') return buildFinalPatient();
+  if (step.type === 'final-doctor')  return buildFinalDoctor();
+
+  var kicker = isDoctor ? 'Doctor Setup' : (isPatient ? 'Patient Setup' : 'Account Setup');
+  var optTag = step.optional ? '<span class="ob-optional-tag">optional</span>' : '';
+  var val = state.data[step.id] != null ? state.data[step.id] : '';
+  var inputHTML = '';
+
+  if (step.type === 'text' || step.type === 'email') {
+    var _socialHTML = '';
+    if (step.type === 'email') {
+      var _gIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>';
+      var _aIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>';
+      _socialHTML =
+        '<div style="display:flex;flex-direction:column;gap:10px;">' +
+          '<button type="button" class="ob-social-btn" id="ob-google-btn">' + _gIcon + ' Continue with Google</button>' +
+          '<button type="button" class="ob-social-btn" id="ob-apple-btn">'  + _aIcon + ' Continue with Apple</button>' +
+        '</div>' +
+        '<div class="ob-social-divider">or continue with email</div>';
+    }
+    inputHTML = _socialHTML + '<div class="ob-input-wrap"><input id="ob-input" class="ob-input" type="' + step.type + '" placeholder="' + escAttr(step.placeholder || '') + '" value="' + escAttr(String(val)) + '" autocomplete="' + escAttr(step.autocomplete || 'off') + '" /></div>' +
+      (step.type === 'email' ? '<div id="ob-email-badge" class="ob-email-badge" style="display:none"></div>' : '');
+  } else if (step.type === 'number') {
+    inputHTML = '<div class="ob-input-wrap"><input id="ob-input" class="ob-input" type="number" min="0" placeholder="' + escAttr(step.placeholder || '') + '" value="' + escAttr(String(val)) + '" autocomplete="off" /></div>';
+  } else if (step.type === 'password') {
+    inputHTML = '<div class="ob-input-wrap"><input id="ob-input" class="ob-input with-toggle" type="password" autocomplete="new-password" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" /><button type="button" class="ob-pw-toggle" id="ob-pw-toggle" aria-label="Show password">' + iconEye() + '</button></div><div class="ob-pw-strength"><div class="ob-pw-bar" id="ob-bar-1"></div><div class="ob-pw-bar" id="ob-bar-2"></div><div class="ob-pw-bar" id="ob-bar-3"></div><div class="ob-pw-bar" id="ob-bar-4"></div></div><p class="ob-pw-hint" id="ob-pw-hint">Choose a password to get started</p>';
+  } else if (step.type === 'confirm-password') {
+    inputHTML = '<div class="ob-input-wrap"><input id="ob-input" class="ob-input with-toggle" type="password" autocomplete="new-password" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" /><button type="button" class="ob-pw-toggle" id="ob-pw-toggle" aria-label="Show password">' + iconEye() + '</button></div>';
+  } else if (step.type === 'date') {
+    var today = new Date().toISOString().slice(0,10);
+    inputHTML = '<div class="ob-input-wrap"><input id="ob-input" class="ob-input" type="date" value="' + escAttr(String(val)) + '" max="' + today + '" /></div>';
+  } else if (step.type === 'chips') {
+    var sel = state.data[step.id] || '';
+    var cls = isDoctor ? 'sel-doctor' : 'sel-patient';
+    inputHTML = '<div class="ob-chips" id="ob-chips">' + step.options.map(function(opt){ return '<button type="button" class="ob-chip' + (sel === opt ? ' ' + cls : '') + '" data-val="' + escAttr(opt) + '">' + escHtml(opt) + '</button>'; }).join('') + '</div>';
+  } else if (step.type === 'multi-chips') {
+    var selArr = Array.isArray(state.data[step.id]) ? state.data[step.id] : [];
+    var mcls = isDoctor ? 'sel-doctor' : 'sel-patient';
+    inputHTML = '<div class="ob-chips" id="ob-chips" style="max-height:260px;overflow-y:auto;">' + step.options.map(function(opt){ return '<button type="button" class="ob-chip' + (selArr.indexOf(opt) >= 0 ? ' ' + mcls : '') + '" data-val="' + escAttr(opt) + '">' + escHtml(opt) + '</button>'; }).join('') + '</div>';
+  } else if (step.type === 'search-select') {
+    inputHTML = '<div class="ob-dropdown-wrap"><input id="ob-input" class="ob-input" type="text" autocomplete="off" placeholder="' + escAttr(step.placeholder || 'Search\u2026') + '" value="' + escAttr(String(val)) + '" /><div id="ob-dropdown" class="ob-dropdown" style="display:none"></div></div>';
+  } else if (step.type === 'phone') {
+    var phoneDigits = state.data.phone ? String(state.data.phone).replace(/\D/g, '').slice(-10) : '';
+    inputHTML = '<div class="ob-phone-wrap" id="ob-phone-wrap"><span class="ob-phone-prefix">+91</span><input id="ob-phone-field" class="ob-phone-field" type="tel" inputmode="numeric" placeholder="98765 43210" value="' + escAttr(phoneDigits) + '" maxlength="10" autocomplete="tel" /></div>';
+  } else if (step.type === 'phone-otp') {
+    var rawPhone = String(state.data.phone || '').replace(/\D/g, '').slice(-10);
+    var maskedPhone = rawPhone.length === 10 ? ('+91\u00a0' + rawPhone.slice(0,5) + '\u00a0' + rawPhone.slice(5)) : (state.data.phone || 'your number');
+    inputHTML = '<p class="ob-otp-dest">Code sent to <strong>' + escHtml(maskedPhone) + '</strong>.<br>Use <strong>123456</strong> as the OTP for now.</p>' +
+      '<div class="ob-otp-group" id="ob-otp-group">' +
+      [0,1,2,3,4,5].map(function(idx){
+        return '<div class="ob-otp-cell" id="ob-otp-cell-' + idx + '">' +
+               '<input class="ob-otp-input" id="ob-otp-' + idx + '" type="text" inputmode="numeric" maxlength="1"' + (idx === 0 ? ' autocomplete="one-time-code"' : '') + '>' +
+               '<span class="ob-otp-digit" id="ob-otp-dig-' + idx + '"></span>' +
+               '</div>';
+      }).join('') +
+      '</div>' +
+      '<div class="ob-otp-resend"><span id="ob-otp-timer-lbl"></span><button id="ob-otp-resend-btn" type="button" disabled>Resend code</button></div>';
+  } else if (step.type === 'email-otp') {
+    var otpEmail = String(state.data.email || '').trim();
+    inputHTML = '<p class="ob-otp-dest">A 6-digit code was sent to <strong>' + escHtml(otpEmail) + '</strong>. Check your inbox (and spam folder).</p>' +
+      '<div class="ob-otp-group" id="ob-otp-group">' +
+      [0,1,2,3,4,5].map(function(idx){
+        return '<div class="ob-otp-cell" id="ob-otp-cell-' + idx + '">' +
+               '<input class="ob-otp-input" id="ob-otp-' + idx + '" type="text" inputmode="numeric" maxlength="1"' + (idx === 0 ? ' autocomplete="one-time-code"' : '') + '>' +
+               '<span class="ob-otp-digit" id="ob-otp-dig-' + idx + '"></span>' +
+               '</div>';
+      }).join('') +
+      '</div>' +
+      '<div class="ob-otp-resend"><span id="ob-otp-timer-lbl"></span><button id="ob-otp-resend-btn" type="button" disabled>Resend code</button></div>';
+  }
+
+  var errHTML = state.error ? '<div class="ob-error-msg">\u26a0 ' + escHtml(state.error) + '</div>' : '';
+  return '<div class="ob-question"><p class="ob-q-kicker">' + escHtml(kicker) + '</p><h2 class="ob-q-title">' + escHtml(step.label || '') + optTag + '</h2>' + (step.hint ? '<p class="ob-q-sub">' + escHtml(step.hint) + '</p>' : '') + '</div>' + inputHTML + errHTML;
+}
+
+function buildRoleSelect() {
+  var patSel = state.role === 'PATIENT', docSel = state.role === 'DOCTOR';
+  return '<div class="ob-question"><p class="ob-q-kicker">Getting Started</p><h2 class="ob-q-title">How will you use MEIOSIS?</h2><p class="ob-q-sub">Choose your role \u2014 this shapes your entire experience. You can\'t switch roles without creating a new account.</p></div>' +
+    '<div class="ob-role-grid">' +
+    '<button type="button" class="ob-role-card' + (patSel ? ' sel-patient' : '') + '" data-role="PATIENT"><div class="ob-role-icon">\uD83E\uDDD1\u200D\u2695\uFE0F</div><div class="ob-role-title">I\'m a Patient</div><div class="ob-role-desc">Book appointments, track prescriptions, view lab reports, and manage your complete health record.</div></button>' +
+    '<button type="button" class="ob-role-card' + (docSel ? ' sel-doctor' : '') + '" data-role="DOCTOR"><div class="ob-role-icon">\uD83E\uDE7A</div><div class="ob-role-title">I\'m a Doctor</div><div class="ob-role-desc">Manage patient queues, build EMRs, view clinical timelines, and run your clinic schedule.</div></button>' +
+    '</div><p style="text-align:center;font-size:0.83rem;color:rgba(255,255,255,0.3);margin-top:16px;">Select a role to continue</p>' +
+    (state.error ? '<div class="ob-error-msg" style="margin-top:12px;">\u26a0 ' + escHtml(state.error) + '</div>' : '');
+}
+
+function buildSummaryRows(rows) {
+  return rows.filter(Boolean).map(function(r){ return '<div class="ob-summary-row"><span class="ob-summary-key">' + escHtml(r.k) + '</span><span class="ob-summary-val">' + escHtml(r.v || '\u2014') + '</span></div>'; }).join('');
+}
+
+function buildFinalPatient() {
+  var d = state.data;
+  var rows = [
+    {k:'Role',v:'Patient'},{k:'Name',v:d.name},{k:'Email',v:d.email},
+    d.phone ? {k:'Phone',v:'+91\u00a0' + String(d.phone).replace(/\D/g,'').slice(-10)} : null,
+    d.dob ? {k:'Date of Birth',v:d.dob} : null,
+    d.gender ? {k:'Gender',v:d.gender} : null,
+    d.bloodGroup ? {k:'Blood Group',v:d.bloodGroup} : null,
+    (Array.isArray(d.conditions) && d.conditions.length) ? {k:'Conditions',v:d.conditions.join(', ')} : null,
+    d.emergencyContact ? {k:'Emergency Contact',v:d.emergencyContact} : null,
+  ];
+  return '<div class="ob-question"><p class="ob-q-kicker">Almost There</p><h2 class="ob-q-title">Review your details</h2><p class="ob-q-sub">Check everything looks right. You can always update your profile from your dashboard later.</p></div>' +
+    '<div class="ob-summary">' + buildSummaryRows(rows) + '</div>' +
+    '<label class="ob-consent-label"><input type="checkbox" id="ob-consent"' + (state.data.consent ? ' checked' : '') + ' /><span class="ob-consent-text">I agree to MEIOSIS <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>. I understand my health data will be stored securely and used only to provide medical services.</span></label>' +
+    (state.error ? '<div class="ob-error-msg">\u26a0 ' + escHtml(state.error) + '</div>' : '');
+}
+
+function buildFinalDoctor() {
+  var d = state.data;
+  var rows = [
+    {k:'Role',v:'Doctor'},{k:'Name',v:d.name},{k:'Email',v:d.email},
+    d.phone ? {k:'Phone',v:'+91\u00a0' + String(d.phone).replace(/\D/g,'').slice(-10)} : null,
+    {k:'Specialty',v:d.specialty},{k:'Qualification',v:d.qualification},
+    d.registrationNumber ? {k:'Reg. Number',v:d.registrationNumber} : null,
+    {k:'Experience',v:d.yearsExperience ? d.yearsExperience + ' years' : '\u2014'},
+    {k:'Hospital',v:d.hospital},
+    {k:'Consult Fee',v:d.consultFee ? '\u20b9' + d.consultFee : '\u2014'},
+    {k:'Mode',v:d.consultMode},
+  ];
+  return '<div class="ob-question"><p class="ob-q-kicker">Almost There</p><h2 class="ob-q-title">Review your details</h2><p class="ob-q-sub">You can update your professional profile anytime from the doctor dashboard.</p></div>' +
+    '<div class="ob-summary">' + buildSummaryRows(rows) + '</div>' +
+    '<label class="ob-consent-label"><input type="checkbox" id="ob-consent"' + (state.data.agreement ? ' checked' : '') + ' /><span class="ob-consent-text">I agree to MEIOSIS <a href="#">Terms of Service</a>, <a href="#">Privacy Policy</a>, and <a href="#">Doctor Code of Conduct</a>. I confirm all information I\'ve provided is accurate and I am a licensed medical professional.</span></label>' +
+    (state.error ? '<div class="ob-error-msg">\u26a0 ' + escHtml(state.error) + '</div>' : '');
+}
+
+function renderSuccess(user) {
+  clearDraft();
+  var nav = document.getElementById('ob-nav');
+  if (nav) nav.style.display = 'none';
+  var prog = document.getElementById('ob-progress');
+  if (prog) prog.style.width = '100%';
+  var lbl = document.getElementById('ob-step-label');
+  if (lbl) lbl.textContent = '';
+  var role = user.role || state.role;
+  var dest = role === 'DOCTOR' ? 'Doctor Console' : 'Patient Dashboard';
+  var container = document.getElementById('ob-step-container');
+  container.innerHTML = '<div class="ob-success ob-anim-pop"><div class="ob-success-ring">\u2713</div><h2 class="ob-success-title">Welcome to MEIOSIS!</h2><p class="ob-success-sub">Your account has been created. Save your MEIOSIS ID below \u2014 you can use it alongside your email to log in from any device.</p><div class="ob-id-badge">\uD83C\uDD94 ' + escHtml(user.meiosisId || '') + '</div><p class="ob-success-redirect" id="ob-redirect-msg">Redirecting to your ' + escHtml(dest) + ' in 3 seconds\u2026</p><button class="ob-success-btn" id="ob-go-btn">Go to ' + escHtml(dest) + ' \u2192</button></div>';
+  document.getElementById('ob-go-btn').onclick = function(){ doRedirect(role); };
+  var secs = 3;
+  var msgEl = document.getElementById('ob-redirect-msg');
+  var timer = setInterval(function() {
+    secs--;
+    if (msgEl) msgEl.textContent = 'Redirecting to your ' + dest + ' in ' + secs + ' second' + (secs !== 1 ? 's' : '') + '\u2026';
+    if (secs <= 0) { clearInterval(timer); doRedirect(role); }
+  }, 1000);
+}
+
+function attachStepBehaviour(step) {
+  state.error = null;
+  if (step.type === 'role-select') {
+    document.querySelectorAll('.ob-role-card').forEach(function(card) {
+      card.addEventListener('click', function() {
+        var role = card.getAttribute('data-role');
+        var prevRole = state.role;
+        state.role = role;
+        if (prevRole && prevRole !== role) {
+          var keep = ['name','email','password','confirmPassword'];
+          var fresh = {};
+          keep.forEach(function(k){ if (state.data[k]) fresh[k] = state.data[k]; });
+          state.data = fresh;
+        }
+        document.querySelectorAll('.ob-role-card').forEach(function(c){ c.classList.remove('sel-patient','sel-doctor'); });
+        card.classList.add(role === 'PATIENT' ? 'sel-patient' : 'sel-doctor');
+        var next = document.getElementById('ob-next');
+        if (next) { next.disabled = false; next.textContent = 'Continue \u2192'; next.classList.toggle('mode-doctor', role === 'DOCTOR'); }
+        saveDraft();
+      });
+    });
+    return;
+  }
+
+  var input = document.getElementById('ob-input');
+  if (input) {
+    setTimeout(function(){ input.focus(); }, 60);
+    if (step.type !== 'date') {
+      input.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); handleNext(); } });
+    }
+    input.addEventListener('input', function() {
+      var raw = input.value;
+      state.data[step.id] = (step.type === 'number' && raw !== '') ? Number(raw) : raw;
+      saveDraft();
+      if (step.type === 'email') scheduleEmailCheck(raw);
+      if (step.type === 'password') updatePasswordStrength(raw);
+    });
+    if (step.type === 'date') {
+      input.addEventListener('change', function(){ state.data[step.id] = input.value; saveDraft(); });
+    }
+  }
+
+  var pwToggle = document.getElementById('ob-pw-toggle');
+  if (pwToggle && input) {
+    pwToggle.addEventListener('click', function(){ input.type = input.type === 'password' ? 'text' : 'password'; });
+  }
+
+  if (step.type === 'email') {
+    var _esc = document.getElementById('ob-step-container');
+    var _esw = (_esc && _esc.lastElementChild) || document;
+    var _gBtn = _esw.querySelector('#ob-google-btn');
+    var _aBtn = _esw.querySelector('#ob-apple-btn');
+    if (_gBtn) _gBtn.addEventListener('click', function(){ handleSocialAuth('google'); });
+    if (_aBtn) _aBtn.addEventListener('click', function(){ handleSocialAuth('apple'); });
+  }
+
+  if (step.type === 'chips') {
+    var selClass = state.role === 'DOCTOR' ? 'sel-doctor' : 'sel-patient';
+    document.querySelectorAll('#ob-chips .ob-chip').forEach(function(chip) {
+      chip.addEventListener('click', function() {
+        document.querySelectorAll('#ob-chips .ob-chip').forEach(function(c){ c.classList.remove('sel-patient','sel-doctor'); });
+        chip.classList.add(selClass);
+        state.data[step.id] = chip.getAttribute('data-val');
+        saveDraft();
+      });
+    });
+  }
+
+  if (step.type === 'multi-chips') {
+    if (!Array.isArray(state.data[step.id])) state.data[step.id] = [];
+    var mSelClass = state.role === 'DOCTOR' ? 'sel-doctor' : 'sel-patient';
+    document.querySelectorAll('#ob-chips .ob-chip').forEach(function(chip) {
+      chip.addEventListener('click', function() {
+        var v = chip.getAttribute('data-val');
+        var arr = state.data[step.id];
+        var idx = arr.indexOf(v);
+        if (idx >= 0) { state.data[step.id] = arr.filter(function(x){ return x !== v; }); chip.classList.remove('sel-patient','sel-doctor'); }
+        else { state.data[step.id] = arr.concat([v]); chip.classList.add(mSelClass); }
+        saveDraft();
+      });
+    });
+  }
+
+  if (step.type === 'search-select' && input) {
+    var dropdown = document.getElementById('ob-dropdown');
+    var kbdIndex = -1;
+    var showDropdown = function(query) {
+      if (!dropdown) return;
+      var q = query.trim().toLowerCase();
+      var matches = q ? step.options.filter(function(o){ return o.toLowerCase().indexOf(q) >= 0; }).slice(0,12) : step.options.slice(0,10);
+      if (!matches.length) { dropdown.style.display = 'none'; return; }
+      dropdown.style.display = 'block';
+      dropdown.innerHTML = matches.map(function(m,i){ return '<div class="ob-dropdown-item" data-val="' + escAttr(m) + '" data-idx="' + i + '">' + escHtml(m) + '</div>'; }).join('');
+      kbdIndex = -1;
+      dropdown.querySelectorAll('.ob-dropdown-item').forEach(function(item) {
+        item.addEventListener('mousedown', function(e){ e.preventDefault(); selectSpecialty(item.getAttribute('data-val')); });
+      });
+    };
+    var selectSpecialty = function(v) {
+      input.value = v; state.data[step.id] = v; dropdown.style.display = 'none'; kbdIndex = -1; saveDraft();
+    };
+    var updateKbdFocus = function(items) {
+      items.forEach(function(el,i){ el.classList.toggle('kbd-focus', i === kbdIndex); });
+      if (items[kbdIndex]) items[kbdIndex].scrollIntoView({block:'nearest'});
+    };
+    input.addEventListener('focus', function(){ showDropdown(input.value); });
+    input.addEventListener('input', function(){ state.data[step.id] = input.value; showDropdown(input.value); saveDraft(); });
+    input.addEventListener('blur', function(){ setTimeout(function(){ if(dropdown) dropdown.style.display = 'none'; }, 200); });
+    input.addEventListener('keydown', function(e) {
+      var items = dropdown ? dropdown.querySelectorAll('.ob-dropdown-item') : [];
+      if (!items.length) return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); kbdIndex = Math.min(kbdIndex+1, items.length-1); updateKbdFocus(items); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); kbdIndex = Math.max(kbdIndex-1, 0); updateKbdFocus(items); }
+      else if (e.key === 'Enter' && kbdIndex >= 0) { e.preventDefault(); selectSpecialty(items[kbdIndex].getAttribute('data-val')); }
+    });
+  }
+
+  if (step.type === 'phone') {
+    var _psc = document.getElementById('ob-step-container');
+    var _psw = (_psc && _psc.lastElementChild) || document;
+    var phoneField = _psw.querySelector('#ob-phone-field');
+    var phoneWrap  = _psw.querySelector('#ob-phone-wrap');
+    if (phoneField) {
+      setTimeout(function(){ phoneField.focus(); }, 60);
+      phoneField.addEventListener('input', function() {
+        var digits = phoneField.value.replace(/\D/g,'').slice(0,10);
+        phoneField.value = digits;
+        state.data.phone = digits;
+        if (phoneWrap) phoneWrap.classList.remove('ob-err');
+        saveDraft();
+      });
+      phoneField.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); handleNext(); } });
+    }
+  }
+
+  if (step.type === 'phone-otp') {
+    var isDoc = state.role === 'DOCTOR';
+    var _sc = document.getElementById('ob-step-container');
+    var _sw = (_sc && _sc.lastElementChild) || document;
+    var boxes  = [0,1,2,3,4,5].map(function(i){ return _sw.querySelector('#ob-otp-' + i); });
+    var cells  = [0,1,2,3,4,5].map(function(i){ return _sw.querySelector('#ob-otp-cell-' + i); });
+    var digits = [0,1,2,3,4,5].map(function(i){ return _sw.querySelector('#ob-otp-dig-' + i); });
+
+    var getCode = function() { return boxes.map(function(b){ return b ? b.value : ''; }).join(''); };
+
+    /* ── Animation helpers ── */
+    var digIn = function(i) {
+      var d = digits[i]; if (!d) return;
+      d.style.animation = 'none'; void d.offsetWidth;
+      d.style.animation = 'ob-dig-in 0.40s cubic-bezier(0.34,1.56,0.64,1) both';
+    };
+    var digOut = function(i, kf, cb) {
+      var d = digits[i]; if (!d) return;
+      d.style.animation = 'none'; void d.offsetWidth;
+      d.style.animation = kf + ' 0.22s cubic-bezier(0.4,0,1,0.6) both';
+      d.addEventListener('animationend', function() { d.textContent = ''; d.style.animation = ''; if (cb) cb(); }, {once:true});
+    };
+    var cellAnim = function(i, kf, dur) {
+      var c = cells[i]; if (!c) return;
+      c.style.animation = 'none'; void c.offsetWidth;
+      c.style.animation = kf + ' ' + (dur || '0.44s') + ' cubic-bezier(0.34,1.56,0.64,1) both';
+      c.addEventListener('animationend', function(){ c.style.animation = ''; }, {once:true});
+    };
+    var awaitCell = function(i) {
+      var c = cells[i]; if (!c || c.classList.contains('filled')) return;
+      c.classList.add('awaiting');
+      c.addEventListener('animationend', function(){ c.classList.remove('awaiting'); }, {once:true});
+    };
+
+    /* ── Shake all boxes ── */
+    var triggerShake = function() {
+      var grp = _sw.querySelector('#ob-otp-group');
+      if (!grp) return;
+      grp.classList.remove('shake'); void grp.offsetWidth;
+      grp.classList.add('shake');
+      grp.addEventListener('animationend', function(){ grp.classList.remove('shake'); }, {once:true});
+    };
+
+    /* ── Win sequence (staggered per box) ── */
+    var triggerWin = function() {
+      [0,1,2,3,4,5].forEach(function(j) {
+        setTimeout(function() {
+          if (cells[j]) { cells[j].classList.remove('filled','doc'); cells[j].classList.add('ok'); }
+          cellAnim(j, 'ob-cell-win', '0.52s');
+          if (digits[j]) { digits[j].style.color = '#9bffca'; digits[j].style.transition = 'color 200ms'; }
+        }, j * 65);
+      });
+      setTimeout(function(){ handleNext(); }, 5 * 65 + 600);
+    };
+
+    /* ── Clear all boxes ── */
+    var clearBoxes = function(animated) {
+      [0,1,2,3,4,5].forEach(function(j) {
+        if (boxes[j]) boxes[j].value = '';
+        if (cells[j]) cells[j].classList.remove('filled','doc','ok','focused','err');
+        if (animated && digits[j] && digits[j].textContent) {
+          digOut(j, 'ob-dig-err');
+        } else {
+          if (digits[j]) { digits[j].textContent = ''; digits[j].style.animation = ''; digits[j].style.color = ''; }
+        }
+      });
+      state.data.phoneOtp = '';
+      setTimeout(function(){ if (boxes[0]) boxes[0].focus(); }, animated ? 160 : 0);
+    };
+
+    /* ── Restore previously entered digits (e.g. going back then forward) ── */
+    var prev = String(state.data.phoneOtp || '');
+    prev.split('').forEach(function(ch, i) {
+      if (!ch || !boxes[i]) return;
+      boxes[i].value = ch;
+      if (digits[i]) digits[i].textContent = ch;
+      if (cells[i]) { cells[i].classList.add('filled'); if (isDoc) cells[i].classList.add('doc'); }
+    });
+
+    setTimeout(function(){ if (boxes[0]) boxes[0].focus(); }, 60);
+
+    /* ── Per-box event listeners ── */
+    boxes.forEach(function(box, i) {
+      if (!box) return;
+
+      box.addEventListener('focus', function() {
+        if (cells[i]) cells[i].classList.add('focused');
+      });
+      box.addEventListener('blur', function() {
+        if (cells[i]) cells[i].classList.remove('focused');
+      });
+
+      box.addEventListener('keydown', function(e) {
+        if (e.key === 'Backspace') {
+          e.preventDefault();
+          if (box.value) {
+            box.value = '';
+            digOut(i, 'ob-dig-out');
+            if (cells[i]) cells[i].classList.remove('filled','doc','ok');
+            cellAnim(i, 'ob-cell-erase', '0.30s');
+          } else if (i > 0) {
+            boxes[i-1].focus();
+            boxes[i-1].value = '';
+            digOut(i-1, 'ob-dig-out');
+            if (cells[i-1]) cells[i-1].classList.remove('filled','doc','ok');
+            cellAnim(i-1, 'ob-cell-erase', '0.30s');
+          }
+          state.data.phoneOtp = getCode(); saveDraft();
+        }
+        if (e.key === 'ArrowLeft'  && i > 0) boxes[i-1].focus();
+        if (e.key === 'ArrowRight' && i < 5) boxes[i+1].focus();
+      });
+
+      box.addEventListener('input', function() {
+        var ch = box.value.replace(/\D/g,'').slice(-1);
+        box.value = ch;
+        if (ch) {
+          if (digits[i]) digits[i].textContent = ch;
+          digIn(i);
+          cellAnim(i, 'ob-cell-land');
+          if (cells[i]) { cells[i].classList.add('filled'); if (isDoc) cells[i].classList.add('doc'); cells[i].classList.remove('ok'); }
+          state.data.phoneOtp = getCode(); saveDraft();
+
+          if (i < 5) {
+            setTimeout(function(){ boxes[i+1].focus(); awaitCell(i+1); }, 30);
+          } else {
+            // All 6 digits — verify
+            var code = getCode();
+            if (code === '123456') {
+              triggerWin();
+            } else {
+              setTimeout(function(){
+                [0,1,2,3,4,5].forEach(function(j) {
+                  if (cells[j]) cells[j].classList.add('err');
+                  if (digits[j]) { digits[j].style.color = '#ff9090'; digits[j].style.transition = 'color 120ms'; }
+                });
+                triggerShake();
+                setTimeout(function(){ clearBoxes(true); state.error = 'Incorrect code \u2014 the demo OTP is 123456.'; render('ob-anim-fwd'); }, 520);
+              }, 80);
+            }
+          }
+        } else {
+          if (cells[i]) cells[i].classList.remove('filled','doc','ok');
+          if (digits[i]) { digits[i].textContent = ''; digits[i].style.animation = ''; }
+          state.data.phoneOtp = getCode(); saveDraft();
+        }
+      });
+
+      box.addEventListener('paste', function(e) {
+        e.preventDefault();
+        var pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);
+        pasted.split('').forEach(function(ch, j) {
+          if (!boxes[j]) return;
+          boxes[j].value = ch;
+          if (digits[j]) digits[j].textContent = ch;
+          setTimeout(function(){ digIn(j); cellAnim(j, 'ob-cell-land'); if(cells[j]){ cells[j].classList.add('filled'); if(isDoc) cells[j].classList.add('doc'); } }, j * 55);
+        });
+        var last = Math.min(pasted.length - 1, 5);
+        if (boxes[last]) boxes[last].focus();
+        state.data.phoneOtp = getCode(); saveDraft();
+        if (pasted.length === 6) {
+          var pastedDelay = 6 * 55 + 80;
+          if (pasted === '123456') {
+            setTimeout(triggerWin, pastedDelay);
+          } else {
+            setTimeout(function(){
+              [0,1,2,3,4,5].forEach(function(j) {
+                if (cells[j]) cells[j].classList.add('err');
+                if (digits[j]) { digits[j].style.color = '#ff9090'; digits[j].style.transition = 'color 120ms'; }
+              });
+              triggerShake();
+              setTimeout(function(){ clearBoxes(true); state.error = 'Incorrect code \u2014 the demo OTP is 123456.'; render('ob-anim-fwd'); }, 520);
+            }, pastedDelay);
+          }
+        }
+      });
+    });
+
+    /* ── Resend countdown ── */
+    var timerLbl  = _sw.querySelector('#ob-otp-timer-lbl');
+    var resendBtn = _sw.querySelector('#ob-otp-resend-btn');
+    var secs = 30;
+    var tick = function() {
+      secs--;
+      if (timerLbl) timerLbl.textContent = secs > 0 ? ('Resend in ' + secs + 's\u00a0\u2014\u00a0') : '';
+      if (secs <= 0 && resendBtn) resendBtn.disabled = false;
+    };
+    if (timerLbl) timerLbl.textContent = 'Resend in 30s\u00a0\u2014\u00a0';
+    window._otpCountdown = setInterval(tick, 1000);
+
+    if (resendBtn) {
+      resendBtn.addEventListener('click', function() {
+        clearInterval(window._otpCountdown);
+        resendBtn.disabled = true; secs = 30;
+        if (timerLbl) timerLbl.textContent = 'Resend in 30s\u00a0\u2014\u00a0';
+        clearBoxes(false);
+        window._otpCountdown = setInterval(tick, 1000);
+      });
+    }
+  }
+
+  if (step.type === 'email-otp') {
+    var isDoc = state.role === 'DOCTOR';
+    var _sc = document.getElementById('ob-step-container');
+    var _sw = (_sc && _sc.lastElementChild) || document;
+    var boxes  = [0,1,2,3,4,5].map(function(i){ return _sw.querySelector('#ob-otp-' + i); });
+    var cells  = [0,1,2,3,4,5].map(function(i){ return _sw.querySelector('#ob-otp-cell-' + i); });
+    var digits = [0,1,2,3,4,5].map(function(i){ return _sw.querySelector('#ob-otp-dig-' + i); });
+
+    var getCode = function() { return boxes.map(function(b){ return b ? b.value : ''; }).join(''); };
+
+    var digIn = function(i) {
+      var d = digits[i]; if (!d) return;
+      d.style.animation = 'none'; void d.offsetWidth;
+      d.style.animation = 'ob-dig-in 0.40s cubic-bezier(0.34,1.56,0.64,1) both';
+    };
+    var digOut = function(i, kf) {
+      var d = digits[i]; if (!d) return;
+      d.style.animation = 'none'; void d.offsetWidth;
+      d.style.animation = kf + ' 0.22s cubic-bezier(0.4,0,1,0.6) both';
+      d.addEventListener('animationend', function(){ d.textContent = ''; d.style.animation = ''; }, {once:true});
+    };
+    var cellAnim = function(i, kf, dur) {
+      var c = cells[i]; if (!c) return;
+      c.style.animation = 'none'; void c.offsetWidth;
+      c.style.animation = kf + ' ' + (dur || '0.44s') + ' cubic-bezier(0.34,1.56,0.64,1) both';
+      c.addEventListener('animationend', function(){ c.style.animation = ''; }, {once:true});
+    };
+    var awaitCell = function(i) {
+      var c = cells[i]; if (!c || c.classList.contains('filled')) return;
+      c.classList.add('awaiting');
+      c.addEventListener('animationend', function(){ c.classList.remove('awaiting'); }, {once:true});
+    };
+    var triggerShake = function() {
+      var grp = _sw.querySelector('#ob-otp-group');
+      if (!grp) return;
+      grp.classList.remove('shake'); void grp.offsetWidth;
+      grp.classList.add('shake');
+      grp.addEventListener('animationend', function(){ grp.classList.remove('shake'); }, {once:true});
+    };
+    var triggerWin = function() {
+      [0,1,2,3,4,5].forEach(function(j) {
+        setTimeout(function() {
+          if (cells[j]) { cells[j].classList.remove('filled','doc'); cells[j].classList.add('ok'); }
+          cellAnim(j, 'ob-cell-win', '0.52s');
+          if (digits[j]) { digits[j].style.color = '#9bffca'; digits[j].style.transition = 'color 200ms'; }
+        }, j * 65);
+      });
+      setTimeout(function(){ handleNext(); }, 5 * 65 + 600);
+    };
+    var clearBoxes = function(animated) {
+      [0,1,2,3,4,5].forEach(function(j) {
+        if (boxes[j]) { boxes[j].value = ''; boxes[j].disabled = false; }
+        if (cells[j]) cells[j].classList.remove('filled','doc','ok','focused','err');
+        if (animated && digits[j] && digits[j].textContent) {
+          digOut(j, 'ob-dig-err');
+        } else {
+          if (digits[j]) { digits[j].textContent = ''; digits[j].style.animation = ''; digits[j].style.color = ''; }
+        }
+      });
+      state.data.emailOtp = '';
+      setTimeout(function(){ if (boxes[0]) boxes[0].focus(); }, animated ? 160 : 0);
+    };
+    var triggerError = function(msg) {
+      [0,1,2,3,4,5].forEach(function(j) {
+        if (cells[j]) cells[j].classList.add('err');
+        if (digits[j]) { digits[j].style.color = '#ff9090'; digits[j].style.transition = 'color 120ms'; }
+      });
+      triggerShake();
+      setTimeout(function(){ clearBoxes(true); state.error = msg; render('ob-anim-fwd'); }, 520);
+    };
+    var verifyEmailCode = function(code) {
+      if (!window._supabase) { triggerError('Supabase is not configured. Add your credentials to the script block.'); return; }
+      boxes.forEach(function(b){ if (b) b.disabled = true; });
+      var email = String(state.data.email || '').trim();
+      window._supabase.auth.verifyOtp({ email: email, token: code, type: 'email' })
+        .then(function(result) {
+          boxes.forEach(function(b){ if (b) b.disabled = false; });
+          if (result.error) {
+            var msg = (result.error.message || '').toLowerCase().indexOf('expired') >= 0
+              ? 'Code expired — request a new one.'
+              : 'Incorrect code. Please try again.';
+            triggerError(msg); return;
+          }
+          state.data.emailVerified = true;
+          triggerWin();
+        })
+        .catch(function(err) {
+          boxes.forEach(function(b){ if (b) b.disabled = false; });
+          triggerError(err.message || 'Verification failed. Please try again.');
+        });
+    };
+
+    setTimeout(function(){ if (boxes[0]) boxes[0].focus(); }, 60);
+
+    boxes.forEach(function(box, i) {
+      if (!box) return;
+      box.addEventListener('focus', function(){ if (cells[i]) cells[i].classList.add('focused'); });
+      box.addEventListener('blur',  function(){ if (cells[i]) cells[i].classList.remove('focused'); });
+      box.addEventListener('keydown', function(e) {
+        if (e.key === 'Backspace') {
+          e.preventDefault();
+          if (box.value) {
+            box.value = ''; digOut(i, 'ob-dig-out');
+            if (cells[i]) cells[i].classList.remove('filled','doc','ok');
+            cellAnim(i, 'ob-cell-erase', '0.30s');
+          } else if (i > 0) {
+            boxes[i-1].focus(); boxes[i-1].value = ''; digOut(i-1, 'ob-dig-out');
+            if (cells[i-1]) cells[i-1].classList.remove('filled','doc','ok');
+            cellAnim(i-1, 'ob-cell-erase', '0.30s');
+          }
+          state.data.emailOtp = getCode(); saveDraft();
+        }
+        if (e.key === 'ArrowLeft'  && i > 0) boxes[i-1].focus();
+        if (e.key === 'ArrowRight' && i < 5) boxes[i+1].focus();
+      });
+      box.addEventListener('input', function() {
+        var ch = box.value.replace(/\D/g,'').slice(-1);
+        box.value = ch;
+        if (ch) {
+          if (digits[i]) digits[i].textContent = ch;
+          digIn(i); cellAnim(i, 'ob-cell-land');
+          if (cells[i]) { cells[i].classList.add('filled'); if (isDoc) cells[i].classList.add('doc'); cells[i].classList.remove('ok'); }
+          state.data.emailOtp = getCode(); saveDraft();
+          if (i < 5) {
+            setTimeout(function(){ boxes[i+1].focus(); awaitCell(i+1); }, 30);
+          } else {
+            setTimeout(function(){ verifyEmailCode(getCode()); }, 80);
+          }
+        } else {
+          if (cells[i]) cells[i].classList.remove('filled','doc','ok');
+          if (digits[i]) { digits[i].textContent = ''; digits[i].style.animation = ''; }
+          state.data.emailOtp = getCode(); saveDraft();
+        }
+      });
+      box.addEventListener('paste', function(e) {
+        e.preventDefault();
+        var pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);
+        pasted.split('').forEach(function(ch, j) {
+          if (!boxes[j]) return;
+          boxes[j].value = ch;
+          if (digits[j]) digits[j].textContent = ch;
+          setTimeout(function(){ digIn(j); cellAnim(j, 'ob-cell-land'); if(cells[j]){ cells[j].classList.add('filled'); if(isDoc) cells[j].classList.add('doc'); } }, j * 55);
+        });
+        var last = Math.min(pasted.length - 1, 5);
+        if (boxes[last]) boxes[last].focus();
+        state.data.emailOtp = getCode(); saveDraft();
+        if (pasted.length === 6) { setTimeout(function(){ verifyEmailCode(pasted); }, 6 * 55 + 80); }
+      });
+    });
+
+    /* ── Resend countdown ── */
+    var timerLbl  = _sw.querySelector('#ob-otp-timer-lbl');
+    var resendBtn = _sw.querySelector('#ob-otp-resend-btn');
+    var secs = 30;
+    var tick = function() {
+      secs--;
+      if (timerLbl) timerLbl.textContent = secs > 0 ? ('Resend in ' + secs + 's\u00a0\u2014\u00a0') : '';
+      if (secs <= 0 && resendBtn) resendBtn.disabled = false;
+    };
+    if (timerLbl) timerLbl.textContent = 'Resend in 30s\u00a0\u2014\u00a0';
+    window._otpCountdown = setInterval(tick, 1000);
+
+    if (resendBtn) {
+      resendBtn.addEventListener('click', function() {
+        clearInterval(window._otpCountdown);
+        resendBtn.disabled = true; secs = 30;
+        if (timerLbl) timerLbl.textContent = 'Resend in 30s\u00a0\u2014\u00a0';
+        clearBoxes(false);
+        var email = String(state.data.email || '').trim();
+        if (window._supabase) {
+          window._supabase.auth.signInWithOtp({ email: email, options: { shouldCreateUser: true } })
+            .then(function(result) {
+              if (result.error) { state.error = result.error.message; render('ob-anim-fwd'); return; }
+              window._otpCountdown = setInterval(tick, 1000);
+            })
+            .catch(function(err) { state.error = err.message || 'Failed to resend.'; render('ob-anim-fwd'); });
+        }
+      });
+    }
+  }
+
+  if (isFinalStep(step)) {
+    var _fsc = document.getElementById('ob-step-container');
+    var _fsw = (_fsc && _fsc.lastElementChild) || document;
+    var cb = _fsw.querySelector('#ob-consent');
+    if (cb) cb.addEventListener('change', function(e){ state.data[step.type === 'final-patient' ? 'consent' : 'agreement'] = e.target.checked; });
+  }
+}
+
+function updatePasswordStrength(pw) {
+  var score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+  if (/\d/.test(pw) || /[^a-zA-Z0-9]/.test(pw)) score++;
+  var levelClass = ['','weak','weak','fair','good','strong'][Math.min(score+1,5)];
+  var labels = ['Choose a password to get started','Too short \u2014 add more characters','Weak \u2014 try mixing letters and numbers','Fair \u2014 add uppercase letters','Good \u2014 getting stronger!','Strong password \u2713'];
+  for (var i = 1; i <= 4; i++) {
+    var bar = document.getElementById('ob-bar-' + i);
+    if (bar) { bar.className = 'ob-pw-bar'; if (i <= score) bar.classList.add(levelClass); }
+  }
+  var hint = document.getElementById('ob-pw-hint');
+  if (hint) hint.textContent = labels[score] || '';
+}
+
+function scheduleEmailCheck(email) {
+  clearTimeout(_emailDebounce);
+  var trimmed = email.trim();
+  if (trimmed.indexOf('@') < 0 || trimmed.indexOf('.') < 0) { state.emailStatus = null; renderEmailBadge(); return; }
+  _emailDebounce = setTimeout(function(){ checkEmailAvailability(trimmed); }, 650);
+}
+
+function validateStep() {
+  var step = currentStep();
+  state.error = null;
+  if (step.type === 'role-select') { if (!state.role) { state.error = 'Please choose a role to continue.'; return false; } return true; }
+  if (step.optional) return true;
+  if (step.type === 'final-patient') { if (!state.data.consent) { state.error = 'Please agree to the Terms of Service to create your account.'; return false; } return true; }
+  if (step.type === 'final-doctor')  { if (!state.data.agreement) { state.error = 'Please agree to the Terms of Service to create your account.'; return false; } return true; }
+  if (step.type === 'phone') {
+    var digits = String(state.data.phone || '').replace(/\D/g,'').slice(-10);
+    if (digits.length !== 10) { state.error = 'Please enter a valid 10-digit mobile number.'; var w = document.getElementById('ob-phone-wrap'); if (w) w.classList.add('ob-err'); return false; }
+    if (!/^[6-9]\d{9}$/.test(digits)) { state.error = 'Indian mobile numbers start with 6, 7, 8, or 9.'; var w2 = document.getElementById('ob-phone-wrap'); if (w2) w2.classList.add('ob-err'); return false; }
+    return true;
+  }
+  if (step.type === 'email-otp') {
+    if (!state.data.emailVerified) { state.error = 'Please enter the 6-digit code sent to your email.'; return false; }
+    return true;
+  }
+  if (step.type === 'phone-otp') {
+    var code = String(state.data.phoneOtp || '');
+    if (code.length < 6) { state.error = 'Please enter the complete 6-digit code.'; return false; }
+    if (code !== '123456') {
+      state.error = 'Incorrect code \u2014 the demo OTP is 123456.';
+      var grp = document.getElementById('ob-otp-group');
+      if (grp) { grp.classList.remove('shake'); void grp.offsetWidth; grp.classList.add('shake'); grp.addEventListener('animationend', function(){ grp.classList.remove('shake'); }, {once:true}); }
+      return false;
+    }
+    return true;
+  }
+  var val = state.data[step.id];
+  var str = String(val != null ? val : '').trim();
+  if (step.required && !str) { state.error = (step.label ? step.label.replace(/[?!.]/g,'').trim() : step.id) + ' is required.'; markInputError(); return false; }
+  if (step.type === 'email') {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str)) { state.error = 'Please enter a valid email address.'; markInputError(); return false; }
+    if (state.emailStatus === 'taken') { state.error = 'This email is already registered. Please log in instead.'; markInputError(); return false; }
+    if (state.emailStatus === 'checking') { state.error = 'Checking email availability \u2014 please wait a moment.'; return false; }
+  }
+  if (step.type === 'password' && str.length < 8) { state.error = 'Password must be at least 8 characters long.'; markInputError(); return false; }
+  if (step.type === 'confirm-password' && str !== String(state.data.password || '')) { state.error = "Passwords don't match. Please check and try again."; markInputError(); return false; }
+  if (step.type === 'search-select' && step.required && step.options.indexOf(str) < 0) { state.error = 'Please select a valid option from the list.'; markInputError(); return false; }
+  if (step.type === 'chips' && step.required && !state.data[step.id]) { state.error = 'Please select one of the options above.'; return false; }
+  if (step.type === 'number' && step.required && (isNaN(Number(val)) || Number(val) < 0)) { state.error = 'Please enter a valid number.'; markInputError(); return false; }
+  return true;
+}
+
+function markInputError() {
+  var input = document.getElementById('ob-input');
+  if (input) { input.classList.add('ob-err'); input.focus(); input.addEventListener('input', function(){ input.classList.remove('ob-err'); }, {once:true}); }
+}
+
+function collectCurrentInput() {
+  var step = currentStep();
+  if (step.type === 'phone') {
+    var pf = document.getElementById('ob-phone-field');
+    if (pf) state.data.phone = pf.value.replace(/\D/g,'').slice(0,10);
+    return;
+  }
+  if (step.type === 'email-otp') return; // managed live in attachStepBehaviour
+  if (step.type === 'phone-otp') return; // managed live in attachStepBehaviour
+  var input = document.getElementById('ob-input');
+  if (!input) return;
+  var raw = input.value;
+  state.data[step.id] = (step.type === 'number' && raw !== '') ? Number(raw) : raw;
+}
+
+async function handleSocialAuth(provider) {
+  if (!window._supabase) { state.error = 'Supabase is not configured. Add your credentials.'; render('ob-anim-fwd'); return; }
+  try {
+    sessionStorage.setItem('meiosis_oauth_pending', '1');
+    await window._supabase.auth.signInWithOAuth({
+      provider: provider,
+      options: { redirectTo: window.location.href.split('#')[0] }
+    });
+  } catch(err) {
+    sessionStorage.removeItem('meiosis_oauth_pending');
+    state.error = err.message || 'Authentication failed. Please try again.';
+    render('ob-anim-fwd');
+  }
+}
+
+async function sendEmailOtp() {
+  var email = String(state.data.email || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    state.error = 'Please enter a valid email address.'; render('ob-anim-fwd'); return;
+  }
+  if (state.emailStatus === 'taken') {
+    state.error = 'This email is already registered. Please log in instead.'; render('ob-anim-fwd'); return;
+  }
+  if (state.emailStatus === 'checking') {
+    state.error = 'Checking email availability \u2014 please wait a moment.'; render('ob-anim-fwd'); return;
+  }
+  if (!window._supabase) {
+    state.error = 'Supabase is not configured. Add your credentials to the script block.'; render('ob-anim-fwd'); return;
+  }
+  state.submitting = true; state.error = null; render('ob-anim-fwd');
+  try {
+    var result = await window._supabase.auth.signInWithOtp({ email: email, options: { shouldCreateUser: true } });
+    if (result.error) throw result.error;
+    state.submitting = false;
+    state.data.emailVerified = false;
+    state.stepIndex++; saveDraft(); render('ob-anim-fwd');
+  } catch(err) {
+    state.submitting = false;
+    state.error = err.message || 'Failed to send verification code. Please try again.';
+    render('ob-anim-fwd');
+  }
+}
+
+var _oauthSkipTypes = { 'email': true, 'email-otp': true, 'password': true, 'confirm-password': true };
+
+function handleNext() {
+  if (state.submitting) return;
+  collectCurrentInput();
+  var step = currentStep();
+  if (step.type === 'email' && !state.data.isOAuthUser) { sendEmailOtp(); return; }
+  if (!validateStep()) { render('ob-anim-fwd'); return; }
+  if (isFinalStep(step)) { submitSignup(); return; }
+  state.stepIndex++;
+  // OAuth users: auto-skip email / OTP / password steps
+  if (state.data.isOAuthUser) {
+    while (state.stepIndex < totalSteps() && _oauthSkipTypes[currentStep().type]) state.stepIndex++;
+  }
+  saveDraft(); render('ob-anim-fwd');
+}
+function handleBack() {
+  if (state.stepIndex === 0) return;
+  state.error = null;
+  var leaving = currentStep();
+  if (leaving && leaving.type === 'email-otp') { state.data.emailOtp = ''; state.data.emailVerified = false; }
+  if (leaving && leaving.type === 'phone-otp') { state.data.phoneOtp = ''; }
+  state.stepIndex--;
+  // OAuth users: auto-skip backwards over email / OTP / password steps
+  if (state.data.isOAuthUser) {
+    while (state.stepIndex > 0 && _oauthSkipTypes[currentStep().type]) state.stepIndex--;
+  }
+  render('ob-anim-back');
+}
+function handleSkip() {
+  var step = currentStep();
+  state.data[step.id] = step.type === 'multi-chips' ? [] : '';
+  state.error = null; state.stepIndex++; saveDraft(); render('ob-anim-fwd');
+}
+
+async function submitSignup() {
+  if (state.submitting) return;
+  if (!state.backendOnline) {
+    state.error = 'Cannot reach the backend server. Make sure it is running (cd backend && npm run dev), then try again.';
+    render('ob-anim-fwd'); return;
+  }
+  state.submitting = true; state.error = null; render('ob-anim-fwd');
+  var d = state.data;
+  var payload = {
+    role: state.role,
+    name: String(d.name || '').trim(),
+    email: String(d.email || '').trim().toLowerCase(),
+    password: String(d.password || ''),
+    phone: d.phone ? ('+91' + String(d.phone).replace(/\D/g,'').slice(-10)) : '',
+    bloodGroup: d.bloodGroup || '',
+    emergencyContact: d.emergencyContact || '',
+    insurancePlan: (Array.isArray(d.conditions) && d.conditions.length) ? d.conditions.join(', ') : '',
+    healthGoal: [d.dob ? 'DOB: ' + d.dob : '', d.gender ? 'Gender: ' + d.gender : ''].filter(Boolean).join(' | ') || '',
+    address: '',
+    specialty: d.specialty || '',
+    qualification: d.qualification || '',
+    registrationNumber: d.registrationNumber || '',
+    yearsExperience: d.yearsExperience || 0,
+    hospital: d.hospital || '',
+    consultFee: d.consultFee || 0,
+    clinicAddress: d.consultMode ? 'Consultation mode: ' + d.consultMode : '',
+  };
+  try {
+    var res = await fetch(API + '/auth/signup', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    var text = await res.text();
+    var data = text ? JSON.parse(text) : null;
+    if (!res.ok) throw new Error(data && data.error ? data.error : 'Server error ' + res.status + '.');
+    localStorage.setItem(SESSION_KEY, JSON.stringify(Object.assign({}, data.user, {savedAt: new Date().toISOString()})));
+    localStorage.setItem(LINKS_KEY, JSON.stringify({login: new URL('./login.html', location.href).href, signup: new URL('./signup.html', location.href).href, patient: new URL('./patient.html', location.href).href, doctorLaunch: new URL('./doctor-launch.html', location.href).href}));
+    state.submitting = false;
+    renderSuccess(data.user);
+  } catch(err) {
+    state.submitting = false;
+    state.error = err.message || 'Something went wrong. Please try again.';
+    render('ob-anim-fwd');
+  }
+}
+
+async function doRedirect(role) {
+  if (role === 'DOCTOR') {
+    var doctorFrontendUrl = String(
+      (window.MEIOSIS_RUNTIME_CONFIG && window.MEIOSIS_RUNTIME_CONFIG.doctorFrontendUrl) ||
+      'http://localhost:5173'
+    ).replace(/\/+$/, '');
+    try { await fetch(doctorFrontendUrl, {method:'GET',mode:'no-cors',cache:'no-store'}); location.href = doctorFrontendUrl + '/'; return; } catch(e){}
+    location.href = new URL('./doctor-launch.html', location.href).href; return;
+  }
+  location.href = new URL('./meiosis-setup.html', location.href).href;
+}
+window.doRedirect = doRedirect;
+
+async function boot() {
+  loadDraft();
+
+  // Detect OAuth callback (Google / Apple redirect back to this page)
+  if (window._supabase && sessionStorage.getItem('meiosis_oauth_pending')) {
+    sessionStorage.removeItem('meiosis_oauth_pending');
+    try {
+      var _sr = await window._supabase.auth.getSession();
+      if (_sr.data && _sr.data.session) {
+        var _ou = _sr.data.session.user;
+        var _op = (_ou.app_metadata || {}).provider;
+        if (_op && _op !== 'email') {
+          var _om = _ou.user_metadata || {};
+          state.data.email    = _ou.email || '';
+          state.data.name     = state.data.name || _om.full_name || _om.name || '';
+          state.data.emailVerified = true;
+          state.data.isOAuthUser   = true;
+          // Generate random password — user will always sign in via OAuth
+          state.data.password = state.data.confirmPassword =
+            btoa(Math.random().toString(36) + Date.now()).slice(0, 20);
+          if (!state.role) state.stepIndex = 0;
+          saveDraft();
+        }
+      }
+    } catch(e) {}
+  }
+
+  var next = document.getElementById('ob-next');
+  var back = document.getElementById('ob-back');
+  var skip = document.getElementById('ob-skip');
+  if (next) next.addEventListener('click', handleNext);
+  if (back) back.addEventListener('click', handleBack);
+  if (skip) skip.addEventListener('click', handleSkip);
+  checkBackend();
+  render('ob-anim-fwd');
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => registration.unregister());
+      }).catch(() => {});
+    }
+  </script>
+</body>
+</html>

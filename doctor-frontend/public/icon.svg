@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#010e1c"/>
+  <rect width="512" height="512" rx="112" fill="url(#grad)" opacity="0.4"/>
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#52ff9d;stop-opacity:0.5"/>
+      <stop offset="100%" style="stop-color:#38bdf8;stop-opacity:0.3"/>
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#52ff9d"/>
+      <stop offset="100%" style="stop-color:#38bdf8"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="100" fill="none" stroke="rgba(82,255,157,0.25)" stroke-width="2"/>
+  <text x="256" y="340" font-family="system-ui, -apple-system, sans-serif" font-size="280" font-weight="800" text-anchor="middle" fill="url(#textGrad)">M</text>
+</svg>

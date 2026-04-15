@@ -1,0 +1,19 @@
+{
+  "name": "MEIOSIS Patient Console",
+  "short_name": "MEIOSIS",
+  "description": "Your health, fully in your control",
+  "theme_color": "#0d1b2a",
+  "background_color": "#0d1b2a",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "start_url": "/patient.html",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

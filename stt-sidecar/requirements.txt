@@ -1,0 +1,12 @@
+# Meiosis STT Sidecar — Python dependencies
+#
+# Install:  pip install -r requirements.txt
+# GPU:      pip install torch --index-url https://download.pytorch.org/whl/cu121
+
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+faster-whisper==1.1.1
+torch>=2.0.0
+python-multipart==0.0.12
+pystray==0.19.5
+Pillow==10.4.0

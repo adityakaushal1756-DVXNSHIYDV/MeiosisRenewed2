@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Start Doctor Dashboard</title>
+    <link rel="stylesheet" href="./auth.css" />
+    <script src="./config.js?v=3"></script>
+  </head>
+  <body class="auth-body">
+    <main class="auth-shell">
+      <section class="auth-card">
+        <div class="auth-brand">
+          <div class="auth-logo">M</div>
+          <div>
+            <h1>MEIOSIS</h1>
+            <p>Doctor Dashboard Launcher</p>
+          </div>
+        </div>
+
+        <div class="auth-header">
+          <h2>Doctor app is not running yet</h2>
+          <p>
+            Your login worked, but the React doctor dashboard at the configured doctor URL
+            is not active.
+          </p>
+        </div>
+
+        <div class="auth-step-panel" style="display:block">
+          <div class="auth-field">
+            <label>Start the doctor app</label>
+            <div class="auth-helper">
+              In a separate terminal run:
+              <pre style="margin-top:10px;white-space:pre-wrap">cd "c:\Users\HP\Meiosis Trial 8\doctor-frontend"
+npm install
+npm run dev</pre>
+            </div>
+          </div>
+
+          <div class="auth-actions">
+            <a class="auth-secondary-btn" href="./login.html">Back To Login</a>
+            <button class="auth-primary-btn" id="openDoctorDashboardBtn" type="button">Open Doctor Dashboard</button>
+          </div>
+
+          <p id="doctorLaunchMessage" class="auth-error" hidden></p>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const ROOT_LINKS_KEY = 'meiosis_root_links_v1';
+      const DOCTOR_FRONTEND_URL = String(
+        (window.MEIOSIS_RUNTIME_CONFIG && window.MEIOSIS_RUNTIME_CONFIG.doctorFrontendUrl) ||
+        'http://localhost:5173'
+      ).replace(/\/+$/, '');
+      const openButton = document.getElementById('openDoctorDashboardBtn');
+      const message = document.getElementById('doctorLaunchMessage');
+      const backLink = document.querySelector('.auth-secondary-btn');
+
+      function getRootLinks() {
+        try {
+          const raw = localStorage.getItem(ROOT_LINKS_KEY);
+          return raw ? JSON.parse(raw) : null;
+        } catch {
+          return null;
+        }
+      }
+
+      const rootLinks = getRootLinks();
+      if (backLink && rootLinks?.login) {
+        backLink.href = rootLinks.login;
+      }
+
+      async function canReachDoctorApp() {
+        try {
+          await fetch(DOCTOR_FRONTEND_URL, { method: 'GET', mode: 'no-cors', cache: 'no-store' });
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
+      openButton?.addEventListener('click', async () => {
+        message.hidden = true;
+        const ready = await canReachDoctorApp();
+        if (!ready) {
+          message.textContent = `Doctor dashboard still is not reachable at ${DOCTOR_FRONTEND_URL}.`;
+          message.hidden = false;
+          return;
+        }
+        window.location.href = `${DOCTOR_FRONTEND_URL}/`;
+      });
+    </script>
+  </body>
+</html>

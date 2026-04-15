@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MEIOSIS Login</title>
+  <!-- PWA -->
+  <meta name="theme-color" content="#0d1b2a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MEIOSIS" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Non-blocking font load: page renders immediately with system font, swaps when Outfit arrives -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" onload="this.rel='stylesheet'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" /></noscript>
+  <link rel="stylesheet" href="./auth.css" />
+</head>
+<body class="auth-body">
+  <div class="auth-shell">
+    <div class="auth-card">
+      <section class="auth-brand">
+        <div class="auth-mark">M</div>
+        <p class="auth-kicker">Unified Access</p>
+        <h1 class="auth-title">Login to Patient or Doctor Workspace</h1>
+        <p class="auth-copy">Use email + password or MEIOSIS ID + password. This single gateway routes users into the correct console.</p>
+        <ul class="auth-list">
+          <li>Patient demo: `aditya.sharma@example.com` or `PAT-001`</li>
+          <li>Doctor demo: `sarah.mitchell@meiosis.health` or `M-001`</li>
+          <li>Default password: `demo1234`</li>
+        </ul>
+        <div id="authBackendStatus" class="auth-backend-pill auth-backend-pill-pending">Checking backend...</div>
+        <div class="auth-code-box">
+          <span class="auth-demo-chip">Patient UI: `/patient.html`</span>
+          <span class="auth-demo-chip">Doctor UI: `/doctor-frontend/`</span>
+        </div>
+      </section>
+
+      <section class="auth-panel">
+        <form id="loginForm" class="auth-form-grid">
+          <div>
+            <p class="auth-kicker">Login</p>
+            <h2 class="auth-title" style="font-size:2rem;">Access your workspace</h2>
+          </div>
+
+          <label class="auth-label">
+            <span>Email or MEIOSIS ID</span>
+            <input id="loginIdentifier" class="auth-input" type="text" placeholder="name@example.com or PAT-001" required />
+          </label>
+
+          <label class="auth-label">
+            <span>Password</span>
+            <input id="loginPassword" class="auth-input" type="password" placeholder="Enter password" required />
+          </label>
+
+          <p id="loginMessage" hidden></p>
+
+          <div class="auth-actions">
+            <button class="auth-btn" type="submit">Login</button>
+            <a class="auth-btn-secondary" href="./signup.html">Create Account</a>
+          </div>
+        </form>
+
+        <p class="auth-link-row">Need a new account? <a href="./signup.html">Go to signup</a></p>
+      </section>
+    </div>
+  </div>
+
+  <script src="./config.js?v=3"></script>
+  <script src="./auth.js?v=3"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => registration.unregister());
+      }).catch(() => {});
+    }
+
+    // Play chime on login submit — runs inside a click handler so Safari allows it.
+    // Also set a flag so App.tsx can retry if the page navigates before audio starts.
+    document.getElementById('loginForm').addEventListener('submit', () => {
+      const chime = new Audio('/startup-chime.mp3');
+      chime.volume = 0.6;
+      chime.play().catch(() => {});
+      sessionStorage.setItem('play_login_success_chime', '1');
+    });
+  </script>
+</body>
+</html>

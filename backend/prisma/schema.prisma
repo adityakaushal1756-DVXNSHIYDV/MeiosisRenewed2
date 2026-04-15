@@ -1,0 +1,398 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AppointmentStatus {
+  CONFIRMED
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum AppointmentMode {
+  IN_PERSON
+  TELECONSULT
+}
+
+enum PaymentStatus {
+  PENDING
+  MOCK_CONFIRMED
+  REFUNDED
+}
+
+enum RefundStatus {
+  NONE
+  ELIGIBLE
+  REFUND_INITIATED
+  REFUNDED
+  NOT_ELIGIBLE
+}
+
+enum QueueStatus {
+  WAITING
+  CANCELLED
+  COMPLETED
+}
+
+enum SlotStatus {
+  AVAILABLE
+  BOOKED
+  CANCELLED
+}
+
+enum PrescriptionStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+}
+
+enum LabStatus {
+  NORMAL
+  ABNORMAL
+  LOW
+  PENDING
+}
+
+enum SenderRole {
+  PATIENT
+  DOCTOR
+  SYSTEM
+}
+
+enum UserRole {
+  PATIENT
+  DOCTOR
+}
+
+enum EmrShareStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model Patient {
+  id               String         @id @default(cuid())
+  meiosisId        String         @unique
+  universalCode    String         @unique
+  abhaId           String?        @unique
+  abhaAddress      String?        @unique
+  name             String
+  email            String         @unique
+  phone            String
+  bloodGroup       String
+  address          String
+  healthScore      Int
+  insurancePlan    String
+  emergencyContact String
+  shareSettings    Json?          // { fullAccess: bool, labOnly: bool, summaryOnly: bool }
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  appointments     Appointment[]
+  prescriptions    Prescription[]
+  labReports       LabReport[]
+  messageThreads   MessageThread[]
+  emrShares        EmrShare[]
+  account          UserAccount?
+}
+
+model Doctor {
+  id             String           @id
+  meiosisId      String           @unique
+  hprId          String?          @unique
+  hfrId          String?
+  name           String
+  email          String?
+  phone          String?
+  specialty      String
+  qualification  String?
+  registrationNumber String?
+  yearsExperience Int             @default(0)
+  hospital       String
+  clinicAddress  String?
+  consultFee     Int
+  rating         Float
+  workingHours   String
+  appointments   Appointment[]
+  prescriptions  Prescription[]
+  labReports     LabReport[]
+  messageThreads MessageThread[]
+  schedules      DoctorSchedule[]
+  scheduleOverrides DoctorScheduleOverride[]
+  slots          AppointmentSlot[]
+  emrShares      EmrShare[]
+  account        UserAccount?
+  preferences    DoctorPreferences?
+}
+
+/// All doctor UI/UX preferences persisted to the DB.
+/// localStorage is used as a fast cache for first render;
+/// DB values override localStorage after each login/load.
+model DoctorPreferences {
+  id                    String   @id @default(cuid())
+  doctorId              String   @unique
+  doctor                Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  // ── Theme & Visual ────────────────────────────────────────────────
+  themeMode             String   @default("dark")
+  customThemeHue        Float    @default(152)
+  customThemeBrightness Float    @default(100)
+  timelineTheme         String   @default("default")
+  emrBuilderV2Theme     String   @default("default")
+  emrBuilderLayout      String   @default("simple")
+  timelineLayout        String   @default("simple")
+
+  // ── Console ───────────────────────────────────────────────────────
+  consoleCollapsible    Boolean  @default(false)
+  consoleCollapsed      Boolean  @default(false)
+  consoleWidth          Int      @default(300)
+
+  // ── Scheduling ────────────────────────────────────────────────────
+  slotDuration          Int      @default(15)
+  queueBlockDuration    Int      @default(120)
+  followUpGapDays       Int      @default(7)
+
+  // ── Localisation ─────────────────────────────────────────────────
+  lang                  String   @default("en")
+
+  // ── Templates (JSON array of PrescriptionTemplate) ────────────────
+  prescriptionTemplates Json     @default("[]")
+
+  updatedAt             DateTime @updatedAt
+}
+
+model UserAccount {
+  id        String   @id @default(cuid())
+  role      UserRole
+  name      String
+  email     String   @unique
+  meiosisId String   @unique
+  password  String
+  patientId String?  @unique
+  doctorId  String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  patient   Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  doctor    Doctor?  @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+}
+
+model Appointment {
+  id            String            @id @default(cuid())
+  patientId     String
+  doctorId      String
+  appointmentSlotId String?      @map("doctorSlotId")
+  paymentId     String?
+  title         String
+  purpose       String
+  doctorFee     Int               @default(0)
+  slotStartTime DateTime?
+  scheduledDate DateTime
+  status        AppointmentStatus
+  mode          AppointmentMode
+  notes         String?
+  paymentMethod String?
+  paymentStatus PaymentStatus     @default(PENDING)
+  paymentReference String?
+  platformFee   Int               @default(0)
+  refundStatus  RefundStatus      @default(NONE)
+  refundAmount  Int               @default(0)
+  cancelledAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  patient       Patient           @relation(fields: [patientId], references: [id])
+  doctor        Doctor            @relation(fields: [doctorId], references: [id])
+  appointmentSlot AppointmentSlot? @relation(fields: [appointmentSlotId], references: [id])
+  queueEntry    AppointmentQueue?
+  payment       Payment?          @relation(fields: [paymentId], references: [id])
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  patientId   String
+  amount      Int
+  gateway     String
+  status      PaymentStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  appointments Appointment[]
+}
+
+model DoctorSchedule {
+  id         String       @id @default(cuid())
+  doctorId   String
+  dayOfWeek  Int
+  startTime  String
+  endTime    String
+  slotDuration Int       @default(30)
+  breakStart String?
+  breakEnd   String?
+  isActive   Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  doctor     Doctor       @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  slots      AppointmentSlot[]
+}
+
+model DoctorScheduleOverride {
+  id           String   @id @default(cuid())
+  doctorId     String
+  overrideDate DateTime
+  isOffDay     Boolean  @default(false)
+  startTime    String?
+  endTime      String?
+  slotDuration Int?
+  breakStart   String?
+  breakEnd     String?
+  note         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  doctor       Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@unique([doctorId, overrideDate])
+}
+
+model Prescription {
+  id             String             @id
+  abdmCareContextId String?         @unique
+  patientId      String
+  doctorId       String
+  title          String
+  status         PrescriptionStatus
+  durationDays   Int
+  refillCount    Int
+  adherenceScore Int
+  pharmacy       String?
+  startDate      DateTime
+  endDate        DateTime
+  doctorNote     String
+  diagnosisCode  String?
+  symptomCode    String?
+  documentPath   String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  patient        Patient            @relation(fields: [patientId], references: [id])
+  doctor         Doctor             @relation(fields: [doctorId], references: [id])
+  items          PrescriptionItem[]
+  labReports     LabReport[]
+}
+
+model PrescriptionItem {
+  id                      String        @id @default(cuid())
+  prescriptionId          String
+  medicine                String
+  medicineId              String?
+  identifier_brand        String?
+  generic_name            String?
+  substance_identifier    String?
+  route_of_administration String?
+  dose_form               String?
+  therapeutic_role        String?
+  iupac_name              String?
+  molecular_formula       String?
+  dose                    String
+  frequency               String
+  timing                  String
+  reason                  String
+  prescription            Prescription  @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+}
+
+model LabReport {
+  id             String        @id
+  patientId      String
+  doctorId       String
+  prescriptionId String?
+  testName       String
+  status         LabStatus
+  reportDate     DateTime
+  educationalAi  String
+  documentPath   String?
+  patient        Patient       @relation(fields: [patientId], references: [id])
+  doctor         Doctor        @relation(fields: [doctorId], references: [id])
+  prescription   Prescription? @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
+}
+
+model MessageThread {
+  id         String    @id @default(cuid())
+  patientId  String
+  doctorId   String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  patient    Patient   @relation(fields: [patientId], references: [id])
+  doctor     Doctor    @relation(fields: [doctorId], references: [id])
+  messages   Message[]
+
+  @@unique([doctorId, patientId])
+}
+
+model Message {
+  id        String      @id @default(cuid())
+  threadId  String
+  sender    SenderRole
+  text      String
+  createdAt DateTime    @default(now())
+  thread    MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+}
+
+model AppointmentSlot {
+  id        String   @id @default(cuid())
+  doctorId  String
+  scheduleId String?
+  startAt   DateTime
+  endAt     DateTime
+  mode      AppointmentMode @default(IN_PERSON)
+  location  String          @default("Consultation Desk")
+  slotDuration Int          @default(30)
+  status    SlotStatus      @default(AVAILABLE)
+  available Boolean  @default(true)
+  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  schedule  DoctorSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  appointments Appointment[]
+  queueEntries AppointmentQueue[]
+
+  @@map("DoctorSlot")
+}
+
+model AppointmentQueue {
+  id              String      @id @default(cuid())
+  appointmentId   String      @unique
+  doctorSlotId    String
+  appointmentTime DateTime
+  queueNo         Int         @default(1)
+  status          QueueStatus @default(WAITING)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  appointment     Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  appointmentSlot AppointmentSlot @relation(fields: [doctorSlotId], references: [id], onDelete: Cascade)
+
+  @@index([doctorSlotId, appointmentTime])
+}
+
+model EmrShare {
+  id            String         @id @default(cuid())
+  patientId     String
+  doctorId      String
+  transactionId String         @unique
+  recordCount   Int
+  scope         String
+  status        EmrShareStatus @default(PENDING)
+  payload       Json?
+  createdAt     DateTime       @default(now())
+  patient       Patient        @relation(fields: [patientId], references: [id])
+  doctor        Doctor         @relation(fields: [doctorId], references: [id])
+}
+
+/// Compliance audit trail for every AI-Scribe transcription sent to Gemini.
+/// Stores the raw original_transcript before any extraction so it can never be altered.
+model AiTranscriptLog {
+  id                 String   @id @default(cuid())
+  originalTranscript String
+  /// Nullable — may be a mock/walk-in patient not yet in the DB
+  patientId          String?
+  /// Nullable — manual consultations have no appointment record
+  appointmentId      String?
+  createdAt          DateTime @default(now())
+}

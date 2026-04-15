@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MEIOSIS — Choose Your ID</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./auth.css" />
+  <style>
+    .setup-code-wrap {
+      position: relative;
+    }
+    .setup-code-input {
+      letter-spacing: 0.22em;
+      font-size: 1.35rem;
+      font-weight: 600;
+      text-align: center;
+      padding-right: 48px;
+    }
+    .setup-code-status {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.1rem;
+      line-height: 1;
+      pointer-events: none;
+    }
+    .setup-avail-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 22px;
+      font-size: 0.88rem;
+      margin-top: 4px;
+    }
+    .setup-avail-ok   { color: #52ff9d; }
+    .setup-avail-no   { color: #ff6b6b; }
+    .setup-avail-wait { color: #98aabe; }
+    .setup-digit-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .setup-digit-box {
+      aspect-ratio: 1;
+      border-radius: 10px;
+      background: rgba(82,255,157,0.07);
+      border: 1px solid rgba(82,255,157,0.18);
+      display: grid;
+      place-items: center;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #52ff9d;
+      letter-spacing: 0;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .setup-digit-box.empty {
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.08);
+      color: transparent;
+    }
+    .setup-rules {
+      list-style: none;
+      padding: 0;
+      margin: 16px 0 0;
+      display: grid;
+      gap: 7px;
+    }
+    .setup-rules li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.88rem;
+      color: #98aabe;
+    }
+    .setup-rules li::before {
+      content: '○';
+      font-size: 0.7rem;
+      color: rgba(82,255,157,0.4);
+      flex-shrink: 0;
+    }
+    .setup-rules li.rule-ok { color: #d0f5e5; }
+    .setup-rules li.rule-ok::before { content: '✓'; color: #52ff9d; }
+    .setup-id-preview {
+      margin-top: 20px;
+      padding: 16px 20px;
+      border-radius: 16px;
+      background: rgba(82,255,157,0.06);
+      border: 1px solid rgba(82,255,157,0.15);
+    }
+    .setup-id-preview p {
+      margin: 0 0 4px;
+      font-size: 0.8rem;
+      color: rgba(82,255,157,0.7);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .setup-id-preview strong {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: #fff;
+    }
+    .setup-id-url {
+      margin-top: 6px;
+      font-size: 0.77rem;
+      color: #98aabe;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body class="auth-body">
+  <div class="auth-shell">
+    <div class="auth-card">
+
+      <!-- Left brand panel -->
+      <section class="auth-brand">
+        <div class="auth-mark">M</div>
+        <p class="auth-kicker">Identity Setup</p>
+        <h1 class="auth-title">Choose your MEIOSIS Code</h1>
+        <p class="auth-copy">
+          Your MEIOSIS Code is your permanent health identity. Doctors, labs,
+          and pharmacies use it to look you up instantly — even without your name.
+        </p>
+        <ul class="setup-rules" id="setupRulesList">
+          <li id="ruleDigits">Exactly 10 digits (numbers only)</li>
+          <li id="ruleUnique">Must be unique — no one else can use it</li>
+          <li id="ruleNoRepeat">Not all the same digit (e.g. 1111111111)</li>
+        </ul>
+        <div class="setup-id-preview">
+          <p>Your code will appear as</p>
+          <strong id="previewCode">— — — — — — — — — —</strong>
+          <p class="setup-id-url" id="previewUrl">https://id.meiosis.health/p/··········</p>
+        </div>
+      </section>
+
+      <!-- Right panel -->
+      <section class="auth-panel">
+        <p class="auth-kicker">Step 3 of 3 — Your Identity</p>
+        <h2 style="margin:0 0 6px;font-size:1.5rem;">Create your 10-digit code</h2>
+        <p class="auth-copy" style="margin:0 0 22px;font-size:0.9rem;">
+          This code is permanent and tied to your health record forever.
+          Choose something meaningful but not guessable.
+        </p>
+
+        <div class="setup-code-wrap">
+          <input
+            id="setupCodeInput"
+            class="auth-input setup-code-input"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            maxlength="10"
+            placeholder="Enter 10 digits"
+            autocomplete="off"
+          />
+          <span class="setup-code-status" id="setupCodeStatus"></span>
+        </div>
+
+        <div class="setup-avail-row" id="setupAvailRow">
+          <span id="setupAvailText" class="setup-avail-wait">Enter a 10-digit code to check availability</span>
+        </div>
+
+        <div class="setup-digit-grid" id="setupDigitGrid">
+          <!-- 10 boxes rendered by JS -->
+        </div>
+
+        <div style="margin-top:26px;">
+          <button class="btn" id="setupSubmitBtn" style="width:100%;opacity:0.4;cursor:not-allowed;" disabled>
+            Confirm &amp; Enter MEIOSIS
+          </button>
+        </div>
+
+        <p id="setupMessage" class="auth-error" hidden></p>
+
+        <p class="auth-note" style="margin-top:16px;font-size:0.82rem;">
+          Your code cannot be changed for 30 days after setting it.
+          Make sure you remember it — it is how your doctors identify you.
+        </p>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const runtimeConfig = window.MEIOSIS_RUNTIME_CONFIG || (() => {
+      const protocol =
+        window.location.protocol === 'http:' || window.location.protocol === 'https:'
+          ? window.location.protocol
+          : 'http:';
+      const host = window.location.hostname || 'localhost';
+      return { backendOrigin: `${protocol}//${host}:5000` };
+    })();
+    const API_BASE_URL = `${String(runtimeConfig.backendOrigin || 'http://localhost:5000').replace(/\/+$/, '')}/api`;
+    const AUTH_SESSION_KEY = 'meiosis_auth_session_v1';
+
+    function loadSession() {
+      try { return JSON.parse(localStorage.getItem(AUTH_SESSION_KEY)); } catch { return null; }
+    }
+    function saveSession(updates) {
+      try {
+        const session = loadSession() || {};
+        localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({ ...session, ...updates }));
+      } catch {}
+    }
+
+    const session = loadSession();
+    // Only patients go through this flow; redirect anyone else
+    if (!session || session.role !== 'PATIENT') {
+      window.location.href = './login.html';
+    }
+
+    const codeInput   = document.getElementById('setupCodeInput');
+    const statusIcon  = document.getElementById('setupCodeStatus');
+    const availRow    = document.getElementById('setupAvailRow');
+    const availText   = document.getElementById('setupAvailText');
+    const submitBtn   = document.getElementById('setupSubmitBtn');
+    const messageEl   = document.getElementById('setupMessage');
+    const digitGrid   = document.getElementById('setupDigitGrid');
+    const previewCode = document.getElementById('previewCode');
+    const previewUrl  = document.getElementById('previewUrl');
+    const ruleDigits  = document.getElementById('ruleDigits');
+    const ruleUnique  = document.getElementById('ruleUnique');
+    const ruleNoRepeat = document.getElementById('ruleNoRepeat');
+
+    // Build digit boxes
+    const digitBoxes = Array.from({ length: 10 }, (_, i) => {
+      const box = document.createElement('div');
+      box.className = 'setup-digit-box empty';
+      box.id = `dbox${i}`;
+      digitGrid.appendChild(box);
+      return box;
+    });
+
+    function updateDigitBoxes(val) {
+      digitBoxes.forEach((box, i) => {
+        if (i < val.length) {
+          box.textContent = val[i];
+          box.classList.remove('empty');
+        } else {
+          box.textContent = '';
+          box.classList.add('empty');
+        }
+      });
+    }
+
+    function updatePreview(val) {
+      if (val.length === 10) {
+        previewCode.textContent = val.split('').join(' ');
+        previewUrl.textContent = `https://id.meiosis.health/p/${val}`;
+      } else {
+        previewCode.textContent = '— — — — — — — — — —';
+        previewUrl.textContent = 'https://id.meiosis.health/p/··········';
+      }
+    }
+
+    function setAvail(state, text) {
+      availText.className = `setup-avail-${state}`;
+      availText.textContent = text;
+      statusIcon.textContent = state === 'ok' ? '✓' : state === 'no' ? '✗' : '·';
+      statusIcon.style.color = state === 'ok' ? '#52ff9d' : state === 'no' ? '#ff6b6b' : '#98aabe';
+    }
+
+    function setMessage(text, kind = 'error') {
+      messageEl.className = kind === 'success' ? 'auth-success' : 'auth-error';
+      messageEl.textContent = text;
+      messageEl.hidden = !text;
+    }
+
+    function isAllSameDigit(val) {
+      return val.length === 10 && new Set(val).size === 1;
+    }
+
+    function validateRules(val, available) {
+      ruleDigits.classList.toggle('rule-ok', val.length === 10);
+      ruleNoRepeat.classList.toggle('rule-ok', val.length === 10 && !isAllSameDigit(val));
+      ruleUnique.classList.toggle('rule-ok', available === true);
+    }
+
+    let checkTimer = null;
+    let lastCheckedCode = '';
+    let codeAvailable = false;
+
+    function setSubmitEnabled(enabled) {
+      submitBtn.disabled = !enabled;
+      submitBtn.style.opacity = enabled ? '1' : '0.4';
+      submitBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+    }
+
+    async function checkAvailability(code) {
+      if (code.length !== 10) return;
+      setAvail('wait', 'Checking availability…');
+      setSubmitEnabled(false);
+      try {
+        const res = await fetch(`${API_BASE_URL}/patient/check-code?code=${encodeURIComponent(code)}`);
+        const data = await res.json();
+        if (code !== codeInput.value.replace(/\D/g, '').slice(0, 10)) return; // stale
+        codeAvailable = data.available;
+        if (data.available) {
+          setAvail('ok', 'This code is available!');
+        } else {
+          setAvail('no', 'This code is already taken.');
+        }
+        validateRules(code, data.available);
+        const canSubmit = code.length === 10 && data.available && !isAllSameDigit(code);
+        setSubmitEnabled(canSubmit);
+      } catch {
+        setAvail('wait', 'Could not check — backend may be offline.');
+        validateRules(code, false);
+      }
+    }
+
+    codeInput.addEventListener('input', () => {
+      // Strip non-digits
+      const raw = codeInput.value.replace(/\D/g, '').slice(0, 10);
+      if (codeInput.value !== raw) codeInput.value = raw;
+
+      updateDigitBoxes(raw);
+      updatePreview(raw);
+      validateRules(raw, false);
+      setSubmitEnabled(false);
+      codeAvailable = false;
+
+      if (raw.length < 10) {
+        setAvail('wait', raw.length === 0 ? 'Enter a 10-digit code to check availability' : `${10 - raw.length} more digit${10 - raw.length !== 1 ? 's' : ''} needed`);
+        statusIcon.textContent = '';
+        return;
+      }
+
+      if (isAllSameDigit(raw)) {
+        setAvail('no', 'All same digits are not allowed.');
+        validateRules(raw, false);
+        return;
+      }
+
+      // Debounce the API check
+      clearTimeout(checkTimer);
+      checkTimer = setTimeout(() => checkAvailability(raw), 450);
+    });
+
+    submitBtn.addEventListener('click', async () => {
+      const code = codeInput.value.replace(/\D/g, '').slice(0, 10);
+      if (code.length !== 10 || !codeAvailable || isAllSameDigit(code)) return;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving…';
+      setMessage('');
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/patient/setup-code`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ patientId: session.patientId, code })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || 'Failed to save code.');
+
+        // Persist to session so the frontend can read it immediately
+        saveSession({ universalCode: data.universalCode });
+
+        setMessage('Your MEIOSIS Code is set! Entering your workspace…', 'success');
+        submitBtn.textContent = 'Entering MEIOSIS…';
+        setTimeout(() => {
+          const rootLinks = JSON.parse(localStorage.getItem('meiosis_root_links_v1') || '{}');
+          window.location.href = rootLinks.patient || './patient.html';
+        }, 900);
+      } catch (err) {
+        setMessage(err.message || 'Could not save code. Try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Confirm & Enter MEIOSIS';
+      }
+    });
+  </script>
+</body>
+</html>

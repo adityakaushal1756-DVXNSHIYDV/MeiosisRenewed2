@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MEIOSIS Patient Dashboard</title>
+  <!-- PWA -->
+  <meta name="theme-color" content="#0d1b2a" />
+  <meta name="description" content="Your health, fully in your control" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MEIOSIS" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="sidebar" class="sidebar glass">
+      <div class="sidebar-head">
+        <div class="brand-block">
+          <div class="brand-mark">M</div>
+          <div>
+            <p class="brand-title">MEIOSIS</p>
+            <p class="brand-sub">Patient Console</p>
+          </div>
+        </div>
+        <button id="sidebarClose" class="ghost-btn sidebar-close" aria-label="Close menu">Close</button>
+      </div>
+
+      <button class="add-appointment-btn" data-action="start-add-appointment" aria-label="Add Appointment">+</button>
+
+      <nav class="nav">
+        <button class="nav-item active" data-section="home">Patient Dashboard</button>
+        <button class="nav-item" data-section="records">My Health Records</button>
+        <button class="nav-item" data-section="appointments">Appointments</button>
+        <button class="nav-item" data-section="medicines">Medicines</button>
+        <button class="nav-item" data-section="prescriptions">Prescriptions</button>
+        <button class="nav-item" data-section="network">Doctor Network</button>
+        <button class="nav-item" data-section="messages">Messages</button>
+        <button class="nav-item" data-section="myqr">My QR</button>
+        <button class="nav-item" data-section="settings">Patient Settings</button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button id="insightsButton" class="insights-fab" data-action="insights">MEIOSIS Insights</button>
+        <button class="ghost-btn" data-action="cancel-appointment-side">Cancel Appointment</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="mobile-topbar glass">
+        <button id="sidebarToggle" class="mobile-menu-btn" aria-label="Open menu">☰</button>
+        <span>MEIOSIS</span>
+      </div>
+
+      <section id="home" class="page-section active">
+        <header class="page-header home-header">
+          <div class="home-header-copy">
+            <h1 id="dashboardGreeting">Good Afternoon, Aditya</h1>
+            <p>Your Health. Fully In Your Control.</p>
+          </div>
+          <div class="home-header-search">
+            <input id="sidebarSearchInput" class="add-flow-search" type="text" placeholder="Search section" />
+            <button id="sidebarSearchBtn" class="ghost-btn" type="button">Go</button>
+          </div>
+        </header>
+
+        <div class="card-grid summary-grid">
+          <article class="glass card stat-card clickable-card" data-action="go-section" data-target-section="appointments"><p>Upcoming Appointments</p><h3 id="upcomingCount">2</h3></article>
+          <article class="glass card stat-card clickable-card" data-action="go-section" data-target-section="prescriptions"><p>Active Prescriptions</p><h3 id="activePrescriptionCount">4</h3></article>
+          <article class="glass card stat-card clickable-card" data-action="go-section" data-target-section="labs"><p>New Reports</p><h3 id="newReportsCount">1</h3></article>
+          <article class="glass card stat-card clickable-card" data-action="go-section" data-target-section="appointments"><p>Appointments Booked</p><h3><span id="homeAppointmentSummaryCount">0</span> <span class="hint">Across your scheduled care timeline</span></h3></article>
+        </div>
+
+        <div class="card-grid two-col home-primary-grid">
+          <article class="glass card clickable-card home-feature-card" data-action="go-section" data-target-section="appointments">
+            <h2>Upcoming Appointment</h2>
+            <p class="lead" id="homeUpcomingDoctor">Dr. Sarah Mitchell</p>
+            <p id="homeUpcomingDateTime">March 5, 2026 • 10:30 AM</p>
+            <p id="homeUpcomingHospital">Hospital: City General</p>
+            <p id="homeUpcomingMeta">Mode: In-person • Slot ID: AP-3347</p>
+            <div class="button-row">
+              <button id="homeViewDetailsBtn" class="btn" data-action="view-appointment-details" data-appointment-id="apt-001">View Details</button>
+              <button id="homeRescheduleBtn" class="ghost-btn" data-action="reschedule-appointment" data-appointment-id="apt-001">Reschedule</button>
+            </div>
+
+            <div class="mini-upcoming">
+              <h3>Next 2 Upcoming</h3>
+              <ul id="homeUpcomingTimeline" class="timeline-track">
+                <li>
+                  <span class="track-dot"></span>
+                  <div>
+                    <p class="track-time">March 9, 2026 • 11:00 AM</p>
+                    <p class="track-title">Dr. Arjun Rao • Cardiology</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="track-dot"></span>
+                  <div>
+                    <p class="track-time">March 12, 2026 • 06:00 PM</p>
+                    <p class="track-title">Dr. Emily Chen • Endocrinology</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </article>
+          <article class="glass card clickable-card home-feature-card home-rx-card" data-action="go-section" data-target-section="prescriptions">
+            <div class="home-rx-head">
+              <div>
+                <h2>Latest Prescription</h2>
+                <p class="hint" id="homeLatestPrescriptionIssued">Issued 20 Mar 2026</p>
+              </div>
+              <span id="homeLatestPrescriptionStatus" class="chip active">Active</span>
+            </div>
+            <p class="lead" id="homeLatestPrescriptionTitle">Essential Hypertension, Stable</p>
+            <p id="homeLatestPrescriptionDoctor">Dr. Pablo Escobar • General Medicine</p>
+            <div id="homeLatestPrescriptionChips" class="chip-row">
+              <span class="med-chip">Amlodipine 5 mg</span>
+              <span class="med-chip">Telmisartan 40 mg</span>
+            </div>
+            <div class="home-rx-meta-grid">
+              <div>
+                <span>Duration</span>
+                <strong id="homeLatestPrescriptionDuration">30 days</strong>
+              </div>
+              <div>
+                <span>Refills Left</span>
+                <strong id="homeLatestPrescriptionRefills">0 refills</strong>
+              </div>
+            </div>
+            <p class="hint home-rx-note" id="homeLatestPrescriptionNote">Latest medication guidance synced to your patient record.</p>
+            <div class="button-row">
+              <button id="homeLatestPrescriptionViewBtn" class="btn" data-action="open-mock-pdf" data-doc-title="" data-doc-code="" data-doc-type="prescription" data-doc-file="">View Prescription</button>
+              <button class="ghost-btn" data-action="view-all-prescriptions">View All</button>
+            </div>
+          </article>
+        </div>
+
+
+        <article class="glass card clickable-card" data-action="go-section" data-target-section="records">
+          <h2>Quick Actions</h2>
+          <div class="quick-grid">
+            <button class="btn" data-action="share-emr">Share EMR with Doctor</button>
+            <button class="btn" data-action="download-summary">Download Health Summary</button>
+            <button class="btn" data-action="start-add-appointment">Add Appointment</button>
+            <button class="btn" data-action="upload-report">Upload External Report</button>
+            <button class="btn danger" data-action="emergency-qr">Emergency Access QR</button>
+          </div>
+        </article>
+      </section>
+
+      <section id="records" class="page-section">
+        <header class="page-header"><h1>My Health Records</h1><p>Structured, filterable, patient-readable with analytics context.</p></header>
+        <div class="tabs glass" id="recordTabs">
+          <button class="tab active" data-tab="overview">Overview</button>
+          <button class="tab" data-tab="conditions">Conditions</button>
+          <button class="tab" data-tab="medications">Medications</button>
+          <button class="tab" data-tab="labs-tab">Lab Reports</button>
+          <button class="tab" data-tab="imaging">Imaging</button>
+          <button class="tab" data-tab="visits">Visit History</button>
+          <button class="tab" data-tab="files">Files</button>
+          <button class="tab" data-tab="access">Access Log</button>
+        </div>
+
+        <div class="card-grid summary-grid records-kpi-grid" id="recKpiGrid">
+          <article class="glass card stat-card records-stat-card"><p>Active Prescriptions</p><h3>—</h3><span class="hint">Loading…</span></article>
+          <article class="glass card stat-card records-stat-card"><p>Active Medications</p><h3>—</h3><span class="hint">Loading…</span></article>
+          <article class="glass card stat-card records-stat-card"><p>Latest Lab Cycle</p><h3>—</h3><span class="hint">Loading…</span></article>
+          <article class="glass card stat-card records-stat-card"><p>Attention Flags</p><h3>—</h3><span class="hint">Loading…</span></article>
+        </div>
+
+        <div class="card-grid two-col">
+          <article class="glass card records-hero-card">
+            <div class="records-hero-copy">
+              <span class="records-badge">Live EMR Snapshot</span>
+              <h2>Overview Panel</h2>
+              <p class="lead">Your live health summary — prescriptions, labs, and appointments in one view.</p>
+              <div class="records-chip-row" id="recOverviewChips"></div>
+            </div>
+            <div class="records-pulse">
+              <div class="records-pulse-ring ring-a"></div>
+              <div class="records-pulse-ring ring-b"></div>
+              <div class="records-pulse-core">EMR</div>
+            </div>
+          </article>
+
+          <article class="glass card records-detail-card">
+            <h2>Core Clinical Profile</h2>
+            <ul class="info-list records-detail-list" id="recProfileList">
+              <li class="hint">Loading profile…</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="card-grid two-col">
+          <article class="glass card records-timeline-card">
+            <div class="records-section-head">
+              <div><h2>Clinical Journey</h2><p class="hint">Appointments and prescriptions over time.</p></div>
+              <span class="records-glow-dot"></span>
+            </div>
+            <div class="timeline-graph records-timeline-graph" id="recTimelineGraph">
+              <div class="timeline-line"></div>
+              <div class="event current"><span>—</span><p>Loading…</p><small></small></div>
+            </div>
+          </article>
+
+          <article class="glass card records-alerts-card">
+            <div class="records-section-head">
+              <div><h2>Clinical Signals</h2><p class="hint">Lab findings surfaced for review.</p></div>
+            </div>
+            <div class="records-alert-list" id="recAlertList">
+              <p class="hint">Loading signals…</p>
+            </div>
+          </article>
+        </div>
+
+        <div class="card-grid two-col">
+          <article class="glass card">
+            <h2>Care Team</h2>
+            <div class="records-care-grid" id="recCareGrid">
+              <p class="hint">Loading care team…</p>
+            </div>
+          </article>
+        </div>
+
+        <div class="card-grid two-col">
+          <article class="glass card chart-card records-chart-card">
+            <div class="records-section-head">
+              <div>
+                <h2>Records Intelligence</h2>
+                <p class="hint" id="recCompositionLead">A clearer read on what is available in your file.</p>
+              </div>
+              <span class="chip active" id="recCompositionStatus">Updating</span>
+            </div>
+            <div class="records-composition-shell">
+              <div class="records-composition-visual">
+                <div class="records-composition-orbit"></div>
+                <div class="pie-chart records-pie" id="recPie" style="--pie: conic-gradient(var(--accent) 0 100%);"></div>
+                <div class="records-composition-core">
+                  <strong id="recCompositionTotal">0</strong>
+                  <span>Total records</span>
+                </div>
+              </div>
+              <div class="records-composition-summary" id="recInsightGrid">
+                <div class="records-summary-tile">
+                  <span>Latest update</span>
+                  <strong>Loading</strong>
+                  <small>Tracking recent record activity.</small>
+                </div>
+                <div class="records-summary-tile">
+                  <span>Coverage pulse</span>
+                  <strong>Loading</strong>
+                  <small>Reviewing how complete your file looks.</small>
+                </div>
+                <div class="records-summary-tile">
+                  <span>Share-ready docs</span>
+                  <strong>Loading</strong>
+                  <small>Checking files that can be opened or exported.</small>
+                </div>
+              </div>
+            </div>
+            <div class="records-breakdown-list" id="recLegend">
+              <p class="hint">Building your record composition…</p>
+            </div>
+          </article>
+
+          <article class="glass card">
+            <h2>Recent Records</h2>
+            <div class="records-file-list" id="recDocsList">
+              <p class="hint">Loading records…</p>
+            </div>
+          </article>
+        </div>
+
+        <article class="glass card records-share-card">
+          <div class="records-section-head">
+            <div>
+              <h2>Share Controls</h2>
+              <p class="hint">Patient-controlled access with clarity on scope and duration.</p>
+            </div>
+            <span id="shareStatusChip" class="chip">None</span>
+          </div>
+          <div class="toggle-group" id="shareControlsGroup">
+            <label>
+              <input type="checkbox" id="shareFullAccess" />
+              Allow full record access (prescriptions, visits &amp; labs)
+            </label>
+            <label>
+              <input type="checkbox" id="shareLabOnly" />
+              Allow lab reports only
+            </label>
+            <label>
+              <input type="checkbox" id="shareSummaryOnly" />
+              Allow summary view only
+            </label>
+          </div>
+          <div class="records-share-note" id="shareNote">
+            <p><strong>Current status:</strong> <span id="shareNoteText">No access granted to doctors.</span></p>
+            <p class="hint">Changes take effect immediately when saved. Access is time-logged and visible in your Data &amp; Privacy section.</p>
+          </div>
+          <div class="button-row">
+            <button class="btn" id="saveShareSettingsBtn" data-action="save-share-settings">Save Settings</button>
+            <button class="ghost-btn" data-action="preview-shared-data">Preview Shared Data</button>
+          </div>
+        </article>
+      </section>
+
+      <section id="nfc" class="page-section">
+        <header class="page-header"><h1>NFC ID Screen</h1><p>MEIOSIS Universal ID</p></header>
+        <article class="glass card">
+          <h2>Your NFC Cards</h2>
+          <div id="nfcCardsStrip" class="nfc-cards-strip"></div>
+          <div class="hint">Scroll horizontally to view all linked cards.</div>
+        </article>
+        <article class="glass card">
+          <div class="card-grid two-col nfc-live-wrap">
+            <ul class="info-list">
+              <li><strong>Unique ID:</strong> M-2024-001</li>
+              <li><strong>Universal ID Code:</strong> <span id="nfcUniversalCode">--</span></li>
+              <li><strong>NFC Card Status:</strong> <span id="nfcCardStatus" class="chip">--</span></li>
+              <li><strong>Identity URL:</strong> <span id="nfcIdentityUrl">--</span></li>
+              <li><strong>Card Passcode:</strong> <span id="nfcCardPasscode">--</span></li>
+              <li><strong>Last Used:</strong> <span id="nfcLastUsed">--</span></li>
+              <li><strong>Linked Hospitals:</strong> <span id="nfcLinkedHospitals">0</span></li>
+              <li><strong>Linked Doctors:</strong> <span id="nfcLinkedDoctors">0</span></li>
+              <li><strong>Emergency Override:</strong> <span id="nfcEmergencyStatus" class="chip complete">Off</span></li>
+            </ul>
+            <div class="nfc-scanner" aria-hidden="true">
+              <div class="scan-ring ring-a"></div>
+              <div class="scan-ring ring-b"></div>
+              <div class="scan-ring ring-c"></div>
+              <div class="scan-sweep"></div>
+              <div class="scan-core"></div>
+            </div>
+          </div>
+        </article>
+        <article class="glass card">
+          <div class="button-row nfc-actions-row">
+            <button class="ghost-btn" data-action="disable-card">Disable Card</button>
+            <button class="btn" data-action="add-nfc-card">Add New Card</button>
+            <button class="btn" data-action="regenerate-token">Regenerate Access Token</button>
+            <button class="ghost-btn" data-action="simulate-doctor-scan">Simulate Doctor Scan</button>
+            <button class="ghost-btn" data-action="view-scan-history">View Scan History</button>
+            <button class="danger" data-action="emergency-override">Emergency Override</button>
+          </div>
+        </article>
+      </section>
+
+      <section id="appointments" class="page-section">
+        <header class="page-header"><h1>Appointments</h1><p>Calendar and list workflow with visit context</p></header>
+        <div class="button-row appointments-top-controls">
+          <div class="appointments-switch">
+            <button id="appointmentFilterUpcoming" class="btn" data-action="appointments-upcoming">Upcoming</button>
+            <button id="appointmentFilterPast" class="ghost-btn" data-action="appointments-past">Past</button>
+            <button id="appointmentFilterCancelled" class="ghost-btn" data-action="appointments-cancelled">Cancelled</button>
+          </div>
+          <button id="appointmentListAllBtn" class="ghost-btn" data-action="appointments-list-all">List</button>
+        </div>
+        <div id="appointmentsList" class="card-grid two-col"></div>
+      </section>
+
+      <section id="medicines" class="page-section">
+        <header class="page-header">
+          <h1>Medicines</h1>
+          <p>Daily checklist first. Scroll down for the full doctor-prescribed medication plan.</p>
+        </header>
+
+        <div class="medicines-top-layout">
+          <div class="medicines-left-stack">
+            <article class="glass card medicines-tracker-card">
+            <h2>Daily Tracker</h2>
+            <p id="medsDate" class="hint">Today</p>
+            <div class="med-progress-head">
+              <p class="lead"><span id="medProgressValue">0/6</span> doses completed</p>
+              <span id="medProgressPercent" class="chip">0%</span>
+            </div>
+            <div class="progress-track"><span id="medProgressBar" style="width:0%"></span></div>
+            <p id="nextDoseText" class="hint">Next dose: 08:00 AM - Amlodipine 5mg</p>
+            <div class="button-row">
+              <button class="btn" data-action="configure-reminders">Configure Reminders</button>
+            </div>
+            </article>
+
+            <article class="glass card medicines-summary-card">
+              <div class="records-section-head">
+                <div>
+                  <h2>Medicine Selector</h2>
+                  <p class="hint">Grouped by medicine so repeated doses stay easy to follow.</p>
+                </div>
+              </div>
+              <div id="dailyMedicineGroups" class="daily-medicine-groups"></div>
+            </article>
+          </div>
+
+          <article class="glass card medicines-schedule-card">
+            <div class="records-section-head">
+              <div>
+                <h2>Today's Medicines</h2>
+                <p class="hint">Track each dose separately even when the medicine repeats during the day.</p>
+              </div>
+              <span class="chip">Tap to mark taken</span>
+            </div>
+            <div class="dose-grid">
+            </div>
+          </article>
+        </div>
+
+        <div id="medplan" class="medplan-panel">
+          <header class="page-header">
+            <h1>Medication Plan</h1>
+            <p>Doctor-prescribed medications with symptom notes and attached documents.</p>
+            <div id="medplanCompletionBanner" class="medplan-complete-banner" aria-live="polite"></div>
+          </header>
+
+          <div class="card-grid two-col">
+            <article class="glass card">
+              <h2>Prescribed By Doctors</h2>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Doctor</th><th>Medication</th><th>Dose</th><th>When</th><th>Reason</th></tr></thead>
+                  <tbody id="medplanDoctorsTableBody"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="glass card">
+              <h2>Doctor Notes</h2>
+              <div id="medplanNotesBody"><p class="hint">No notes yet.</p></div>
+            </article>
+          </div>
+
+        </div>
+      </section>
+
+      <section id="prescriptions" class="page-section">
+        <header class="page-header prescription-page-header">
+          <div class="prescription-page-copy">
+            <h1>Prescriptions</h1>
+            <p id="prescriptionPageLead">Prescription status, doctor instructions, refills, and downloadable documents in one place.</p>
+          </div>
+          <div class="prescription-timeline-toggle" aria-label="Prescription page view">
+            <button class="prescription-timeline-btn active" data-action="set-prescription-timeline-view" data-timeline-view="overview" aria-pressed="true">Overview</button>
+            <button class="prescription-timeline-btn" data-action="set-prescription-timeline-view" data-timeline-view="timeline" aria-pressed="false">Timeline</button>
+          </div>
+        </header>
+
+        <div id="prescriptionOverviewShell" class="prescription-page-stack">
+          <div class="card-grid two-col">
+            <div id="prescriptionCards"></div>
+
+            <article class="glass card prescription-support-card">
+              <div class="prescription-support-head">
+                <h2>Lab Reports</h2>
+                <button class="ghost-btn" data-action="view-all-labs">View All</button>
+              </div>
+              <div id="labReportsList" class="rx-list-scroll"></div>
+            </article>
+          </div>
+
+          <div class="card-grid two-col">
+            <article class="glass card prescription-support-card">
+              <h2>Prescription Documents</h2>
+              <div id="prescriptionDocsList" class="prescription-doc-list"></div>
+            </article>
+
+            <article class="glass card prescription-support-card">
+              <h2>Lab Documents</h2>
+              <div id="labDocsList" class="prescription-doc-list"></div>
+            </article>
+          </div>
+        </div>
+
+        <div id="prescriptionTimelineShell" class="prescription-page-stack" hidden>
+          <article class="glass card prescription-timeline-card">
+            <div class="prescription-timeline-tools">
+              <input id="prescriptionTimelineSearch" class="add-flow-search prescription-timeline-search" type="text" placeholder="Search prescriptions, labs, documents, or doctor..." />
+              <div class="prescription-timeline-filters" aria-label="Timeline filters">
+                <button class="prescription-filter-btn active" data-action="set-prescription-timeline-filter" data-timeline-filter="all" aria-pressed="true">All</button>
+                <button class="prescription-filter-btn" data-action="set-prescription-timeline-filter" data-timeline-filter="rx" aria-pressed="false">Rx</button>
+                <button class="prescription-filter-btn" data-action="set-prescription-timeline-filter" data-timeline-filter="lab" aria-pressed="false">Labs</button>
+                <button class="prescription-filter-btn" data-action="set-prescription-timeline-filter" data-timeline-filter="doc" aria-pressed="false">Docs</button>
+              </div>
+            </div>
+            <div id="prescriptionTimelineMeta" class="prescription-timeline-meta"></div>
+            <div id="prescriptionTimeline" class="prescription-timeline-surface"></div>
+          </article>
+        </div>
+      </section>
+
+
+      <section id="network" class="page-section">
+        <header class="page-header"><h1>Doctor Network</h1><p>Connected care team and referral control</p></header>
+        <div class="card-grid summary-grid network-summary-grid">
+          <article class="glass card stat-card network-stat-card">
+            <p>Current Care Team</p>
+            <h3 id="networkCareTeamCount">3</h3>
+            <span class="hint">Doctors actively handling follow-up</span>
+          </article>
+          <article class="glass card stat-card network-stat-card">
+            <p>Connected Doctors</p>
+            <h3 id="networkConnectedCount">5</h3>
+            <span class="hint">Profiles linked to your care graph</span>
+          </article>
+          <article class="glass card stat-card network-stat-card">
+            <p>Referral Requests</p>
+            <h3>1</h3>
+            <span class="hint">Pending approval from patient side</span>
+          </article>
+          <article class="glass card stat-card network-stat-card network-accent-card">
+            <p>Quick Access</p>
+            <h3>Second Opinion</h3>
+            <span class="hint">Share limited records with another specialist</span>
+          </article>
+        </div>
+
+        <article class="glass card network-panel">
+          <div class="network-panel-head">
+            <div>
+              <h2>Your Doctors</h2>
+              <p class="hint">Ratings, availability, and quick actions in one place.</p>
+            </div>
+            <div class="button-row network-actions">
+            <button class="btn" data-action="add-personal-doctor">Add Personal Doctor</button>
+            <button class="ghost-btn" data-action="second-opinion">Request Second Opinion</button>
+            </div>
+          </div>
+          <div id="networkDoctorList" class="network-doctor-grid"></div>
+        </article>
+      </section>
+
+      <section id="messages" class="page-section">
+        <div id="messagesShell" class="glass card messages-shell">
+          <aside class="messages-sidebar">
+            <div class="messages-sidebar-head">
+              <span class="messages-eyebrow">Inbox</span>
+              <div class="messages-sidebar-headline">
+                <h2>Doctor Messages</h2>
+                <span class="messages-sidebar-stat">Live</span>
+              </div>
+              <p class="hint">Open a conversation to review follow-ups, advice, and care updates.</p>
+            </div>
+            <div id="messagesDoctorList" class="messages-doctor-list"></div>
+          </aside>
+
+          <article class="messages-chat-card">
+            <div class="messages-chat-top">
+              <div class="messages-chat-identity-wrap">
+                <div class="messages-chat-identity">
+                  <button id="messagesBackBtn" class="ghost-btn messages-back-btn" type="button" hidden aria-label="Back to messages overview" title="Back to messages overview">
+                    <svg viewBox="0 0 20 20" aria-hidden="true">
+                      <path d="M12.8 4.8L7.2 10l5.6 5.2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <div id="messagesChatAvatar" class="messages-chat-avatar">M</div>
+                  <div>
+                    <h2 id="messagesChatTitle">Select a doctor to start chat</h2>
+                    <p id="messagesChatMeta" class="hint">Encrypted consultation channel</p>
+                  </div>
+                </div>
+                <div class="messages-chat-badges">
+                  <span class="messages-chat-badge">Private thread</span>
+                  <span class="messages-chat-badge muted">Secure channel</span>
+                </div>
+              </div>
+            </div>
+
+            <div id="messagesThread" class="messages-thread">
+              <div class="messages-empty">
+                <div class="messages-empty-card">
+                  <span class="messages-empty-icon">+</span>
+                  <h3>Your secure care conversation</h3>
+                  <p>Select a doctor from the left to open the consultation chat.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="messages-compose-wrap">
+              <div class="messages-compose">
+                <input id="messagesImageInput" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" hidden />
+                <button id="messagesImageBtn" class="ghost-btn messages-attach-btn" type="button" aria-label="Add" title="Add">
+                  <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M10 4.2v11.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+                    <path d="M4.2 10h11.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+                  </svg>
+                </button>
+                <button id="messagesVoiceBtn" class="ghost-btn messages-attach-btn" type="button" disabled aria-label="Record voice note" title="Record voice note">
+                  <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <rect x="7" y="3.2" width="6" height="9.2" rx="3" fill="none" stroke="currentColor" stroke-width="1.7"/>
+                    <path d="M5.5 9.7a4.5 4.5 0 0 0 9 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                    <path d="M10 14.4v2.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                    <path d="M7.4 16.8h5.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                  </svg>
+                </button>
+                <input id="messagesInput" class="add-flow-search" type="text" placeholder="Type a message..." disabled />
+                <button id="messagesSendBtn" class="btn messages-send-btn" data-action="messages-send" disabled aria-label="Send message" title="Send message">
+                  <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M10 15.6V4.8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+                    <path d="M6.2 8.6L10 4.8l3.8 3.8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+              <p id="messagesComposerMeta" class="messages-compose-meta">Attach a medical image or record a voice note directly in this secure thread.</p>
+            </div>
+          </article>
+        </div>
+        <div id="messagesVoiceOverlay" class="messages-voice-overlay" hidden>
+          <div class="messages-voice-modal">
+            <div class="messages-voice-pulse"></div>
+            <p class="messages-voice-eyebrow">Recording Voice Note</p>
+            <h3>Capture a quick clinical update</h3>
+            <p id="messagesVoiceStatus" class="messages-voice-status">Your microphone is live. Tap done when you finish.</p>
+            <div class="messages-voice-visualizer" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="messages-voice-actions">
+              <button id="messagesVoiceCancelBtn" class="ghost-btn" type="button">Cancel</button>
+              <button id="messagesVoiceDoneBtn" class="btn" type="button">Done</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="myqr" class="page-section">
+        <header class="page-header">
+          <h1>My QR</h1>
+          <p>Present to a doctor for instant verified access to your records.</p>
+        </header>
+
+        <div class="myqr-stage">
+
+          <!-- Main Apple-style card -->
+          <div class="myqr-sheet glass">
+
+            <!-- QR zone -->
+            <div class="myqr-qr-zone">
+              <div class="myqr-frame" aria-label="Patient QR Code">
+                <div class="myqr-frame-glow"></div>
+                <div id="myQrCanvas" class="myqr-canvas"></div>
+                <div class="myqr-scan-line"></div>
+              </div>
+            </div>
+
+            <!-- Identity below QR -->
+            <div class="myqr-identity">
+              <h2 id="myQrPatientName">--</h2>
+              <p class="hint">ID: <strong id="myQrCode">--</strong></p>
+              <div class="myqr-id-chips">
+                <span class="chip active">Full Record Access</span>
+                <span class="chip">Live</span>
+              </div>
+            </div>
+
+            <!-- Access grants 2×2 grid -->
+            <div class="myqr-grants">
+              <div class="myqr-grant">
+                <span class="myqr-grant-icon">📋</span>
+                <span>Full Timeline</span>
+              </div>
+              <div class="myqr-grant">
+                <span class="myqr-grant-icon">💊</span>
+                <span>Prescriptions</span>
+              </div>
+              <div class="myqr-grant">
+                <span class="myqr-grant-icon">🧪</span>
+                <span>Lab Reports</span>
+              </div>
+              <div class="myqr-grant">
+                <span class="myqr-grant-icon">🆔</span>
+                <span>Identity Match</span>
+              </div>
+            </div>
+
+            <!-- Duration slider -->
+            <div class="myqr-dur-zone">
+              <div class="myqr-dur-hdr">
+                <span class="myqr-dur-lbl">Valid for</span>
+                <strong id="myQrDurLabel">1 hr</strong>
+              </div>
+              <input type="range" class="myqr-slider" id="myQrSlider"
+                     min="0" max="4" step="1" value="2"
+                     aria-label="Access duration" />
+              <div class="myqr-dur-ticks">
+                <span>15m</span><span>30m</span><span>1h</span><span>2h</span><span>6h</span>
+              </div>
+              <button id="myQrRevokeBtn" class="myqr-revoke-btn" onclick="revokeQrAccess()">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="2"/>
+                  <line x1="6" y1="6" x2="14" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Revoke Access
+              </button>
+            </div>
+
+            <!-- URL (understated) -->
+            <p class="hint myqr-url-hint">URL: <span id="myQrAccessUrl">—</span></p>
+
+            <!-- Live OTP — shown when someone scans the QR -->
+            <div id="myQrOtpSection" class="myqr-otp-section hidden">
+              <div class="myqr-otp-inner">
+                <div class="myqr-otp-left">
+                  <span class="chip active myqr-otp-chip">Active Scan Request</span>
+                  <p class="myqr-otp-label">Your one-time OTP</p>
+                  <div class="myqr-otp-code" id="myQrOtpValue">----</div>
+                  <p class="hint" id="myQrOtpExpires"></p>
+                </div>
+                <p class="myqr-otp-hint">Someone scanned your QR. Read this OTP to them to grant access.</p>
+              </div>
+            </div>
+
+          </div><!-- /.myqr-sheet -->
+          <!-- Side notes card -->
+          <div class="myqr-notes glass">
+            <span class="chip active" style="width:fit-content">Scan Guide</span>
+            <h3 style="margin:12px 0 4px;">How it works</h3>
+            <div class="myqr-note-stack">
+              <div class="myqr-note-card">
+                <strong>What the doctor sees</strong>
+                <p>Full profile, appointments, prescriptions, and EMR context from one scan.</p>
+              </div>
+              <div class="myqr-note-card">
+                <strong>How OTP works</strong>
+                <p>If prompted, an OTP appears here. Read it to the doctor to confirm access.</p>
+              </div>
+              <div class="myqr-note-card">
+                <strong>Duration control</strong>
+                <p>Use the slider to set how long access is valid before the session expires.</p>
+              </div>
+            </div>
+            <div class="button-row" style="margin-top:16px;">
+              <button class="btn" data-action="download-summary">Download Summary</button>
+              <button class="ghost-btn" data-action="share-emr">Share EMR</button>
+            </div>
+          </div>
+
+        </div><!-- /.myqr-stage -->
+      </section>
+
+      <section id="settings" class="page-section">
+        <header class="page-header"><h1>Patient Settings</h1><p>Manage profile, security, notifications, and data preferences.</p></header>
+
+        <div class="card-grid two-col">
+          <article class="glass card settings-card">
+            <h2>Account</h2>
+            <ul class="info-list">
+              <li><strong>Name:</strong> <span id="profileName">--</span></li>
+              <li><strong>Email:</strong> <span id="profileEmail">--</span></li>
+              <li><strong>Phone:</strong> <span id="profilePhone">--</span></li>
+              <li><strong>Address:</strong> <span id="profileAddress">--</span></li>
+              <li><strong>Language:</strong> <span id="profileLanguage">English</span></li>
+              <li><strong>MEIOSIS Code:</strong> <span id="settingsUniversalCode">--</span></li>
+              <li class="hint">Use this 10-digit code for NFC-linked identity or EMR sharing.</li>
+            </ul>
+            <div class="button-row settings-actions">
+              <button id="editUniversalIdBtn" class="ghost-btn" data-action="edit-universal-id">Edit Universal ID</button>
+              <button class="ghost-btn" data-action="edit-profile">Edit Profile</button>
+              <button class="ghost-btn" data-action="open-nfc-settings">Open NFC ID</button>
+              <button class="btn" data-action="save-settings">Save Profile</button>
+              <button class="ghost-btn" data-action="change-password">Change Password</button>
+              <button class="danger" data-action="logout-user">Logout</button>
+            </div>
+          </article>
+
+          <article class="glass card settings-card">
+            <h2>Notifications</h2>
+            <div class="toggle-group">
+              <label><input type="checkbox" checked /> Medication reminders</label>
+              <label><input type="checkbox" checked /> Appointment reminders</label>
+              <label><input type="checkbox" checked /> Lab report alerts</label>
+              <label><input type="checkbox" /> Promotional updates</label>
+            </div>
+            <div class="settings-theme-row">
+              <label class="settings-theme-label" for="themeSelect">Select Theme</label>
+              <select id="themeSelect" class="add-flow-search settings-theme-select">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+                <option value="super-dark">Super Dark</option>
+                <option value="green">Green</option>
+                <option value="orange">Orange</option>
+                <option value="violet">Violet</option>
+                <option value="yellow">Yellow</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div id="themeCustomControls" class="settings-theme-custom hidden">
+              <div class="settings-theme-custom-header">
+                <div>
+                  <strong>Custom Accent</strong>
+                  <p>Dial the patient UI color and brightness to your preference.</p>
+                </div>
+                <span id="themePreviewSwatch" class="settings-theme-preview" aria-hidden="true"></span>
+              </div>
+              <label class="settings-theme-slider-row" for="themeColorSlider">
+                <span class="settings-theme-slider-meta">
+                  <span>RGB Tone</span>
+                  <strong id="themeColorValue">152</strong>
+                </span>
+                <input id="themeColorSlider" class="settings-theme-slider settings-theme-slider-hue" type="range" min="0" max="360" value="152" />
+              </label>
+              <label class="settings-theme-slider-row" for="themeBrightnessSlider">
+                <span class="settings-theme-slider-meta">
+                  <span>Brightness</span>
+                  <strong id="themeBrightnessValue">100%</strong>
+                </span>
+                <input id="themeBrightnessSlider" class="settings-theme-slider" type="range" min="70" max="135" value="100" />
+              </label>
+            </div>
+            <div class="button-row settings-actions">
+              <button class="btn" data-action="save-settings">Save Preferences</button>
+            </div>
+          </article>
+
+          <article class="glass card settings-card">
+            <h2>Security</h2>
+            <ul class="timeline-list">
+              <li>2FA: Enabled (OTP)</li>
+              <li>Trusted Devices: 3</li>
+              <li>Last Login: 03 Mar 2026, 10:12 AM</li>
+            </ul>
+            <div class="button-row settings-actions">
+              <button class="ghost-btn" data-action="manage-devices">Manage Devices</button>
+              <button class="ghost-btn" data-action="export-data">Export Data</button>
+            </div>
+          </article>
+
+          <article class="glass card settings-card">
+            <h2>Privacy</h2>
+            <div class="toggle-group">
+              <label><input type="checkbox" checked /> AI educational summaries</label>
+              <label><input type="checkbox" checked /> Anonymous analytics sharing</label>
+              <label><input type="checkbox" /> Research participation</label>
+            </div>
+            <div class="button-row settings-actions">
+              <button class="danger" data-action="delete-account">Delete Account Request</button>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+  </div>
+  <div id="sidebarOverlay" class="sidebar-overlay"></div>
+  <div id="detailModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card glass">
+      <div class="modal-header">
+        <h3 id="modalTitle">Details</h3>
+        <button id="closeModal" class="ghost-btn">Close</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="false"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="./config.js?v=3"></script>
+  <script src="./app.js?v=3"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => registration.unregister());
+      }).catch(() => {});
+    }
+  </script>
+</body>
+</html>

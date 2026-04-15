@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MEIOSIS Doctor Dashboard</title>
+    <!-- PWA -->
+    <meta name="theme-color" content="#010e1c" />
+    <meta name="description" content="Unified EMR and patient management for doctors" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="MEIOSIS" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+    <style>
+      /* Inline boot screen — shown instantly before React mounts, hidden when React replaces #root */
+      body { margin: 0; background: #010e1c; }
+      #boot {
+        position: fixed; inset: 0;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 18px;
+        background: #010e1c;
+        z-index: 9999;
+      }
+      #boot-mark {
+        width: 52px; height: 52px; border-radius: 16px;
+        background: linear-gradient(135deg, rgba(82,255,157,.25), rgba(56,189,248,.15));
+        border: 1px solid rgba(82,255,157,.3);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 22px; font-weight: 800; color: #52ff9d;
+        font-family: system-ui, sans-serif;
+      }
+      #boot-bar {
+        width: 120px; height: 2px; border-radius: 99px;
+        background: rgba(255,255,255,.06);
+        overflow: hidden;
+      }
+      #boot-bar::after {
+        content: '';
+        display: block; height: 100%; width: 40%;
+        background: linear-gradient(90deg, transparent, #52ff9d, transparent);
+        animation: sweep 1.1s ease-in-out infinite;
+      }
+      @keyframes sweep {
+        0%   { transform: translateX(-100%); }
+        100% { transform: translateX(350%); }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Inline boot splash — React removes this when it mounts -->
+    <div id="boot">
+      <div id="boot-mark">M</div>
+      <div id="boot-bar"></div>
+    </div>
+
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Remove the boot splash the moment React has something to show
+      const observer = new MutationObserver(() => {
+        if (document.getElementById('root')?.children.length) {
+          document.getElementById('boot')?.remove();
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.getElementById('root'), { childList: true });
+    </script>
+  </body>
+</html>
