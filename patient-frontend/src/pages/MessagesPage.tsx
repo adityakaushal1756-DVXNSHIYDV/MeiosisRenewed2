@@ -16,12 +16,12 @@ export function MessagesPage() {
     <div className="p-6 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto h-full flex flex-col relative overflow-hidden">
       <header className="mb-8 mt-2 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Messages</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Messages</h1>
           <p className="text-mist mt-1 text-sm font-medium">Secure clinical consultation & encrypted channels.</p>
         </div>
         
         <div className="flex bg-white/[0.03] p-1.5 rounded-full border border-white/5 backdrop-blur-3xl shadow-2xl">
-           <div className="px-6 py-2.5 text-xs font-black text-neon uppercase tracking-widest flex items-center gap-3">
+           <div className="px-6 py-2.5 text-xs font-semibold text-neon uppercase tracking-wider flex items-center gap-3">
              <div className="w-2.5 h-2.5 rounded-full bg-neon animate-pulse shadow-[0_0_10px_rgba(82,255,157,0.8)]"></div>
              Direct Care Thread
            </div>
@@ -36,7 +36,7 @@ export function MessagesPage() {
           selectedDoc ? "hidden lg:flex" : "flex"
         )}>
           <div className="p-6 border-b border-wire/10 shrink-0">
-            <span className="text-[10px] font-black text-sky uppercase tracking-[0.2em] mb-3 block opacity-50">Private Inbox</span>
+            <span className="text-[10px] font-semibold text-sky uppercase tracking-wider mb-3 block opacity-50">Private Inbox</span>
             <div className="flex justify-between items-center mb-2">
               <h2 className="text-xl font-bold text-white tracking-tight">Active Doctors</h2>
             </div>

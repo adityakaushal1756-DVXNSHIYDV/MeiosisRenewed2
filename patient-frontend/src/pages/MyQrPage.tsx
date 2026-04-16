@@ -28,7 +28,7 @@ export function MyQrPage() {
 
             {/* Identity Info */}
             <div className="p-6 text-center border-b border-wire/10">
-              <h2 className="text-2xl font-bold text-white mb-1">Aditya Kaushal</h2>
+              <h2 className="text-xl font-bold text-white mb-1">Aditya Kaushal</h2>
               <p className="text-sm text-mist mb-4">ID: <strong className="text-white">M-2024-001</strong></p>
               
               <div className="flex items-center justify-center gap-2">
@@ -68,10 +68,10 @@ export function MyQrPage() {
             {/* Duration Slider */}
             <div className="p-6 bg-ink/30 mt-auto">
               <div className="flex justify-between items-center mb-4">
-                <span className="text-sm font-medium text-mist flex items-center gap-2">
+                <span className="text-sm font-semibold text-mist flex items-center gap-2">
                   <Clock className="w-4 h-4" /> Valid for
                 </span>
-                <strong className="text-lg text-white font-semibold">{durationLabels[duration]}</strong>
+                <strong className="text-lg text-white font-bold">{durationLabels[duration]}</strong>
               </div>
               
               <div className="relative mb-6">

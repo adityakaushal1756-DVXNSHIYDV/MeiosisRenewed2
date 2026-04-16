@@ -658,6 +658,7 @@ async function createPatientAuditPdf(patient) {
 }
 
 module.exports = {
+  renderPdfToFile,
   createPrescriptionPdf,
   createLabReportPdf,
   createPatientSummaryPdf,

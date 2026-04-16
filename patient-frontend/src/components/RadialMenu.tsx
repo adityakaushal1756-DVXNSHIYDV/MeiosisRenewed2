@@ -101,6 +101,7 @@ export function RadialMenu({ currentSection, onSectionChange }: RadialMenuProps)
   };
 
   return (
+    <>
       {/* 1. Global Page Subtle Blur (Uncoupled from menu animation) */}
       <AnimatePresence>
         {isOpen && (
@@ -201,7 +202,7 @@ export function RadialMenu({ currentSection, onSectionChange }: RadialMenuProps)
                   <motion.span 
                     initial={{ opacity: 0, y: 5, scale: 0.8 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    className="absolute -top-12 text-[10px] font-black uppercase tracking-widest text-white whitespace-nowrap bg-ink px-4 py-1.5 rounded-full border border-wire/30 shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-30"
+                    className="absolute -top-12 text-[10px] font-semibold uppercase tracking-wider text-white whitespace-nowrap bg-ink px-4 py-1.5 rounded-full border border-wire/30 shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-30"
                   >
                     {item.label}
                   </motion.span>
@@ -238,7 +239,7 @@ export function RadialMenu({ currentSection, onSectionChange }: RadialMenuProps)
             <div className={cn(currentItem.color, "[&>svg]:w-8 [&>svg]:h-8 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]")}>
               {currentItem.icon}
             </div>
-            <span className="text-[9px] font-black uppercase tracking-tighter text-mist/80">
+            <span className="text-[9px] font-semibold uppercase tracking-tight text-mist/80">
               {currentItem.label}
             </span>
           </div>
@@ -246,6 +247,7 @@ export function RadialMenu({ currentSection, onSectionChange }: RadialMenuProps)
       </motion.button>
 
     </motion.div>
+    </>
   );
 }
 

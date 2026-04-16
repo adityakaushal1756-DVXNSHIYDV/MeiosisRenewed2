@@ -68,18 +68,32 @@ const KEYFRAMES = `
 export function WelcomeAnimation({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState<Phase>('in');
 
-  // hold → exit after 3.2 s total
-  useEffect(() => {
-    const t = setTimeout(() => setPhase('out'), 1000);
-    return () => clearTimeout(t);
-  }, []);
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
-  // unmount after exit animation (0.65 s)
   useEffect(() => {
-    if (phase !== 'out') return;
-    const t = setTimeout(() => { setPhase('done'); onDone(); }, 680);
-    return () => clearTimeout(t);
-  }, [phase, onDone]);
+    let active = true;
+    
+    // Phase 1: Hold the 'in' animation
+    const t1 = setTimeout(() => {
+      if (!active) return;
+      setPhase('out');
+      
+      // Phase 2: Wait for exit animation to complete
+      const t2 = setTimeout(() => {
+        if (!active) return;
+        setPhase('done');
+        onDoneRef.current();
+      }, 420);
+      
+      return () => clearTimeout(t2);
+    }, 550);
+
+    return () => {
+      active = false;
+      clearTimeout(t1);
+    };
+  }, []); // Run exactly once on mount; ref handles stable callback access
 
   if (phase === 'done') return null;
 
@@ -96,8 +110,8 @@ export function WelcomeAnimation({ onDone }: { onDone: () => void }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
         animation: exiting
-          ? 'mw-out 0.65s cubic-bezier(0.4,0,1,1) forwards'
-          : 'mw-in  0.28s ease forwards',
+          ? 'mw-out 0.4s cubic-bezier(0.4,0,1,1) forwards'
+          : 'mw-in  0.25s ease forwards',
       }}>
 
         {/* ── Drifting ambient orbs ── */}

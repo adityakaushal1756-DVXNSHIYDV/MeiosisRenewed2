@@ -44,3 +44,13 @@ export interface EMRState {
   followUpDate: string;
   prescriptionRows: PrescriptionRow[];
 }
+
+export interface PdfTemplate {
+  id: string;
+  name: string;
+  isActive: boolean;
+  type: 'uploaded' | 'built';
+  fields: string[];
+  htmlTemplate: string;
+  uploadedAt: string;
+}

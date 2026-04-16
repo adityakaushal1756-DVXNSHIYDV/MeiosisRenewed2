@@ -42,12 +42,12 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
     <div className="p-6 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto h-full flex flex-col relative overflow-hidden">
       <header className="mb-8 mt-2 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black text-white tracking-tighter uppercase">My Medications</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">My Medications</h1>
           <p className="text-mist mt-1 text-sm font-medium">Real-time treatment tracker & adherence assistant.</p>
         </div>
         
         <div className="flex bg-white/[0.03] p-1.5 rounded-full border border-white/5 backdrop-blur-3xl shadow-2xl">
-           <div className="px-6 py-2.5 text-xs font-black text-neon uppercase tracking-widest flex items-center gap-3">
+           <div className="px-6 py-2.5 text-xs font-semibold text-neon uppercase tracking-wider flex items-center gap-3">
              <div className="w-2.5 h-2.5 rounded-full bg-neon animate-pulse shadow-[0_0_10px_rgba(82,255,157,0.8)]"></div>
              {allActiveItems.length} Active Protocols
            </div>
@@ -68,10 +68,10 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
                 <p className="text-lg font-bold text-white">
                   <span className="text-neon">0</span>/{allActiveItems.length} completed
                 </p>
-                <div className="flex flex-col items-end">
-                   <span className="text-[10px] text-mist/60 uppercase font-black mb-1">Daily Goal</span>
-                   <span className="chip bg-white/5 border-wire/10 !px-3 font-bold text-mist">0%</span>
-                </div>
+                 <div className="flex flex-col items-end">
+                    <span className="text-[10px] text-mist/60 uppercase font-semibold mb-1">Daily Goal</span>
+                    <span className="chip bg-white/5 border-wire/10 !px-3 font-semibold text-mist">0%</span>
+                 </div>
               </div>
               
               <div className="h-2 w-full bg-white/10 rounded-full mb-6 overflow-hidden">
@@ -79,8 +79,8 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
               </div>
               
               {allActiveItems.length > 0 ? (
-                <div className="p-4 rounded-xl bg-white/[0.03] border border-wire/10 border-l-4 border-l-sky space-y-3">
-                   <p className="text-xs text-mist uppercase font-black tracking-widest">Upcoming Focus</p>
+                 <div className="p-4 rounded-xl bg-white/[0.03] border border-wire/10 border-l-4 border-l-sky space-y-3">
+                    <p className="text-xs text-mist uppercase font-semibold tracking-wider">Upcoming Focus</p>
                    <div className="flex justify-between items-center">
                       <span className="text-sm font-bold text-white">{allActiveItems[0].medicine}</span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky/10 text-sky-400 border border-sky/20 font-bold">{allActiveItems[0].timing}</span>
@@ -119,16 +119,16 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
                       </div>
                       <div>
                         <h3 className="font-bold text-white group-hover:text-neon transition-colors">{item.medicine}</h3>
-                        <div className="flex items-center gap-2 mt-0.5">
-                           <Clock className={cn("w-3 h-3", item.daysLeft <= 2 ? "text-rose-400" : "text-mist")} />
-                           <span className={cn("text-[10px] font-black uppercase tracking-widest", item.daysLeft <= 2 ? "text-rose-400" : "text-mist")}>
-                             {item.daysLeft} Days Remaining
-                           </span>
-                        </div>
+                         <div className="flex items-center gap-2 mt-0.5">
+                            <Clock className={cn("w-3 h-3", item.daysLeft <= 2 ? "text-rose-400" : "text-mist")} />
+                            <span className={cn("text-[10px] font-semibold uppercase tracking-wider", item.daysLeft <= 2 ? "text-rose-400" : "text-mist")}>
+                              {item.daysLeft} Days Remaining
+                            </span>
+                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                       <p className="text-[10px] text-mist/60 uppercase font-black mb-1">Day {item.dayNumber}/{item.totalDays}</p>
+                     <div className="text-right">
+                        <p className="text-[10px] text-mist/60 uppercase font-semibold mb-1">Day {item.dayNumber}/{item.totalDays}</p>
                        <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden">
                           <div className="h-full bg-sky" style={{ width: `${item.progress}%` }}></div>
                        </div>
@@ -149,8 +149,8 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
                   <h2 className="text-xl font-bold text-white mb-1">Today's Schedule</h2>
                   <p className="text-mist text-sm">Synchronized with your doctor's timeline.</p>
                 </div>
-                {allActiveItems.some(i => i.daysLeft <= 1) && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-black uppercase">
+                 {allActiveItems.some(i => i.daysLeft <= 1) && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-semibold uppercase">
                     <AlertTriangle className="w-3.5 h-3.5" /> Ending Soon
                   </div>
                 )}
@@ -166,15 +166,15 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
                           <h4 className="font-bold text-white text-base group-hover:text-neon transition-colors">{item.medicine}</h4>
                           <p className="text-xs text-mist mt-0.5">{item.dose} • {item.timing}</p>
                         </div>
-                        <div className="text-right">
-                           <span className="text-[10px] font-black text-mist/40 uppercase tracking-widest">{item.frequency.replace(/_/g, ' ')}</span>
-                        </div>
+                         <div className="text-right">
+                            <span className="text-[10px] font-semibold text-mist/40 uppercase tracking-wider">{item.frequency.replace(/_/g, ' ')}</span>
+                         </div>
                       </div>
                       <div className="pt-3 border-t border-white/5 flex items-center justify-between text-[10px]">
-                         <span className="text-mist flex items-center gap-1.5">
-                           <Clock className="w-3 h-3" /> Cycle Ends: {addDays(parseISO(activePrescriptions[0].startDate), item.totalDays).toLocaleDateString()}
-                         </span>
-                         <span className="text-sky font-black uppercase">Active Track</span>
+                          <span className="text-mist flex items-center gap-1.5">
+                            <Clock className="w-3 h-3" /> Cycle Ends: {addDays(parseISO(activePrescriptions[0].startDate), item.totalDays).toLocaleDateString()}
+                          </span>
+                          <span className="text-sky font-semibold uppercase">Active Track</span>
                       </div>
                     </div>
                   </div>
@@ -201,12 +201,12 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
-                <tr className="bg-white/[0.02]">
-                  <th className="py-4 px-6 text-[10px] font-black text-mist uppercase tracking-[0.2em]">Clinical Source</th>
-                  <th className="py-4 px-6 text-[10px] font-black text-mist uppercase tracking-[0.2em]">Medication</th>
-                  <th className="py-4 px-6 text-[10px] font-black text-mist uppercase tracking-[0.2em]">Protocol</th>
-                  <th className="py-4 px-6 text-[10px] font-black text-mist uppercase tracking-[0.2em]">Time Left</th>
-                  <th className="py-4 px-6 text-[10px] font-black text-mist uppercase tracking-[0.2em]">Clinic Reason</th>
+                 <tr className="bg-white/[0.02]">
+                  <th className="py-4 px-6 text-[10px] font-semibold text-mist uppercase tracking-wider">Clinical Source</th>
+                  <th className="py-4 px-6 text-[10px] font-semibold text-mist uppercase tracking-wider">Medication</th>
+                  <th className="py-4 px-6 text-[10px] font-semibold text-mist uppercase tracking-wider">Protocol</th>
+                  <th className="py-4 px-6 text-[10px] font-semibold text-mist uppercase tracking-wider">Time Left</th>
+                  <th className="py-4 px-6 text-[10px] font-semibold text-mist uppercase tracking-wider">Clinic Reason</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-wire/5">
@@ -224,8 +224,8 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
                          </div>
                          <p className="text-[10px] text-mist/50 mt-1">{item.dose}</p>
                       </td>
-                      <td className="py-5 px-6">
-                        <span className="px-2 py-1 rounded bg-panel border border-wire/10 text-[10px] text-white font-black uppercase">{item.frequency.replace(/_/g, ' ')}</span>
+                       <td className="py-5 px-6">
+                        <span className="px-2 py-1 rounded bg-panel border border-wire/10 text-[10px] text-white font-semibold uppercase">{item.frequency.replace(/_/g, ' ')}</span>
                       </td>
                       <td className="py-5 px-6">
                          <div className="flex items-center gap-2">

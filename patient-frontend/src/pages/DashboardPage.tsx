@@ -34,7 +34,7 @@ export function DashboardPage({ onNavigate, data }: DashboardPageProps) {
       {/* Header */}
       <header className="flex items-start justify-between gap-6 mb-8 mt-2 shrink-0">
         <div className="flex-1 min-w-0">
-          <h1 className="text-4xl font-black text-white tracking-tighter uppercase leading-tight">Good Afternoon, {data.name.split(' ')[0]}</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight leading-tight">Good Afternoon, {data.name.split(' ')[0]}</h1>
           <p className="text-mist mt-1 text-sm font-medium">Your Health. Fully In Your Control.</p>
         </div>
 

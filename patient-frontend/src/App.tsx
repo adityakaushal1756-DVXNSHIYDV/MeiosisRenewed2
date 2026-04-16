@@ -1,18 +1,21 @@
-import { useState, useRef, useEffect } from 'react';
+import { lazy, Suspense, useState, useRef, useEffect } from 'react';
 import { Menu } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { RadialMenu, Section } from './components/RadialMenu';
 import { FloatingBackButton } from './components/FloatingBackButton';
-import { DashboardPage } from './pages/DashboardPage';
-import { MyQrPage } from './pages/MyQrPage';
-import { RecordsPage } from './pages/RecordsPage';
-import { AppointmentsPage } from './pages/AppointmentsPage';
-import { MedicinesPage } from './pages/MedicinesPage';
-import { PrescriptionsPage } from './pages/PrescriptionsPage';
-import { NetworkPage } from './pages/NetworkPage';
-import { MessagesPage } from './pages/MessagesPage';
-import { SettingsPage } from './pages/SettingsPage';
-import { NfcPage } from './pages/NfcPage';
+import { LoadingFallback } from './components/LoadingFallback';
+
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const MyQrPage = lazy(() => import('./pages/MyQrPage').then(m => ({ default: m.MyQrPage })));
+const RecordsPage = lazy(() => import('./pages/RecordsPage').then(m => ({ default: m.RecordsPage })));
+const AppointmentsPage = lazy(() => import('./pages/AppointmentsPage').then(m => ({ default: m.AppointmentsPage })));
+const MedicinesPage = lazy(() => import('./pages/MedicinesPage').then(m => ({ default: m.MedicinesPage })));
+const PrescriptionsPage = lazy(() => import('./pages/PrescriptionsPage').then(m => ({ default: m.PrescriptionsPage })));
+const NetworkPage = lazy(() => import('./pages/NetworkPage').then(m => ({ default: m.NetworkPage })));
+const MessagesPage = lazy(() => import('./pages/MessagesPage').then(m => ({ default: m.MessagesPage })));
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const NfcPage = lazy(() => import('./pages/NfcPage').then(m => ({ default: m.NfcPage })));
+
 import { useAuth } from './lib/auth';
 import { usePatientProfile } from './hooks/usePatientProfile';
 
@@ -29,16 +32,19 @@ function App() {
   const [theme, setTheme] = useState(localStorage.getItem('meiosis_theme_v1') || 'super-dark');
 
   useEffect(() => {
-    const font = localStorage.getItem('meiosis_font_v1') || 'outfit';
+    const font = localStorage.getItem('meiosis_font_v1') || 'plex';
     const fonts: Record<string, string> = {
+      plex: "'IBM Plex Sans', sans-serif",
+      instrument: "'Instrument Sans', sans-serif",
       outfit: "'Outfit', sans-serif",
       inter: "'Inter', sans-serif",
       manrope: "'Manrope', sans-serif",
       space: "'Space Grotesk', sans-serif"
     };
 
-    document.documentElement.style.setProperty('--font-primary', fonts[font] || fonts.outfit);
-    document.documentElement.style.setProperty('--font-display', fonts[font] || fonts.outfit);
+    const selectedFont = fonts[font] || fonts.plex;
+    document.documentElement.style.setProperty('--font-primary', selectedFont);
+    document.documentElement.style.setProperty('--font-display', selectedFont);
 
     // Apply Light Theme class to body if needed
     if (theme === 'light') {
@@ -120,23 +126,25 @@ function App() {
         />
       </div>
       
-      <div className="flex-1 xl:pl-[280px] flex flex-col h-screen overflow-hidden relative">
+      <div className="flex-1 xl:pl-[312px] flex flex-col h-screen overflow-hidden relative">
         {/* Main Content Area */}
         <main 
           ref={mainRef}
           onScroll={handleScroll}
           className="flex-1 overflow-y-auto scroll-skin relative z-10 w-full queue-scroll"
         >
-          {currentSection === 'home' && <DashboardPage onNavigate={setCurrentSection} data={data} patientId={session.patientId} />}
-          {currentSection === 'records' && <RecordsPage data={data} />}
-          {currentSection === 'appointments' && <AppointmentsPage data={data} />}
-          {currentSection === 'medicines' && <MedicinesPage data={data} />}
-          {currentSection === 'prescriptions' && <PrescriptionsPage data={data} />}
-          {currentSection === 'network' && <NetworkPage />}
-          {currentSection === 'messages' && <MessagesPage />}
-          {currentSection === 'myqr' && <MyQrPage />}
-          {currentSection === 'settings' && <SettingsPage />}
-          {currentSection === 'nfc' && <NfcPage />}
+          <Suspense fallback={<LoadingFallback />}>
+            {currentSection === 'home' && <DashboardPage onNavigate={setCurrentSection} data={data} patientId={session.patientId} />}
+            {currentSection === 'records' && <RecordsPage data={data} />}
+            {currentSection === 'appointments' && <AppointmentsPage data={data} />}
+            {currentSection === 'medicines' && <MedicinesPage data={data} />}
+            {currentSection === 'prescriptions' && <PrescriptionsPage data={data} />}
+            {currentSection === 'network' && <NetworkPage />}
+            {currentSection === 'messages' && <MessagesPage />}
+            {currentSection === 'myqr' && <MyQrPage />}
+            {currentSection === 'settings' && <SettingsPage />}
+            {currentSection === 'nfc' && <NfcPage />}
+          </Suspense>
         </main>
       </div>
     </div>

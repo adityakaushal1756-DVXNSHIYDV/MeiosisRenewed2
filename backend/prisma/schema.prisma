@@ -82,6 +82,7 @@ model DoctorPreferences {
   followUpGapDays       Int      @default(7)
   lang                  String   @default("en")
   prescriptionTemplates Json     @default("[]")
+  pdfTemplates          Json     @default("[]")
   updatedAt             DateTime @updatedAt
   doctor                Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 }

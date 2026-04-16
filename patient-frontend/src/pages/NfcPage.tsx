@@ -19,11 +19,11 @@ export function NfcPage() {
             <div className="w-[300px] h-[180px] shrink-0 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 border-2 border-slate-700 p-6 flex flex-col justify-between relative overflow-hidden group queue-window-pill shadow-xl">
               <div className="absolute top-0 right-0 w-32 h-32 bg-neon/10 rounded-full blur-3xl group-hover:bg-neon/20 transition-colors"></div>
               <div className="flex justify-between items-start relative z-10">
-                <span className="text-white font-bold tracking-widest uppercase">MEIOSIS</span>
+                <span className="text-white font-semibold tracking-wider uppercase">MEIOSIS</span>
                 <SmartphoneNfc className="w-6 h-6 text-neon" />
               </div>
               <div className="relative z-10">
-                <span className="text-[10px] text-mist tracking-widest uppercase mb-1 block">Patient ID</span>
+                <span className="text-[10px] text-mist tracking-wider uppercase mb-1 block">Patient ID</span>
                 <div className="font-mono text-xl text-white tracking-widest">M-2024-001</div>
               </div>
             </div>
@@ -55,7 +55,7 @@ export function NfcPage() {
               </li>
               <li className="flex flex-col sm:flex-row justify-between pb-3 border-b border-wire/10 gap-1">
                 <span className="text-mist">NFC Card Status</span>
-                <span className="chip chip-green !px-2 !py-0.5 !text-xs font-bold">Encrypted & Active</span>
+                <span className="chip chip-green !px-2 !py-0.5 !text-xs font-semibold">Encrypted & Active</span>
               </li>
               <li className="flex flex-col sm:flex-row justify-between pb-3 border-b border-wire/10 gap-1">
                 <span className="text-mist">Card Passcode</span>

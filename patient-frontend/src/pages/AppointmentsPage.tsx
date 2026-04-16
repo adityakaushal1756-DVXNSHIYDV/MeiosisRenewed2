@@ -36,28 +36,28 @@ export function AppointmentsPage({ data }: AppointmentsPageProps) {
     <div className="p-6 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto h-full flex flex-col relative overflow-hidden">
       <header className="mb-8 mt-2 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Appointments</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Appointments</h1>
           <p className="text-mist mt-1 text-sm font-medium">Manage clinical visits & video consultations.</p>
         </div>
         
         <div className="flex bg-white/[0.03] p-1.5 rounded-full border border-white/5 backdrop-blur-3xl shadow-2xl">
           <button 
             onClick={() => setFilter('upcoming')}
-            className={cn("px-8 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300", 
+            className={cn("px-8 py-2.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-all duration-300", 
               filter === 'upcoming' ? 'bg-neon text-ink shadow-[0_0_20px_rgba(82,255,157,0.4)]' : 'text-mist hover:text-white')}
           >
             Upcoming
           </button>
           <button 
             onClick={() => setFilter('past')}
-            className={cn("px-8 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300", 
+            className={cn("px-8 py-2.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-all duration-300", 
               filter === 'past' ? 'bg-neon text-ink shadow-[0_0_20px_rgba(82,255,157,0.4)]' : 'text-mist hover:text-white')}
           >
             Past
           </button>
           <button 
             onClick={() => setFilter('cancelled')}
-            className={cn("px-8 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300", 
+            className={cn("px-8 py-2.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-all duration-300", 
               filter === 'cancelled' ? 'bg-neon text-ink shadow-[0_0_20px_rgba(82,255,157,0.4)]' : 'text-mist hover:text-white')}
           >
             Cancelled

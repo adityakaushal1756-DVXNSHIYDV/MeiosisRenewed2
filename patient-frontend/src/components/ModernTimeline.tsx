@@ -181,7 +181,7 @@ const TimelineNode = ({ entry, delay, onSelect }: TimelineNodeProps) => {
     >
       {/* Date Marker (Left Side on Desktop, Hidden on small mobile if tight) */}
       <div className="hidden md:block w-24 text-right shrink-0">
-        <span className="text-[11px] font-black uppercase tracking-widest text-[#8CA1B4] leading-tight block">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8CA1B4] leading-tight block">
           {format(entry.rawDate, 'MMM dd')}
         </span>
         <span className="text-[9px] font-bold text-mist/40 tracking-wider">
@@ -199,13 +199,18 @@ const TimelineNode = ({ entry, delay, onSelect }: TimelineNodeProps) => {
 
       {/* Content Card */}
       <div className="flex-1 min-w-0 py-4">
-        <div className="glass-card p-5 border border-wire/10 hover:border-white/20 transition-all rounded-[20px] bg-gradient-to-r from-white/[0.03] to-transparent relative overflow-hidden group-hover/node:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group-hover/node:-translate-y-0.5">
-          {/* Subtle accent glow inside card */}
-          <div className="absolute -top-10 -right-10 w-32 h-32 blur-[40px] opacity-10 rounded-full transition-opacity duration-500 group-hover/node:opacity-30 pointer-events-none" style={{ backgroundColor: accent }}></div>
+        <div className="glass-card p-5 border border-wire/10 hover:border-white/20 transition-all rounded-[24px] relative overflow-hidden group-hover/node:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group-hover/node:-translate-y-0.5 transform-gpu translate-z-0">
+          {/* Subtle accent glow inside card - Using radial gradient for better performance & reliability */}
+          <div 
+            className="absolute inset-0 opacity-0 group-hover/node:opacity-10 transition-opacity duration-500 pointer-events-none" 
+            style={{ 
+              background: `radial-gradient(circle at top right, ${accent}80, transparent 60%)` 
+            }}
+          />
           
           <div className="flex justify-between items-start mb-3">
-             <div className="flex flex-col md:flex-row md:items-center gap-2">
-                 <span className="text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-md border" style={{ color: accent, borderColor: `${accent}30`, backgroundColor: `${accent}10` }}>
+              <div className="flex flex-col md:flex-row md:items-center gap-2">
+                 <span className="text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md border" style={{ color: accent, borderColor: `${accent}30`, backgroundColor: `${accent}10` }}>
                     {entry.specialty}
                  </span>
                  <span className="md:hidden text-[10px] text-mist/60 font-bold tracking-widest uppercase">{format(entry.rawDate, 'dd MMM yyyy')}</span>
@@ -228,8 +233,8 @@ const TimelineNode = ({ entry, delay, onSelect }: TimelineNodeProps) => {
               
               {itemCount > 0 && (
                 <div className="bg-[#0A1118]/60 border border-white/5 rounded-xl px-4 py-3 flex flex-col justify-center shrink-0">
-                   <p className="text-[9px] uppercase tracking-[0.2em] text-[#8CA1B4] mb-1">Enclosed</p>
-                   <p className="text-sm font-black text-white flex items-center gap-1.5">
+                   <p className="text-[9px] uppercase tracking-wider text-[#8CA1B4] mb-1">Enclosed</p>
+                   <p className="text-sm font-bold text-white flex items-center gap-1.5">
                       {isMedication ? <Pill className="w-3.5 h-3.5 text-sky" /> : <FlaskConical className="w-3.5 h-3.5 text-indigo-400" />}
                       {itemCount} Items
                    </p>
@@ -280,10 +285,10 @@ export function ModernTimeline({ data }: ModernTimelineProps) {
                    <div className="relative flex items-center justify-center shrink-0 w-6 h-6 z-10">
                       <div className="w-3 h-3 rounded-full bg-neon/80 shadow-[0_0_12px_#52FF9D]"></div>
                    </div>
-                   <div className="flex-1 min-w-0">
-                      <h2 className="text-xl font-black text-white uppercase tracking-tighter shadow-sm">{monthYear}</h2>
-                      <p className="text-[10px] font-black tracking-[0.25em] text-mist/50 uppercase">Episode of Care</p>
-                   </div>
+                    <div className="flex-1 min-w-0">
+                       <h2 className="text-lg font-bold text-white tracking-tight shadow-sm">{monthYear}</h2>
+                       <p className="text-[10px] font-semibold tracking-wider text-mist/50 uppercase">Episode of Care</p>
+                    </div>
                 </div>
 
                 {/* Event Nodes */}
@@ -309,7 +314,7 @@ export function ModernTimeline({ data }: ModernTimelineProps) {
                  <div className="w-2 h-2 rounded-full bg-white/30"></div>
               </div>
               <div className="flex-1">
-                 <span className="text-[10px] font-black uppercase tracking-widest text-mist">End of Available Records</span>
+                 <span className="text-[10px] font-semibold uppercase tracking-wider text-mist">End of Available Records</span>
               </div>
            </div>
         )}

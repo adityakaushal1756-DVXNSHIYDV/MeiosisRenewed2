@@ -2,7 +2,6 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { WelcomeAnimation } from './components/WelcomeAnimation';
 import { LanguageContext } from './i18n/LanguageContext';
 import { createT, type LangCode } from './i18n/translations';
-import Dashboard from './pages/Dashboard';
 const EMRv2 = lazy(() => import('./pages/EMRv2'));
 import { NavKey } from './components/Sidebar';
 import { usePatients } from './hooks/usePatients';
@@ -11,7 +10,7 @@ import { useQueue } from './hooks/useQueue';
 import { EmrShareRequest, useEmrShareNotifications } from './hooks/useEmrShareNotifications';
 import { clearCache } from './utils/persistentCache';
 import { mockPrescriptionTemplates } from './mock/mockAppointments';
-import { EMRState, PrescriptionRow, PrescriptionTemplate } from './types/EMR';
+import { EMRState, PrescriptionRow, PrescriptionTemplate, PdfTemplate } from './types/EMR';
 import { Appointment } from './types/Appointment';
 import type { PatientMedicalReport, PatientPastAppointment } from './types/Patient';
 import { DailySchedule } from './components/Schedule/ScheduleDayEditor';
@@ -22,6 +21,10 @@ import { OfflineSyncBar } from './components/OfflineSyncBar';
 import { apiUrl, assetUrl } from './lib/api';
 import { AccessDeniedOverlay } from './components/Patient/AccessDeniedOverlay';
 import { HoverRevealSidebar } from './components/HoverRevealSidebar';
+import { LoadingFallback } from './components/LoadingFallback';
+
+const LazyDashboard = lazy(() => import('./pages/Dashboard'));
+const LazyTemplateBuilder = lazy(() => import('./pages/TemplateBuilderPage'));
 
 const CONSOLE_COLLAPSIBLE_KEY = 'meiosis_doctor_console_collapsible_v1';
 const CONSOLE_COLLAPSED_KEY = 'meiosis_doctor_console_collapsed_v1';
@@ -178,9 +181,6 @@ export default function App() {
 
   const { pending: emrShareRequests, respond: respondToEmrShare, refresh: refreshEmrShareRequests } = useEmrShareNotifications();
 
-  // Chime fallback: login.html plays it on the submit click (Safari-safe user gesture).
-  // If the redirect happened before audio could start, the flag is still set and we
-  // retry here — page-navigation activation lets this play without a gesture on most browsers.
   useEffect(() => {
     if (!sessionStorage.getItem('play_login_success_chime')) return;
     sessionStorage.removeItem('play_login_success_chime');
@@ -189,7 +189,19 @@ export default function App() {
     audio.play().catch(() => {});
   }, []);
 
-  // Sync patients derived from backend appointments into the patients list
+  // Eager Pre-fetching: Start downloading lazy chunks while the welcome animation is playing.
+  // This eliminates the 'Loading...' flicker after the splash screen finishes.
+  useEffect(() => {
+    const prefetch = () => {
+      import('./pages/Dashboard').catch(() => {});
+      import('./pages/TemplateBuilderPage').catch(() => {});
+      import('./pages/EMRv2').catch(() => {});
+    };
+    // Delay slightly to give main thread priority to the animation
+    const t = setTimeout(prefetch, 400);
+    return () => clearTimeout(t);
+  }, []);
+
   useEffect(() => {
     if (backendPatients.length > 0) {
       setPatients((prev) => {
@@ -202,14 +214,12 @@ export default function App() {
     }
   }, [backendPatients, setPatients]);
 
-  // Fetch all patients associated with this doctor (appointments + EMR)
   const fetchDoctorPatients = useCallback(async () => {
     try {
       const res = await fetch(
         apiUrl(`/doctors/${encodeURIComponent(CURRENT_DOCTOR.id)}/patients`)
       );
       if (!res.ok) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data: any[] = await res.json();
       if (!Array.isArray(data) || data.length === 0) return;
       setPatients((prev) => {
@@ -240,7 +250,6 @@ export default function App() {
       });
     } catch (err) {
       console.error("[Meiosis] Failed to fetch doctor patients:", err);
-      // backend offline — ignore
     }
   }, [setPatients]);
 
@@ -248,25 +257,20 @@ export default function App() {
     fetchDoctorPatients();
   }, [fetchDoctorPatients]);
 
-  // Fetch + hydrate a patient's full EMR history from the backend when they're selected
   const loadPatientEMR = useCallback(async (patientId: string) => {
     try {
       const res = await fetch(
         apiUrl(`/emr?patientId=${encodeURIComponent(patientId)}`)
       );
       if (!res.ok) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data: any = await res.json();
       if (!data?.prescriptions) return;
 
-      // Helper: extract a labelled line from the doctorNote
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const extract = (note: string, prefix: string): string | undefined => {
         const line = (note || '').split('\n').find((l: string) => l.startsWith(prefix));
         return line ? line.slice(prefix.length).trim() || undefined : undefined;
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const pastAppointments: PatientPastAppointment[] = data.prescriptions.map((rx: any) => ({
         id: rx.id,
         date: new Date(rx.startDate).toISOString().slice(0, 10),
@@ -277,7 +281,6 @@ export default function App() {
         purpose: rx.title || 'Consultation',
         symptoms:  extract(rx.doctorNote, 'Subjective: '),
         diagnosis: extract(rx.doctorNote, 'Assessment: '),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         medications: (rx.items || []).map((item: any) => ({
           medicineId: item.medicineId,
           name: item.medicine,
@@ -299,7 +302,6 @@ export default function App() {
         documentPath: rx.documentPath || undefined,
       }));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const medicalReports: PatientMedicalReport[] = data.labReports.map((lr: any) => ({
         id: lr.id,
         title: lr.testName,
@@ -318,7 +320,6 @@ export default function App() {
       }));
     } catch (err) {
       console.error(`[Meiosis] Failed to load EMR for patient ${patientId}:`, err);
-      // backend offline — keep whatever is already in state
     }
   }, [updatePatient]);
 
@@ -379,6 +380,8 @@ export default function App() {
     }, 360);
   }, []);
 
+  const openViewRecords = useCallback((id: string) => setViewRecordsPatientId(id), []);
+
   const handleBuildEMRFromRecords = useCallback(() => {
     const pId = viewRecordsPatientId || accessDeniedPatientId;
     if (!pId) return;
@@ -387,7 +390,7 @@ export default function App() {
     setEmr(createInitialEmr(patient ? { name: patient.name, vitals: patient.vitals, visitReason: patient.visitReason } : null));
     setEmrOpenedFromRecords(true);
     setEmrComposerOpen(true);
-    closeViewRecords(); // Close the records view/overlay when building EMR
+    closeViewRecords();
   }, [viewRecordsPatientId, accessDeniedPatientId, patients, setSelectedPatientId, closeViewRecords]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [themeMode, setThemeMode] = useState<DoctorThemeMode>(() => {
@@ -486,8 +489,12 @@ export default function App() {
   });
   const [currentTime, setCurrentTime] = useState('');
   const [templates, setTemplates] = useState<PrescriptionTemplate[]>(() => loadStoredPrescriptionTemplates());
-  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
-  const [scannedPatientId, setScannedPatientId] = useState<string | null>(null);
+  const [pdfTemplates, setPdfTemplates] = useState<PdfTemplate[]>(() => {
+    try {
+      const stored = localStorage.getItem('meiosis_doctor_pdf_templates_v1');
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
   const [manualConsultationStatus, setManualConsultationStatus] = useState<'READY' | 'IN_SESSION' | 'PAUSED'>('READY');
   const [scheduleDays, setScheduleDays] = useState<DailySchedule[]>(defaultSchedule);
   const [slotDuration, setSlotDurationState] = useState<number>(() => {
@@ -498,16 +505,9 @@ export default function App() {
     try { localStorage.setItem(DOCTOR_SLOT_DURATION_KEY, String(minutes)); } catch { /* ignore */ }
   };
 
-  // Sync slotDuration to the backend whenever it changes AND on first mount.
-  // On mount: immediate call (no debounce) to ensure DB matches localStorage on every load.
-  // On slider change: 1-second debounce so rapid drags don't flood the API.
   const slotDurationSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedSlotSync = useRef(false);
 
-  // ── Preferences DB sync ─────────────────────────────────────────────
-  // All pref changes are batched (800 ms debounce) into a single PATCH.
-  // isPrefsLoaded guard prevents overwriting DB on first mount before
-  // the initial fetch has returned its values.
   const prefsSyncTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingPrefsRef  = useRef<Record<string, unknown>>({});
   const isPrefsLoaded    = useRef(false);
@@ -525,7 +525,6 @@ export default function App() {
         body: JSON.stringify(payload),
       }).catch((err) => {
         console.error("[Meiosis] Failed to sync preferences to backend:", err);
-        /* offline — localStorage is the fallback */
       });
     }, 800);
   }
@@ -537,23 +536,20 @@ export default function App() {
         body: JSON.stringify({ slotDuration }),
       }).catch((err) => {
         console.error("[Meiosis] Failed to sync slot duration:", err);
-        /* silent — doctor is offline */
       });
 
     if (!isMountedSlotSync.current) {
-      // First render: sync immediately so the DB is always in step with localStorage.
       isMountedSlotSync.current = true;
       syncSlotDuration();
       return;
     }
 
-    // Subsequent changes: debounce 1 second.
     if (slotDurationSyncTimer.current) clearTimeout(slotDurationSyncTimer.current);
     slotDurationSyncTimer.current = setTimeout(syncSlotDuration, 1000);
     return () => {
       if (slotDurationSyncTimer.current) clearTimeout(slotDurationSyncTimer.current);
     };
-  }, [slotDuration]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [slotDuration]);
 
   const [queueBlockDuration, setQueueBlockDurationState] = useState<number>(() => {
     try { return Number(localStorage.getItem(DOCTOR_QUEUE_BLOCK_DURATION_KEY)) || 120; } catch { return 120; }
@@ -583,7 +579,6 @@ export default function App() {
   const { isOnline, syncStatus, pendingCount, refreshPendingCount } = useOfflineSync({
     onToast: (ok, msg) => showToast(ok, msg),
     onSynced: (item) => {
-      // Reload the patient's EMR timeline after a pending record is synced
       const patientId = item.payload?.patientId as string | undefined;
       if (patientId) loadPatientEMR(patientId);
     },
@@ -617,9 +612,7 @@ export default function App() {
     document.body.setAttribute('data-doctor-theme', themeMode);
     try {
       localStorage.setItem(DOCTOR_THEME_MODE_KEY, themeMode);
-    } catch {
-      // ignore storage failures
-    }
+    } catch {}
 
     if (themeMode !== 'custom') {
       [
@@ -668,51 +661,39 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem(DOCTOR_PRESCRIPTION_TEMPLATES_KEY, JSON.stringify(templates));
-    } catch {
-      // ignore storage failures
-    }
-    syncPrefs({ prescriptionTemplates: templates }); // eslint-disable-line react-hooks/exhaustive-deps
+    } catch {}
+    syncPrefs({ prescriptionTemplates: templates });
   }, [templates]);
 
   useEffect(() => {
     try {
       localStorage.setItem(DOCTOR_CUSTOM_THEME_KEY, JSON.stringify(customTheme));
-    } catch {
-      // ignore storage failures
-    }
+    } catch {}
   }, [customTheme]);
 
   useEffect(() => {
     try {
       localStorage.setItem(DOCTOR_TIMELINE_THEME_KEY, timelineTheme);
       localStorage.setItem(DOCTOR_DARKER_TIMELINE_KEY, String(timelineTheme === 'dashboard-dark'));
-    } catch {
-      // ignore storage failures
-    }
+    } catch {}
   }, [timelineTheme]);
 
   useEffect(() => {
     try {
       localStorage.setItem(DOCTOR_TIMELINE_ZOOM_KEY, String(timelineZoom));
-    } catch {
-      // ignore storage failures
-    }
+    } catch {}
   }, [timelineZoom]);
 
   useEffect(() => {
     try {
       localStorage.setItem(DOCTOR_EMR_BUILDER_V2_THEME_KEY, emrBuilderV2Theme);
-    } catch {
-      // ignore storage failures
-    }
+    } catch {}
   }, [emrBuilderV2Theme]);
 
   useEffect(() => {
     try {
       localStorage.setItem(CONSOLE_COLLAPSIBLE_KEY, String(consoleCollapsible));
-    } catch {
-      // ignore storage failures
-    }
+    } catch {}
     if (!consoleCollapsible) {
       setConsoleCollapsed(false);
     }
@@ -721,22 +702,15 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem(CONSOLE_COLLAPSED_KEY, String(consoleCollapsed && consoleCollapsible));
-    } catch {
-      // ignore storage failures
-    }
+    } catch {}
   }, [consoleCollapsed, consoleCollapsible]);
 
   useEffect(() => {
     try {
       localStorage.setItem(CONSOLE_WIDTH_KEY, String(consoleWidth));
-    } catch {
-      // ignore storage failures
-    }
+    } catch {}
   }, [consoleWidth]);
 
-  // ── Load preferences from DB on mount ──────────────────────────────
-  // DB is the source of truth across devices.  localStorage provides
-  // instant first-render values; DB overrides them once the fetch returns.
   useEffect(() => {
     fetch(apiUrl(`/doctors/${CURRENT_DOCTOR.id}/preferences`))
       .then(r => r.ok ? r.json() : null)
@@ -806,19 +780,18 @@ export default function App() {
             setTemplates(tpls);
             try { localStorage.setItem(DOCTOR_PRESCRIPTION_TEMPLATES_KEY, JSON.stringify(tpls)); } catch {}
           }
+          if (Array.isArray(prefs.pdfTemplates)) {
+            setPdfTemplates(prefs.pdfTemplates as PdfTemplate[]);
+            try { localStorage.setItem('meiosis_doctor_pdf_templates_v1', JSON.stringify(prefs.pdfTemplates)); } catch {}
+          }
         }
       })
-      .catch(() => {/* offline — localStorage values remain active */})
+      .catch(() => {})
       .finally(() => {
-        // Allow subsequent state changes to start syncing to DB
         isPrefsLoaded.current = true;
       });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  // ── Sync all scalar preferences to DB on any change ────────────────
-  // syncPrefs is gated by isPrefsLoaded so it's a no-op until the mount
-  // fetch has returned, preventing stale localStorage values from writing
-  // back over DB on first render.
   useEffect(() => {
     syncPrefs({
       themeMode,
@@ -835,8 +808,9 @@ export default function App() {
       queueBlockDuration,
       followUpGapDays,
       lang,
+      pdfTemplates,
     });
-  }, [themeMode, customTheme, timelineTheme, emrBuilderV2Theme, emrBuilderLayout, timelineLayout, consoleCollapsible, consoleCollapsed, consoleWidth, slotDuration, queueBlockDuration, followUpGapDays, lang]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [themeMode, customTheme, timelineTheme, emrBuilderV2Theme, emrBuilderLayout, timelineLayout, consoleCollapsible, consoleCollapsed, consoleWidth, slotDuration, queueBlockDuration, followUpGapDays, lang, pdfTemplates]);
 
   const selectedQueuePatient = useMemo(() => {
     if (!activeAppointment) return null;
@@ -844,7 +818,9 @@ export default function App() {
   }, [activeAppointment, patients]);
 
   const effectivePatient = selectedQueuePatient ?? selectedPatient;
-  const scannedPatient = useMemo(() => patients.find((patient) => patient.id === scannedPatientId) ?? null, [patients, scannedPatientId]);
+  const handleWelcomeDone = useCallback(() => setShowWelcome(false), []);
+
+  const scannedPatient = useMemo(() => patients.find((p) => p.meiosisCode === 'scanned') ?? null, [patients]);
 
   const consultationAppointment: Appointment | null = useMemo(() => {
     if (activeAppointment) return activeAppointment;
@@ -888,7 +864,7 @@ export default function App() {
     } catch (err) {
       console.error('Failed to fetch share settings:', err);
     }
-    setAccessLevel('full'); // Fallback if settings can't be fetched
+    setAccessLevel('full');
   };
 
   const handleSelectPatient = async (patientId: string) => {
@@ -933,7 +909,6 @@ export default function App() {
       setEmrComposerOpen(false);
       setEmr(createInitialEmr(null));
     }
-    setActiveTemplateId(null);
     setManualConsultationStatus('READY');
     window.setTimeout(refreshCompletedAppointments, 500);
   };
@@ -955,7 +930,6 @@ export default function App() {
     if (activeAppointmentId) {
       const nextAppointment = queue.find((item) => item.id !== activeAppointmentId && (item.status === 'WAITING' || item.status === 'LATE'));
       endAppointment(activeAppointmentId);
-      setActiveTemplateId(null);
       if (nextAppointment) {
         const nextPatient = patients.find((item) => item.id === nextAppointment.patientId) ?? null;
         setSelectedPatientId(nextAppointment.patientId);
@@ -969,7 +943,6 @@ export default function App() {
       return;
     }
     setManualConsultationStatus('READY');
-    setActiveTemplateId(null);
     setEmrComposerOpen(false);
     if (effectivePatient) {
       setEmr(createInitialEmr({ name: effectivePatient.name, vitals: effectivePatient.vitals, visitReason: effectivePatient.visitReason }));
@@ -995,7 +968,6 @@ export default function App() {
   const handleRandomScan = () => {
     const random = patients[Math.floor(Math.random() * patients.length)];
     if (!random) return;
-    setScannedPatientId(random.id);
     handleSelectPatient(random.id);
     setNav('search');
     setEmrComposerOpen(false);
@@ -1004,7 +976,6 @@ export default function App() {
   const handleNFCScan = (patientId: string) => {
     const patient = (patients || []).find((item) => item?.id === patientId || item?.meiosisCode === patientId);
     if (!patient) return;
-    setScannedPatientId(patient.id);
     setSelectedPatientId(patient.id);
     setEmr(createInitialEmr({ name: patient.name, vitals: patient.vitals, visitReason: patient.visitReason }));
     setNav('search');
@@ -1012,7 +983,6 @@ export default function App() {
   };
 
   const handleViewRecords = async (patientId: string) => {
-    // Fetch patient's share settings before opening records
     try {
       const res = await fetch(apiUrl(`/patient/${encodeURIComponent(patientId)}/share-settings`));
       if (res.ok) {
@@ -1030,24 +1000,16 @@ export default function App() {
           setAccessDeniedPatientId(null);
           setViewRecordsPatientId(patientId);
         } else {
-          // No access granted
           setViewRecordsPatientId(null);
           setAccessLevel(null);
           setAccessDeniedPatientId(patientId);
         }
         return;
       }
-    } catch {
-      // backend offline — fall through to open records anyway
-    }
-    // Fallback: open records if settings can't be fetched
+    } catch {}
     setAccessLevel('full');
     setAccessDeniedPatientId(null);
     setViewRecordsPatientId(patientId);
-  };
-
-  const handleToggleHistory = (entryId: string) => {
-    setExpandedHistoryId((current) => (current === entryId ? null : entryId));
   };
 
   const handleEmrFieldChange = (field: keyof EMRState, value: string) => {
@@ -1079,7 +1041,6 @@ export default function App() {
   const handleApplyTemplate = (templateId: string) => {
     const template = (templates || []).find((item) => item?.id === templateId);
     if (!template) return;
-    setActiveTemplateId(template.id);
     setEmr((current) => {
       const existingMeaningful = current.prescriptionRows.filter((r) =>
         [r.medicineName, r.dose, r.frequency, r.duration, r.notes].some((v) => v.trim().length > 0)
@@ -1094,7 +1055,7 @@ export default function App() {
     });
   };
 
-  const handleSaveTemplate = (): boolean => {
+  const handleSaveAsTemplate = (): boolean => {
     const meaningfulRows = emr.prescriptionRows.filter((row) =>
       [row.medicineName, row.dose, row.frequency, row.duration, row.notes].some((value) => value.trim().length > 0)
     );
@@ -1117,7 +1078,6 @@ export default function App() {
       rows: meaningfulRows.map((row, index) => ({ ...row, id: `tpl-row-${Date.now()}-${index}` }))
     };
     setTemplates((current) => [newTemplate, ...current]);
-    setActiveTemplateId(newTemplate.id);
     setEmrToast({ ok: true, msg: `"${name}" saved to templates.` });
     window.setTimeout(() => setEmrToast(null), 4000);
     return true;
@@ -1126,7 +1086,6 @@ export default function App() {
   const handleDeleteTemplates = (templateIds: string[]) => {
     if (!templateIds.length) return;
     setTemplates((current) => current.filter((template) => !templateIds.includes(template.id)));
-    setActiveTemplateId((current) => (current && templateIds.includes(current) ? null : current));
     setEmrToast({
       ok: true,
       msg: `${templateIds.length} template${templateIds.length === 1 ? '' : 's'} deleted.`
@@ -1142,11 +1101,9 @@ export default function App() {
   const handleSaveEMR = async (severity: any = 'MILD') => {
     if (!effectivePatient || emrSaving) return;
 
-    // Snapshot state now — it will be reset before the async call resolves
     const savedEmr = emr;
     const savedPatient = effectivePatient;
 
-    // ── Optimistic local update: inject new record into timeline immediately ──
     const now = new Date();
     const nowDate = now.toISOString().slice(0, 10);
     const nowTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -1158,7 +1115,7 @@ export default function App() {
       specialty: CURRENT_DOCTOR.specialty,
       mode: 'In-person',
       status: 'Completed',
-      severity: severity, // Injected for local consistency
+      severity: severity,
       purpose: savedEmr.diagnosis || savedEmr.symptoms || savedPatient.visitReason || 'Consultation',
       symptoms:    savedEmr.symptoms    || undefined,
       diagnosis:   savedEmr.diagnosis   || undefined,
@@ -1207,7 +1164,6 @@ export default function App() {
       medicalReports: labEntries.length > 0 ? [...labEntries, ...p.medicalReports] : p.medicalReports
     }));
 
-    // ── Build the payload once so we can reuse it in both paths ──
     const emrPayload = {
       patientId: savedPatient.meiosisCode,
       doctorId: CURRENT_DOCTOR.id,
@@ -1215,21 +1171,18 @@ export default function App() {
       vitals: savedEmr.vitals,
       symptoms: savedEmr.symptoms,
       diagnosis: savedEmr.diagnosis,
-      severity: severity, // Pass to backend
+      severity: severity,
       advice: savedEmr.advice,
       prescriptionRows: savedEmr.prescriptionRows,
       labTests: savedEmr.labTests,
       followUpDate: savedEmr.followUpDate,
     };
 
-    // ── Offline path: store in IndexedDB, notify doctor, finish early ──
     if (!navigator.onLine) {
       try {
         await enqueueEMR({ savedAt: Date.now(), patientName: savedPatient.name, payload: emrPayload });
         await refreshPendingCount();
-      } catch {
-        // IndexedDB unavailable — still show the toast (local state was updated above)
-      }
+      } catch {}
       showToast(true, `Offline — EMR for ${savedPatient.name} saved locally. Will sync when connection returns.`);
       setShowEndConsultDialog(true);
       return;
@@ -1237,10 +1190,9 @@ export default function App() {
 
     setEmrSaving(true);
 
-    // ── Online path: send to backend immediately ──
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const res = await fetch(apiUrl('/emr'), {
         method: 'POST',
@@ -1260,15 +1212,12 @@ export default function App() {
       showToast(true, `EMR saved for ${savedPatient.name}`);
       setShowEndConsultDialog(true);
       
-      // Sync timeline from backend immediately
       loadPatientEMR(savedPatient.id);
       
-      // Open the generated PDF once ready in background
       if (saved?.prescription?.documentPath) {
         window.setTimeout(() => window.open(assetUrl(saved.prescription.documentPath), '_blank'), 4000);
       }
     } catch (err: any) {
-      // Network call failed (backend down, timeout, or abort)
       const isTimeout = err.name === 'AbortError';
       const msg = isTimeout ? 'Request timed out' : (err instanceof Error ? err.message : 'Save failed');
       
@@ -1276,7 +1225,6 @@ export default function App() {
         showToast(true, `EMR saved for ${savedPatient.name}`);
         setShowEndConsultDialog(true);
       } else {
-        // Fall back to local queue so data is never lost
         try {
           await enqueueEMR({ savedAt: Date.now(), patientName: savedPatient.name, payload: emrPayload });
           await refreshPendingCount();
@@ -1305,10 +1253,6 @@ export default function App() {
     setScheduleDays((current) => current.map((day) => (day.day === dayLabel ? { ...day, [field]: value } : day)));
   };
 
-  // Maps frontend DailySchedule → PUT /api/doctors/:id/schedules body.
-  // Morning session = startTime→breakStart, Evening = breakEnd→endTime.
-  // This causes the backend to delete and regenerate all future slots with
-  // the new slotDuration so patients immediately see the updated booking grid.
   const handleSyncSchedule = async (): Promise<boolean> => {
     const DAY_INDEX: Record<string, number> = {
       Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3,
@@ -1341,279 +1285,180 @@ export default function App() {
     }
   };
 
+  const handleLogout = () => {
+    clearCache();
+    localStorage.removeItem('meiosis_auth_session_v1');
+    window.location.href = '/login.html';
+  };
+
   const doctorName = CURRENT_DOCTOR.shortName;
   const clinicStatus = scheduleDays.some((day) => day.open) ? 'Clinic Open' : 'Clinic Closed';
   const notifications = (queue || []).filter((item) => item?.status === 'LATE' || item?.status === 'NO_SHOW').length + (emrShareRequests || []).length;
-  const timelineZoomPercent = Math.round(timelineZoom * 100);
 
   return (
     <LanguageContext.Provider value={{ lang, setLang, t: createT(lang) }}>
-    <>
-    {showWelcome && <WelcomeAnimation onDone={() => setShowWelcome(false)} />}
-    <Dashboard
-      nav={nav}
-      onNavChange={setNav}
-      sidebarOpen={sidebarOpen}
-      onToggleSidebar={() => setSidebarOpen((current) => !current)}
-      consoleCollapsible={consoleCollapsible}
-      consoleCollapsed={consoleCollapsible && consoleCollapsed}
-      consoleWidth={consoleWidth}
-      onToggleConsoleCollapsible={() => setConsoleCollapsible((current) => !current)}
-      onToggleConsoleCollapsed={() => setConsoleCollapsed((current) => !current)}
-      onConsoleWidthChange={setConsoleWidth}
-      darkMode={darkMode}
-      themeMode={themeMode}
-      customTheme={customTheme}
-      onThemeModeChange={setThemeMode}
-      onCustomThemeChange={setCustomTheme}
-      onToggleTheme={() => setThemeMode((current) => (current === 'light' ? 'dark' : 'light'))}
-      timelineTheme={timelineTheme}
-      onTimelineThemeChange={setTimelineTheme}
-      emrBuilderV2Theme={emrBuilderV2Theme}
-      onEmrBuilderV2ThemeChange={setEmrBuilderV2Theme}
-      emrBuilderLayout={emrBuilderLayout}
-      onEmrBuilderLayoutChange={setEmrBuilderLayout}
-      timelineLayout={timelineLayout}
-      onTimelineLayoutChange={setTimelineLayout}
-      currentTime={currentTime}
-      doctorName={doctorName}
-      clinicStatus={clinicStatus}
-      notifications={notifications}
-      emrShareRequests={emrShareRequests}
-      onRespondEmrShare={handleRespondToEmrShare}
-      completedAppointments={completedAppointments}
-      queue={queue}
-      patients={patients}
-      filteredPatients={filteredPatients}
-      searchQuery={query}
-      selectedPatient={effectivePatient}
-      selectedPatientId={selectedPatientId}
-      activeAppointment={consultationAppointment}
-      activeAppointmentId={activeAppointmentId}
-      scannedPatient={scannedPatient}
-      expandedHistoryId={expandedHistoryId}
-      emr={emr}
-      templates={templates}
-      activeTemplateId={activeTemplateId}
-      emrComposerOpen={emrComposerOpen}
-      scheduleDays={scheduleDays}
-      slotDuration={slotDuration}
-      onSlotDurationChange={setSlotDuration}
-      queueBlockDuration={queueBlockDuration}
-      onQueueBlockDurationChange={setQueueBlockDuration}
-      followUpGapDays={followUpGapDays}
-      onFollowUpGapDaysChange={setFollowUpGapDays}
-      isSyncingQueue={isSyncingQueue}
-      isSyncingPatients={isSyncingPatients}
-      isSyncingAnalytics={isSyncingAnalytics}
-      vacationNote={vacationNote}
-      lateStartDate={lateStartDate}
-      lateStartTime={lateStartTime}
-      onSearchChange={setQuery}
-      onSelectPatient={handleSelectPatient}
-      onSelectQueue={handleSelectQueue}
-      onStartQueueAppointment={handleStartQueueAppointment}
-      onEndQueueAppointment={handleEndQueueAppointment}
-      onSkipQueueAppointment={skipPatient}
-      onMarkNoShow={markNoShow}
-      onAddWalkIn={handleAddWalkIn}
-      onRefreshQueue={refreshQueue}
-      onStartConsultation={handleStartConsultation}
-      onEndConsultation={handleEndConsultation}
-      onPauseConsultation={handlePauseConsultation}
-      onResumeConsultation={handleResumeConsultation}
-      onRandomScan={handleRandomScan}
-      onHandleScanCode={handleNFCScan}
-      onToggleHistory={handleToggleHistory}
-      onEmrFieldChange={handleEmrFieldChange}
-      onVitalChange={handleVitalChange}
-      onPrescriptionChange={handlePrescriptionChange}
-      onAddPrescriptionRow={handleAddPrescriptionRow}
-      onRemovePrescriptionRow={handleRemovePrescriptionRow}
-      onApplyTemplate={handleApplyTemplate}
-      onSaveTemplate={handleSaveTemplate}
-      onDeleteTemplates={handleDeleteTemplates}
-      emrSaving={emrSaving}
-      emrToast={emrToast}
-      onSaveEMR={handleSaveEMR}
-      emrOpenedFromRecords={emrOpenedFromRecords}
-      onOpenEmrComposer={() => setEmrComposerOpen(true)}
-      onCloseEmrComposer={() => { setEmrComposerOpen(false); setEmrOpenedFromRecords(false); }}
-      onViewRecords={handleViewRecords}
-      onCloseRecords={closeViewRecords}
-      viewRecordsPatientId={viewRecordsPatientId}
-      onSyncSchedule={handleSyncSchedule}
-      onToggleDayOpen={handleToggleDayOpen}
-      onScheduleChange={handleScheduleChange}
-      onVacationNoteChange={setVacationNote}
-      onLateStartDateChange={setLateStartDate}
-      onLateStartTimeChange={setLateStartTime}
-      onLogout={() => {
-        clearCache();
-        localStorage.removeItem('meiosis_auth_session_v1');
-        window.location.href = '/login.html';
-      }}
-      isOnline={isOnline}
-      syncStatus={syncStatus}
-      pendingCount={pendingCount}
-      accessLevel={accessLevel}
-    />
+      <>
+        {showWelcome && <WelcomeAnimation onDone={handleWelcomeDone} />}
+        
+        <Suspense fallback={<LoadingFallback />}>
+          {!showWelcome && (
+            <>
+              <LazyDashboard
+                nav={nav}
+                onNavChange={setNav}
+                sidebarOpen={sidebarOpen}
+                onToggleSidebar={() => setSidebarOpen((current) => !current)}
+                consoleCollapsible={consoleCollapsible}
+                consoleCollapsed={consoleCollapsible && consoleCollapsed}
+                consoleWidth={consoleWidth}
+                onToggleConsoleCollapsible={() => setConsoleCollapsible((current) => !current)}
+                onToggleConsoleCollapsed={() => setConsoleCollapsed((current) => !current)}
+                onConsoleWidthChange={setConsoleWidth}
+                darkMode={darkMode}
+                themeMode={themeMode}
+                customTheme={customTheme}
+                onThemeModeChange={setThemeMode}
+                onCustomThemeChange={setCustomTheme}
+                onToggleTheme={() => setThemeMode((current) => (current === 'light' ? 'dark' : 'light'))}
+                timelineTheme={timelineTheme}
+                onTimelineThemeChange={setTimelineTheme}
+                emrBuilderV2Theme={emrBuilderV2Theme}
+                onEmrBuilderV2ThemeChange={setEmrBuilderV2Theme}
+                emrBuilderLayout={emrBuilderLayout}
+                onEmrBuilderLayoutChange={setEmrBuilderLayout}
+                timelineLayout={timelineLayout}
+                onTimelineLayoutChange={setTimelineLayout}
+                currentTime={currentTime}
+                doctorName={doctorName}
+                clinicStatus={clinicStatus}
+                notifications={notifications}
+                emrShareRequests={emrShareRequests}
+                onRespondEmrShare={handleRespondToEmrShare}
+                completedAppointments={completedAppointments}
+                queue={queue}
+                patients={patients}
+                filteredPatients={filteredPatients}
+                searchQuery={query}
+                onSearchChange={setQuery}
+                onSelectPatient={handleSelectPatient}
+                onSelectQueue={handleSelectQueue}
+                onStartQueueAppointment={handleStartQueueAppointment}
+                onEndQueueAppointment={handleEndQueueAppointment}
+                onSkipQueueAppointment={skipPatient}
+                onMarkNoShow={markNoShow}
+                onAddWalkIn={handleAddWalkIn}
+                onRefreshQueue={refreshQueue}
+                onStartConsultation={handleStartConsultation}
+                onEndConsultation={handleEndConsultation}
+                onPauseConsultation={handlePauseConsultation}
+                onResumeConsultation={handleResumeConsultation}
+                onRandomScan={handleRandomScan}
+                onHandleScanCode={handleNFCScan}
+                onToggleHistory={setExpandedHistoryId}
+                expandedHistoryId={expandedHistoryId}
+                selectedPatient={effectivePatient}
+                selectedPatientId={effectivePatient?.id ?? null}
+                activeAppointment={consultationAppointment}
+                activeAppointmentId={consultationAppointment?.id ?? null}
+                scannedPatient={scannedPatient}
+                emr={emr}
+                onEmrFieldChange={handleEmrFieldChange}
+                onVitalChange={handleVitalChange}
+                onPrescriptionChange={handlePrescriptionChange}
+                onAddPrescriptionRow={handleAddPrescriptionRow}
+                onRemovePrescriptionRow={handleRemovePrescriptionRow}
+                templates={templates}
+                activeTemplateId={null}
+                onApplyTemplate={handleApplyTemplate}
+                onSaveTemplate={handleSaveAsTemplate}
+                onDeleteTemplates={handleDeleteTemplates}
+                emrSaving={emrSaving}
+                emrToast={emrToast}
+                onSaveEMR={handleSaveEMR}
+                emrComposerOpen={emrComposerOpen}
+                emrOpenedFromRecords={emrOpenedFromRecords}
+                onOpenEmrComposer={() => setEmrComposerOpen(true)}
+                onCloseEmrComposer={() => {
+                  setEmrComposerOpen(false);
+                  setEmrOpenedFromRecords(false);
+                }}
+                viewRecordsPatientId={viewRecordsPatientId}
+                onViewRecords={openViewRecords}
+                onCloseRecords={closeViewRecords}
+                scheduleDays={scheduleDays}
+                slotDuration={slotDuration}
+                onSlotDurationChange={setSlotDuration}
+                queueBlockDuration={queueBlockDuration}
+                onQueueBlockDurationChange={setQueueBlockDuration}
+                followUpGapDays={followUpGapDays}
+                onFollowUpGapDaysChange={setFollowUpGapDays}
+                pdfTemplates={pdfTemplates}
+                onPdfTemplatesChange={setPdfTemplates}
+                onSyncSchedule={handleSyncSchedule}
+                onToggleDayOpen={handleToggleDayOpen}
+                onScheduleChange={handleScheduleChange}
+                onVacationNoteChange={setVacationNote}
+                onLateStartDateChange={setLateStartDate}
+                onLateStartTimeChange={setLateStartTime}
+                vacationNote={vacationNote}
+                lateStartDate={lateStartDate}
+                lateStartTime={lateStartTime}
+                onLogout={handleLogout}
+                isOnline={isOnline}
+                syncStatus={syncStatus}
+                pendingCount={pendingCount}
+                accessLevel={accessLevel}
+              />
 
-    {/* ── End Consultation dialog (shown after EMR save) ── */}
-    {showEndConsultDialog && (
-      <div
-        className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
-        onClick={() => setShowEndConsultDialog(false)}
-      >
-        <div
-          className="mx-4 w-full max-w-sm rounded-3xl border border-wire/10 bg-[#0d1520] p-7 shadow-[0_24px_80px_rgba(0,0,0,0.7)]"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="mb-1 flex items-center gap-2">
-            <span className="chip chip-green text-xs">EMR Saved</span>
-          </div>
-          <h3 className="mt-3 text-lg font-semibold text-white">End this consultation?</h3>
-          <p className="mt-1.5 text-sm text-mist">
-            The EMR has been saved to the patient record. You can end the session now or keep it open to make edits.
-          </p>
-          <div className="mt-6 flex gap-3">
-            <button
-              type="button"
-              className="action-btn flex-1 py-2.5 text-sm"
-              onClick={() => { setShowEndConsultDialog(false); handleEndConsultation(); setNav('search'); }}
-            >
-              End Consultation
-            </button>
-            <button
-              type="button"
-              className="ghost-btn flex-1 py-2.5 text-sm"
-              onClick={() => setShowEndConsultDialog(false)}
-            >
-              Keep Open
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
+              {nav === 'template-builder' && (
+                <div className="fixed inset-0 z-[100] bg-ink">
+                  <LazyTemplateBuilder
+                    onBack={() => setNav('settings')}
+                    existingTemplates={pdfTemplates}
+                    onSave={(updated) => {
+                      setPdfTemplates(updated);
+                      try {
+                        localStorage.setItem(
+                          'meiosis_doctor_pdf_templates_v1',
+                          JSON.stringify(updated),
+                        );
+                      } catch {}
+                    }}
+                  />
+                </div>
+              )}
 
-    {/* ── View Records iOS card overlay ── */}
-    {viewRecordsPatientId && (
-      <div
-        className={`fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm ${isClosingRecords ? 'records-backdrop-exit' : 'records-backdrop-enter'}`}
-        onClick={closeViewRecords}
-      >
-        <div
-          className={`absolute rounded-t-[28px] overflow-hidden bg-[#06111d] shadow-[0_-16px_60px_rgba(0,0,0,0.7)] ${isClosingRecords ? 'records-card-exit' : 'records-card-enter'}`}
-          style={{ top: 20, left: 20, right: 20, bottom: 0 }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <HoverRevealSidebar
-            zIndex={72}
-            onNavigate={(key) => { closeViewRecords(); setNav(key as NavKey); }}
-          />
-          {/* Drag handle */}
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 h-[5px] w-12 rounded-full bg-white/20 pointer-events-none" />
+              {viewRecordsPatientId && (
+                <div className="fixed inset-0 z-[60] bg-ink/95 backdrop-blur-xl">
+                  <Suspense fallback={<LoadingFallback />}>
+                    <EMRv2
+                      patientId={viewRecordsPatientId}
+                      doctorName={doctorName}
+                      onClose={closeViewRecords}
+                      onBackToEMR={() => {
+                        setEmrOpenedFromRecords(true);
+                        setEmrComposerOpen(true);
+                      }}
+                      onSelectionIdChange={setExpandedHistoryId}
+                    />
+                  </Suspense>
+                </div>
+              )}
 
-          {/* Top button row */}
-          <div className="absolute top-4 left-4 right-4 z-10 flex items-start justify-between gap-3">
-            {/* Back button */}
-            <button
-              type="button"
-              onClick={closeViewRecords}
-              className="flex items-center gap-1.5 rounded-2xl border border-white/10 bg-black/40 px-3 py-1.5 text-xs font-medium text-white/70 backdrop-blur-sm transition hover:bg-black/60 hover:text-white"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Back
-            </button>
-
-            <div className="flex flex-1 justify-center">
-              <div className="flex min-w-0 items-center gap-2 rounded-[22px] border border-white/10 bg-black/45 px-2 py-1.5 text-white/75 shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-sm">
-                <span className="hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45 md:block">
-                  Timeline Zoom
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setTimelineZoom(timelineZoom - TIMELINE_ZOOM_STEP)}
-                  disabled={timelineZoom <= TIMELINE_ZOOM_MIN}
-                  aria-label="Zoom out timeline"
-                  className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  -
-                </button>
-                <input
-                  type="range"
-                  min={TIMELINE_ZOOM_MIN}
-                  max={TIMELINE_ZOOM_MAX}
-                  step={TIMELINE_ZOOM_STEP}
-                  value={timelineZoom}
-                  aria-label="Timeline zoom"
-                  onChange={(event) => setTimelineZoom(Number(event.target.value))}
-                  className="h-1.5 w-[120px] cursor-pointer appearance-none rounded-full bg-white/10 accent-[#52ff9d] sm:w-[180px]"
+              {accessDeniedPatientId && (
+                <AccessDeniedOverlay
+                  patientName={
+                    patients?.find((p) => p.id === accessDeniedPatientId)?.name ||
+                    'Patient'
+                  }
+                  onClose={closeViewRecords}
+                  onBuildEMR={handleBuildEMRFromRecords}
+                  isClosing={isClosingRecords}
                 />
-                <button
-                  type="button"
-                  onClick={() => setTimelineZoom(timelineZoom + TIMELINE_ZOOM_STEP)}
-                  disabled={timelineZoom >= TIMELINE_ZOOM_MAX}
-                  aria-label="Zoom in timeline"
-                  className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  +
-                </button>
-                <span className="min-w-[46px] text-right text-[11px] font-semibold text-neon">
-                  {timelineZoomPercent}%
-                </span>
-              </div>
-            </div>
-
-            {/* Build EMR button */}
-            <button
-              type="button"
-              onClick={handleBuildEMRFromRecords}
-              className="flex items-center gap-1.5 rounded-2xl border border-neon/25 bg-neon/10 px-3 py-1.5 text-xs font-medium text-neon backdrop-blur-sm transition hover:bg-neon/20 hover:border-neon/40"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.6"/>
-                <path d="M7 5v4M5 7h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-              </svg>
-              Build EMR
-            </button>
-          </div>
-
-          <Suspense fallback={
-            <div className="flex h-full w-full flex-col items-center justify-center bg-[#06111d] gap-4">
-              <div className="w-8 h-8 border-4 border-neon/20 border-t-neon rounded-full animate-spin" />
-              <div className="text-mist/50 text-xs font-semibold uppercase tracking-widest">
-                Preparing Record…
-              </div>
-            </div>
-          }>
-            <EMRv2
-              patientId={viewRecordsPatientId}
-              darkMode={darkMode}
-              timelineTheme={timelineTheme}
-              timelineLayout={timelineLayout}
-              timelineZoom={timelineZoom}
-              inline
-              accessLevel={accessLevel}
-            />
-          </Suspense>
-        </div>
-      </div>
-    )}
-
-    {accessDeniedPatientId && (
-      <AccessDeniedOverlay
-        patientName={patients?.find(p => p.id === accessDeniedPatientId)?.name || 'Patient'}
-        onClose={closeViewRecords}
-        onBuildEMR={handleBuildEMRFromRecords}
-        isClosing={isClosingRecords}
-      />
-    )}
-
-    <OfflineSyncBar syncStatus={syncStatus} pendingCount={pendingCount} isOnline={isOnline} />
-    </>
+            </>
+          )}
+        </Suspense>
+      </>
     </LanguageContext.Provider>
   );
 }

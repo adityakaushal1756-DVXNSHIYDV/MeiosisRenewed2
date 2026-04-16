@@ -70,12 +70,12 @@ export function RecordsPage({ data }: RecordsPageProps) {
       {/* Header Area - Fixed */}
       <header className="mb-8 mt-2 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Health Records</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Health Records</h1>
           <p className="text-mist mt-1 text-sm font-medium">Unified analytics & clinical intelligence console.</p>
         </div>
         
         <div className="flex bg-white/[0.03] p-1.5 rounded-full border border-wire/5 backdrop-blur-3xl shadow-2xl">
-           <div className="px-6 py-2.5 text-xs font-black text-neon uppercase tracking-widest flex items-center gap-3">
+           <div className="px-6 py-2.5 text-xs font-semibold text-neon uppercase tracking-wider flex items-center gap-3">
              <div className="w-2.5 h-2.5 rounded-full bg-neon animate-pulse shadow-[0_0_10px_rgba(82,255,157,0.8)]"></div>
              Live Analytics Sync
            </div>
@@ -88,13 +88,13 @@ export function RecordsPage({ data }: RecordsPageProps) {
            <div>
               <div className="flex items-center gap-2 mb-1">
                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: currentStatus.color }}></div>
-                 <span className="text-[10px] font-black uppercase tracking-[0.25em] text-white/60">Condition Sentiment</span>
+                 <span className="text-[10px] font-semibold uppercase tracking-wider text-white/60">Condition Sentiment</span>
               </div>
-              <h2 className="text-xl font-black text-white truncate uppercase">Health Analysis Graph</h2>
+              <h2 className="text-xl font-bold text-white tracking-tight">Health Analysis Graph</h2>
            </div>
            <div className="text-right">
-              <span className="text-[10px] font-black uppercase tracking-widest text-mist block mb-1">Current Sync</span>
-              <span className="text-sm font-black tracking-widest" style={{ color: currentStatus.color }}>{currentStatus.label}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-mist block mb-1">Current Sync</span>
+              <span className="text-sm font-bold tracking-wider" style={{ color: currentStatus.color }}>{currentStatus.label}</span>
            </div>
         </div>
 
@@ -112,14 +112,14 @@ export function RecordsPage({ data }: RecordsPageProps) {
                 dataKey="date" 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 800 }} 
+                tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 600 }} 
                 dy={10}
               />
               <YAxis 
                 domain={[0, 100]} 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 800 }} 
+                tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 600 }} 
               />
               <Tooltip 
                 content={({ active, payload }) => {
@@ -127,11 +127,11 @@ export function RecordsPage({ data }: RecordsPageProps) {
                     const d = payload[0].payload;
                     return (
                       <div className="p-3 bg-slate-900/90 border border-wire/20 backdrop-blur-xl rounded-xl shadow-2xl">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-mist mb-1">{d.date}</p>
-                        <p className="text-xs font-black text-white mb-1">{d.title || "Consultation"}</p>
+                        <p className="text-[9px] font-semibold uppercase tracking-wider text-mist mb-1">{d.date}</p>
+                        <p className="text-xs font-bold text-white mb-1">{d.title || "Consultation"}</p>
                         <div className="flex items-center gap-2">
                            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: d.color }}></div>
-                           <span className="text-[10px] font-black uppercase tracking-tighter" style={{ color: d.color }}>{d.label} SEVERITY</span>
+                           <span className="text-[10px] font-semibold uppercase tracking-tight" style={{ color: d.color }}>{d.label} SEVERITY</span>
                         </div>
                       </div>
                     );
@@ -148,9 +148,9 @@ export function RecordsPage({ data }: RecordsPageProps) {
                 fill="url(#sentimentGradient)" 
                 animationDuration={1500}
               />
-              <ReferenceLine y={20} stroke="#FF5252" strokeDasharray="5 5" strokeOpacity={0.2} label={{ position: 'right', value: 'CRITICAL', fill: '#FF5252', fontSize: 8, fontWeight: 900 }} />
-              <ReferenceLine y={60} stroke="#FFB347" strokeDasharray="5 5" strokeOpacity={0.2} label={{ position: 'right', value: 'MODERATE', fill: '#FFB347', fontSize: 8, fontWeight: 900 }} />
-              <ReferenceLine y={100} stroke="#52FF9D" strokeDasharray="5 5" strokeOpacity={0.2} label={{ position: 'right', value: 'OPTIMAL', fill: '#52FF9D', fontSize: 8, fontWeight: 900 }} />
+              <ReferenceLine y={20} stroke="#FF5252" strokeDasharray="5 5" strokeOpacity={0.2} label={{ position: 'right', value: 'CRITICAL', fill: '#FF5252', fontSize: 8, fontWeight: 600 }} />
+              <ReferenceLine y={60} stroke="#FFB347" strokeDasharray="5 5" strokeOpacity={0.2} label={{ position: 'right', value: 'MODERATE', fill: '#FFB347', fontSize: 8, fontWeight: 600 }} />
+              <ReferenceLine y={100} stroke="#52FF9D" strokeDasharray="5 5" strokeOpacity={0.2} label={{ position: 'right', value: 'OPTIMAL', fill: '#52FF9D', fontSize: 8, fontWeight: 600 }} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -165,13 +165,13 @@ export function RecordsPage({ data }: RecordsPageProps) {
         {/* Left Column: Prescriptions */}
         <div className="flex flex-col h-full overflow-hidden glass-card border-none !bg-transparent">
           <div className="flex items-center justify-between mb-4 px-2 shrink-0">
-            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/50 flex items-center gap-2">
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-white/50 flex items-center gap-2">
               <Pill className="w-4 h-4" /> Prescription Tracks
             </h3>
             <span className="text-[10px] text-mist/60 font-bold uppercase bg-white/5 px-2 py-0.5 rounded-full border border-wire/10">{(data.prescriptions || []).length} Records</span>
           </div>
           
-          <div className="flex-1 overflow-y-auto scroll-skin queue-scroll pr-2 space-y-4 pb-20">
+          <div className="flex-1 overflow-y-auto scroll-skin queue-scroll px-4 space-y-4 pb-20">
             {(data.prescriptions || []).map(p => (
               <div 
                 key={p.id} 
@@ -190,17 +190,17 @@ export function RecordsPage({ data }: RecordsPageProps) {
                 </div>
                 <div className="flex items-center gap-4 mt-2">
                    <div className="flex flex-col">
-                      <span className="text-[9px] text-mist/40 font-black uppercase tracking-widest mb-1">Started</span>
+                      <span className="text-[9px] text-mist/40 font-semibold uppercase tracking-wider mb-1">Started</span>
                       <span className="text-[11px] text-white font-bold">{format(parseISO(p.startDate), 'dd MMM yyyy')}</span>
                    </div>
                    <div className="w-px h-6 bg-white/5"></div>
                    <div className="flex flex-col">
-                      <span className="text-[9px] text-mist/40 font-black uppercase tracking-widest mb-1">Cycle</span>
+                      <span className="text-[9px] text-mist/40 font-semibold uppercase tracking-wider mb-1">Cycle</span>
                       <span className="text-[11px] text-white font-bold">{p.durationDays} Days</span>
                    </div>
                    <div className="flex-1 text-right">
                       <span className={cn(
-                        "chip !px-2 !py-0.5 !text-[9px] font-black uppercase tracking-tighter",
+                        "chip !px-2 !py-0.5 !text-[9px] font-semibold uppercase tracking-tight",
                         p.status === 'ACTIVE' ? "bg-neon/10 text-neon shadow-[0_0_10px_rgba(82,255,157,0.1)]" : "bg-white/5 text-mist"
                       )}>
                         {p.status}
@@ -221,13 +221,13 @@ export function RecordsPage({ data }: RecordsPageProps) {
         {/* Right Column: Medical Records & Labs */}
         <div className="flex flex-col h-full overflow-hidden glass-card border-none !bg-transparent">
           <div className="flex items-center justify-between mb-4 px-2 shrink-0">
-            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/50 flex items-center gap-2">
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-white/50 flex items-center gap-2">
               <ClipboardList className="w-4 h-4" /> Clinical Documentation
             </h3>
             <span className="text-[10px] text-mist/60 font-bold uppercase bg-white/5 px-2 py-0.5 rounded-full border border-wire/10">3 Months Trailing</span>
           </div>
 
-          <div className="flex-1 overflow-y-auto scroll-skin queue-scroll pr-2 space-y-4 pb-20">
+          <div className="flex-1 overflow-y-auto scroll-skin queue-scroll px-4 space-y-4 pb-20">
             {/* Appointments */}
             {(data.appointments || []).map(a => (
               <div key={a.id} className="p-5 rounded-2xl bg-white/[0.02] border border-wire/10 hover:border-neon/30 transition-all cursor-pointer group flex gap-4">
@@ -237,11 +237,11 @@ export function RecordsPage({ data }: RecordsPageProps) {
                  <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-2">
                        <h4 className="font-bold text-white truncate pr-4">{a.doctor?.name || 'Clinic Consultant'}</h4>
-                       <span className="text-[9px] font-black text-mist/40 tracking-widest uppercase mt-1 shrink-0">{format(parseISO(a.scheduledDate), 'dd MMM')}</span>
+                       <span className="text-[9px] font-semibold text-mist/40 tracking-wider uppercase mt-1 shrink-0">{format(parseISO(a.scheduledDate), 'dd MMM')}</span>
                     </div>
                     <p className="text-xs text-mist line-clamp-1 mb-3">{a.doctor?.specialty} • {a.title || 'In-person Consultation'}</p>
                     <div className="flex items-center justify-between">
-                       <span className="text-[10px] text-neon font-black uppercase tracking-tighter">MEIOSIS_VERIFIED</span>
+                       <span className="text-[10px] text-neon font-bold uppercase tracking-tight">MEIOSIS_VERIFIED</span>
                        <button className="text-[10px] text-mist hover:text-white transition-colors underline decoration-wire/20">Full Recap</button>
                     </div>
                  </div>
@@ -258,7 +258,7 @@ export function RecordsPage({ data }: RecordsPageProps) {
                  <div className="flex-1 min-w-0 relative z-10">
                     <div className="flex justify-between items-start mb-2">
                        <h4 className="font-bold text-white truncate pr-4">{l.title}</h4>
-                       <span className="text-[9px] font-black text-mist/40 tracking-widest uppercase mt-1 shrink-0">{format(parseISO(l.reportDate), 'dd MMM')}</span>
+                       <span className="text-[9px] font-semibold text-mist/40 tracking-wider uppercase mt-1 shrink-0">{format(parseISO(l.reportDate), 'dd MMM')}</span>
                     </div>
                     <p className="text-xs text-sky-200/60 line-clamp-1">{l.labName || 'Standard Diagnostics Node'}</p>
                  </div>

@@ -56,21 +56,21 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
     <div className="p-6 md:p-8 pt-[max(1.5rem,env(safe-area-inset-top,1.5rem))] animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto h-full flex flex-col relative overflow-hidden">
       <header className="mb-8 mt-2 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Prescriptions</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Prescriptions</h1>
           <p className="text-mist mt-1 text-sm font-medium">Digital treatment records & clinical documentation.</p>
         </div>
         
         <div className="flex bg-white/[0.03] p-1.5 rounded-full border border-white/5 backdrop-blur-3xl shadow-2xl">
           <button 
             onClick={() => setView('overview')}
-            className={cn("px-8 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-300", 
+            className={cn("px-8 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-300", 
               view === 'overview' ? 'bg-neon text-ink shadow-[0_0_20px_rgba(82,255,157,0.4)]' : 'text-mist hover:text-white')}
           >
             Overview
           </button>
           <button 
             onClick={() => setView('timeline')}
-            className={cn("px-8 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-300", 
+            className={cn("px-8 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-300", 
               view === 'timeline' ? 'bg-neon text-ink shadow-[0_0_20px_rgba(82,255,157,0.4)]' : 'text-mist hover:text-white')}
           >
             Timeline
@@ -88,8 +88,8 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
               
               <div className="flex flex-col md:flex-row gap-8 justify-between relative z-10">
                 <div className="max-w-md">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neon mb-2 hidden md:block">Clinical Vault</span>
-                  <h2 className="text-3xl md:text-4xl font-black text-white tracking-tighter uppercase leading-none mb-3">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-neon mb-2 hidden md:block">Clinical Vault</span>
+                  <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight leading-none mb-3">
                     {activePrescriptions.length} Active Treatment {activePrescriptions.length === 1 ? 'Track' : 'Tracks'}
                   </h2>
                   <p className="text-mist text-sm font-medium leading-relaxed">
@@ -103,8 +103,8 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
                        <FileSignature className="w-4 h-4 text-neon" />
                     </div>
                     <div>
-                       <span className="text-xl font-black text-white leading-none block">{prescriptions.length}</span>
-                       <span className="text-[9px] font-black uppercase tracking-widest text-mist/60">Total Scripts</span>
+                       <span className="text-xl font-bold text-white leading-none block">{prescriptions.length}</span>
+                       <span className="text-[9px] font-semibold uppercase tracking-wider text-mist/60">Total Scripts</span>
                     </div>
                   </div>
                   <div className="bg-ink/50 backdrop-blur-xl border border-wire/10 px-4 py-3 rounded-2xl flex items-center gap-4 min-w-[160px]">
@@ -112,8 +112,8 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
                        <Activity className="w-4 h-4 text-indigo-400" />
                     </div>
                     <div>
-                       <span className="text-xl font-black text-white leading-none block">{labs.length}</span>
-                       <span className="text-[9px] font-black uppercase tracking-widest text-mist/60">Lab Reports</span>
+                       <span className="text-xl font-bold text-white leading-none block">{labs.length}</span>
+                       <span className="text-[9px] font-semibold uppercase tracking-wider text-mist/60">Lab Reports</span>
                     </div>
                   </div>
                 </div>
@@ -124,7 +124,7 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
             {activePrescriptions.length > 0 && (
               <section>
                 <div className="flex items-center justify-between mb-4 px-1">
-                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white flex items-center gap-2">
+                  <h3 className="text-[10px] font-semibold uppercase tracking-wider text-white flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-neon animate-pulse"></span>
                     Active Pipeline
                   </h3>
@@ -153,8 +153,8 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
                              <FileText className="w-5 h-5" />
                            </div>
                            <div className="text-right">
-                              <span className="text-[10px] font-black uppercase tracking-widest text-mist block mb-0.5">Remaining</span>
-                              <span className="text-lg font-black text-white">{daysLeft} Days</span>
+                              <span className="text-[10px] font-semibold uppercase tracking-wider text-mist block mb-0.5">Remaining</span>
+                              <span className="text-lg font-bold text-white">{daysLeft} Days</span>
                            </div>
                         </div>
 
@@ -164,7 +164,7 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
                         <div className="mt-auto">
                            <button 
                              onClick={() => openPanel(p)}
-                             className="w-full bg-white/5 hover:bg-neon/10 border border-white/5 hover:border-neon/30 text-white hover:text-neon py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex justify-center items-center gap-2 group/btn"
+                             className="w-full bg-white/5 hover:bg-neon/10 border border-white/5 hover:border-neon/30 text-white hover:text-neon py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all flex justify-center items-center gap-2 group/btn"
                            >
                              View Digital Rx
                              <ChevronRight className="w-3.5 h-3.5 opacity-40 group-hover/btn:opacity-100 group-hover/btn:translate-x-1 transition-all" />
@@ -182,8 +182,8 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
               
               {/* Past Prescriptions */}
               <div className="flex flex-col h-[500px]">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-mist/50 mb-4 px-1">Prescription Archive</h3>
-                <div className="flex-1 overflow-y-auto scroll-skin pr-2 space-y-2 relative">
+                <h3 className="text-[10px] font-semibold uppercase tracking-wider text-mist/50 mb-4 px-1">Prescription Archive</h3>
+                <div className="flex-1 overflow-y-auto scroll-skin px-4 space-y-2 relative">
                   {pastPrescriptions.map(p => (
                     <div 
                       key={p.id}
@@ -210,11 +210,11 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
 
               {/* Lab Reports */}
               <div className="flex flex-col h-[500px]">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-mist/50 mb-4 px-1 flex justify-between items-center">
+                <h3 className="text-[10px] font-semibold uppercase tracking-wider text-mist/50 mb-4 px-1 flex justify-between items-center">
                   <span>Lab Reports Archive</span>
                   <span className="hover:text-neon cursor-pointer transition-colors text-[9px] bg-white/5 px-2 py-0.5 rounded-full">+ Upload</span>
                 </h3>
-                <div className="flex-1 overflow-y-auto scroll-skin pr-2 space-y-2 relative">
+                <div className="flex-1 overflow-y-auto scroll-skin px-4 space-y-2 relative">
                   {labs.map(l => (
                     <div 
                       key={l.id}

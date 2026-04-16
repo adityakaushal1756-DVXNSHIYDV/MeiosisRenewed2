@@ -26,7 +26,7 @@ const NilField = ({ label, value, icon: Icon, isCritical }: { label: string; val
     <div className="group">
       <div className="flex items-center gap-2 mb-1.5 opacity-50">
         {Icon && <Icon className="w-3.5 h-3.5" />}
-        <span className="text-[10px] font-black uppercase tracking-[0.2em]">{label}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider">{label}</span>
       </div>
       <div className={cn(
         "text-sm font-medium transition-colors",
@@ -38,6 +38,8 @@ const NilField = ({ label, value, icon: Icon, isCritical }: { label: string; val
   );
 };
 
+import { apiUrl } from '../lib/api';
+
 export function RecordDetailPanel({ prescription, isOpen, onClose }: RecordDetailPanelProps) {
   if (!prescription) return null;
 
@@ -47,7 +49,7 @@ export function RecordDetailPanel({ prescription, isOpen, onClose }: RecordDetai
   const displayStatus = isExpired ? 'EXPIRED' : (prescription.status === 'COMPLETED' ? 'COMPLETED' : 'ACTIVE');
 
   const handleDownload = () => {
-    window.open(`http://localhost:5002/api/prescriptions/${prescription.id}/pdf?download=1`, '_blank');
+    window.open(apiUrl(`/prescriptions/${prescription.id}/pdf?download=1`), '_blank');
   };
 
   return (
@@ -110,7 +112,7 @@ export function RecordDetailPanel({ prescription, isOpen, onClose }: RecordDetai
                          {prescription.doctor.name.charAt(0)}
                        </div>
                        <div>
-                         <p className="text-[10px] text-sky font-black uppercase tracking-[0.2em] mb-1">Prescribing Physician</p>
+                         <p className="text-[10px] text-sky font-semibold uppercase tracking-wider mb-1">Prescribing Physician</p>
                          <h3 className="text-lg font-bold text-white">{prescription.doctor.name}</h3>
                          <p className="text-sm text-mist">{prescription.doctor.specialty} • {prescription.doctor.hospital}</p>
                        </div>
@@ -121,7 +123,7 @@ export function RecordDetailPanel({ prescription, isOpen, onClose }: RecordDetai
                  {/* 3. Detailed Medication Table */}
                  <section className="space-y-6">
                     <div className="flex items-center justify-between border-b border-wire/10 pb-4">
-                       <h3 className="text-sm font-black uppercase tracking-[0.3em] text-white/40 flex items-center gap-2">
+                       <h3 className="text-xs font-semibold uppercase tracking-wider text-white/40 flex items-center gap-2">
                          <Pill className="w-4 h-4" /> Medication Regimen
                        </h3>
                     </div>
@@ -153,7 +155,7 @@ export function RecordDetailPanel({ prescription, isOpen, onClose }: RecordDetai
                  {/* 4. Clinical Observations / Notes */}
                  <section className="space-y-6">
                     <div className="flex items-center justify-between border-b border-wire/10 pb-4">
-                       <h3 className="text-sm font-black uppercase tracking-[0.3em] text-white/40 flex items-center gap-2">
+                       <h3 className="text-xs font-semibold uppercase tracking-wider text-white/40 flex items-center gap-2">
                          <ClipboardList className="w-4 h-4" /> Clinical Observations
                        </h3>
                     </div>

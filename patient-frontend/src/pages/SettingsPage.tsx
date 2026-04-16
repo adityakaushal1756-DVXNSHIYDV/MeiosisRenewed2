@@ -84,13 +84,15 @@ export function SettingsPage() {
             <div className="mb-4">
               <label className="text-xs font-semibold text-mist mb-2 block">System Font Family</label>
               <select 
-                value={localStorage.getItem('meiosis_font_v1') || 'outfit'}
+                value={localStorage.getItem('meiosis_font_v1') || 'plex'}
                 onChange={(e) => {
                   localStorage.setItem('meiosis_font_v1', e.target.value);
                   window.location.reload();
                 }}
                 className="w-full bg-white/5 border border-wire/10 rounded-xl px-4 py-3 text-sm text-white focus:border-neon focus:ring-1 focus:ring-neon outline-none appearance-none cursor-pointer"
               >
+                <option value="plex" className="bg-ink text-white">Clinical Precision (IBM Plex Sans)</option>
+                <option value="instrument" className="bg-ink text-white">Technical Serious (Instrument Sans)</option>
                 <option value="outfit" className="bg-ink text-white">Premium Display (Outfit)</option>
                 <option value="inter" className="bg-ink text-white">Modern Professional (Inter)</option>
                 <option value="manrope" className="bg-ink text-white">Clinical Technical (Manrope)</option>

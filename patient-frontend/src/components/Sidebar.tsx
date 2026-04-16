@@ -61,8 +61,10 @@ export function Sidebar({ currentSection, onSectionChange, isOpen, onClose }: Si
       )}
       
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-[280px] glass-card lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:rounded-none !border-r flex flex-col transition-transform duration-300",
-        isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        "fixed z-50 w-[280px] glass-card flex flex-col transition-all duration-300",
+        "inset-y-0 left-0 border-r border-wire/10 lg:rounded-none", 
+        "xl:top-4 xl:bottom-4 xl:left-4 xl:rounded-[32px] xl:border xl:border-white/10 xl:bg-[#060D15]/95 xl:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_20px_50px_rgba(0,0,0,0.5)] xl:h-[calc(100vh-2rem)]",
+        isOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"
       )}>
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -70,7 +72,7 @@ export function Sidebar({ currentSection, onSectionChange, isOpen, onClose }: Si
               M
             </div>
             <div>
-              <p className="text-white font-bold leading-tight uppercase tracking-widest text-sm">MEIOSIS</p>
+              <p className="text-white font-semibold leading-tight uppercase tracking-wider text-sm">MEIOSIS</p>
               <p className="text-neon text-xs font-semibold">Patient Console</p>
             </div>
           </div>
@@ -95,7 +97,7 @@ export function Sidebar({ currentSection, onSectionChange, isOpen, onClose }: Si
                 onClose();
               }}
               className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-sm font-black uppercase tracking-widest",
+                "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-[11px] font-semibold uppercase tracking-wider",
                 currentSection === item.id 
                   ? "bg-neon text-ink shadow-[0_0_20px_rgba(82,255,157,0.3)]" 
                   : "text-mist hover:text-white hover:bg-white/5 border border-transparent"

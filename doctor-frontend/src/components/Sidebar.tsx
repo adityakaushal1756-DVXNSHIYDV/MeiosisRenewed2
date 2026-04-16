@@ -1,7 +1,7 @@
 import { Activity, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, LayoutDashboard, Menu, MessageSquare, Search, Settings, Users, X } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
-export type NavKey = 'dashboard' | 'queue' | 'search' | 'messages' | 'schedule' | 'calendar' | 'analytics' | 'settings';
+export type NavKey = 'dashboard' | 'queue' | 'search' | 'messages' | 'schedule' | 'calendar' | 'analytics' | 'settings' | 'template-builder';
 
 const NAV_ICONS: { key: NavKey; icon: typeof LayoutDashboard }[] = [
   { key: 'dashboard', icon: LayoutDashboard },

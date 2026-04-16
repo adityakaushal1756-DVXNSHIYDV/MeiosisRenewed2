@@ -1,9 +1,21 @@
 const express = require('express');
+const multer = require('multer');
 const prisma = require('../lib/prisma');
 const asyncHandler = require('../lib/async-handler');
 const { ensureFutureAppointmentSlots } = require('../lib/appointment-slots');
+const { extractFieldsFromPdf, validateTemplateFields, REQUIRED_FIELDS } = require('../lib/pdf-template-engine');
 
 const router = express.Router();
+
+// multer: hold uploaded PDF in memory for parsing (no disk write needed)
+const pdfUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype === 'application/pdf') cb(null, true);
+    else cb(new Error('Only PDF files are accepted for template upload.'));
+  },
+});
 
 router.get('/', asyncHandler(async (req, res) => {
   await ensureFutureAppointmentSlots(prisma);
@@ -343,8 +355,45 @@ const PREF_ALLOWED_FIELDS = new Set([
   'timelineTheme', 'emrBuilderV2Theme', 'emrBuilderLayout', 'timelineLayout',
   'consoleCollapsible', 'consoleCollapsed', 'consoleWidth',
   'slotDuration', 'queueBlockDuration', 'followUpGapDays',
-  'lang', 'prescriptionTemplates',
+  'lang', 'prescriptionTemplates', 'pdfTemplates',
 ]);
+
+// ── PDF Template Upload & Analysis ────────────────────────────────────────────
+// POST /api/doctors/:doctorId/pdf-template/upload
+// Accepts a PDF file, extracts {{field}} placeholders, validates required fields.
+// Returns { valid, missing, found, requiredFields } — does NOT save; the frontend
+// saves the structured template via PATCH /preferences after the user confirms.
+router.post(
+  '/:doctorId/pdf-template/upload',
+  pdfUpload.single('template'),
+  asyncHandler(async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No PDF file was uploaded. Attach the file as form field "template".' });
+    }
+
+    let foundFields;
+    try {
+      foundFields = await extractFieldsFromPdf(req.file.buffer);
+    } catch (err) {
+      console.error('[PDF Template] Extraction failed:', err.message);
+      return res.status(422).json({
+        error: 'Could not read the uploaded PDF. Make sure it is a valid PDF with text-based {{field}} placeholders.',
+      });
+    }
+
+    const { valid, missing, found } = validateTemplateFields(foundFields);
+
+    res.json({
+      valid,
+      missing,
+      found,
+      requiredFields: REQUIRED_FIELDS,
+      message: valid
+        ? 'Template is valid. All required fields are present.'
+        : `Template is missing ${missing.length} required field(s). Add the placeholders listed in "missing" and re-upload.`,
+    });
+  })
+);
 
 router.get('/:doctorId/preferences', asyncHandler(async (req, res) => {
   const { doctorId } = req.params;
