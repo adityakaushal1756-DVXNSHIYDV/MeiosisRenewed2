@@ -123,8 +123,8 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//, /^\/health/],
       },
       devOptions: {
-        // Enable PWA in dev mode so you can test the service worker locally
-        enabled: true,
+        // Keep service workers out of local dev to avoid stale lazy chunks.
+        enabled: false,
         type: 'module',
       },
     }),

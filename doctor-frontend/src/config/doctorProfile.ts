@@ -33,9 +33,9 @@ const _rawName: string = (_session?.name as string) ?? '';
 const _shortName = _rawName.replace(/^Dr\.\s*/i, '');
 
 export const CURRENT_DOCTOR = {
-  id:        _session!.doctorId as string,
-  name:      `Dr. ${_shortName}`,
-  shortName: _shortName,
+  id:        (_session?.doctorId as string) ?? '',
+  name:      _shortName ? `Dr. ${_shortName}` : 'Doctor',
+  shortName: _shortName || 'Doctor',
   specialty: (_session?.specialty as string) ?? 'General Medicine',
   meiosisId: (_session?.meiosisId as string) ?? '',
   hospital:  (_session?.hospital as string) ?? ''

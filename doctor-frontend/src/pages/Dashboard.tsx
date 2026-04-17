@@ -35,6 +35,8 @@ import { useTranslation } from "../i18n/LanguageContext";
 import { LANGUAGES } from "../i18n/translations";
 import { Sidebar, NavKey } from "../components/Sidebar";
 import { Topbar } from "../components/Topbar";
+import { apiUrl } from "../lib/api";
+import { CURRENT_DOCTOR } from "../config/doctorProfile";
 const QueuePanel = lazy(() => import("../components/Queue/QueuePanel").then(m => ({ default: m.QueuePanel })));
 const PatientSearch = lazy(() => import("../components/Patient/PatientSearch").then(m => ({ default: m.PatientSearch })));
 const PatientProfile = lazy(() => import("../components/Patient/PatientProfile").then(m => ({ default: m.PatientProfile })));
@@ -63,7 +65,7 @@ const MedicalCalendar = lazy(() =>
 import type { DoctorCompletedAppointment } from "../hooks/useDoctorAnalytics";
 import { Appointment } from "../types/Appointment";
 import { Patient } from "../types/Patient";
-import { EMRState, PrescriptionTemplate } from "../types/EMR";
+import { EMRState, PdfTemplate, PrescriptionTemplate } from "../types/EMR";
 import { DailySchedule } from "../components/Schedule/ScheduleDayEditor";
 import type { EmrShareRequest } from "../hooks/useEmrShareNotifications";
 
@@ -183,7 +185,7 @@ interface DashboardProps {
   onDeleteTemplates: (templateIds: string[]) => void;
   emrSaving: boolean;
   emrToast: { ok: boolean; msg: string } | null;
-  onSaveEMR: () => void;
+  onSaveEMR: (severity?: string) => void;
   emrOpenedFromRecords?: boolean;
   onOpenEmrComposer: () => void;
   onCloseEmrComposer: () => void;
@@ -645,7 +647,13 @@ function DashboardLoadingFallback({ label = "Loading..." }: { label?: string }) 
 
 export default function Dashboard(props: DashboardProps) {
   const { t, lang, setLang } = useTranslation();
-const [topbarCompact, setTopbarCompact] = useState(false);
+
+  // If props is null or missing critical arrays, show loading state instead of crashing
+  if (!props || !props.nav) {
+    return <DashboardLoadingFallback label="Connecting to workspace..." />;
+  }
+
+  const [topbarCompact, setTopbarCompact] = useState(false);
   const topbarCompactRef = useRef(false);
   const topbarScrollRaf = useRef<number | null>(null);
   const settingsTemplatesRef = useRef<HTMLDivElement | null>(null);
@@ -655,6 +663,18 @@ const [topbarCompact, setTopbarCompact] = useState(false);
   const [respondingShareId, setRespondingShareId] = useState<string | null>(
     null,
   );
+  const [templateToast, setTemplateToast] = useState<{
+    ok: boolean;
+    msg: string;
+  } | null>(null);
+
+  const showToast = (ok: boolean, msg: string) => {
+    setTemplateToast({ ok, msg });
+    window.setTimeout(() => {
+      setTemplateToast((current) => (current?.msg === msg ? null : current));
+    }, 4000);
+  };
+
   const {
     nav,
     onNavChange,
@@ -680,9 +700,9 @@ const [topbarCompact, setTopbarCompact] = useState(false);
     onEmrBuilderLayoutChange,
     timelineLayout,
     onTimelineLayoutChange,
-    currentTime,
-    doctorName,
-    clinicStatus,
+    currentTime = new Date().toLocaleTimeString(),
+    doctorName = "Doctor",
+    clinicStatus = "Available",
     notifications = 0,
     emrShareRequests = [],
     onRespondEmrShare,
@@ -707,6 +727,8 @@ const [topbarCompact, setTopbarCompact] = useState(false);
     onQueueBlockDurationChange,
     followUpGapDays = 14,
     onFollowUpGapDaysChange,
+    pdfTemplates = [],
+    onPdfTemplatesChange,
     vacationNote = "",
     lateStartDate = "",
     lateStartTime = "",
@@ -748,16 +770,26 @@ const [topbarCompact, setTopbarCompact] = useState(false);
     onLateStartDateChange,
     onLateStartTimeChange,
     onLogout,
-    isOnline,
+    isOnline = true,
     syncStatus,
-    pendingCount,
+    pendingCount = 0,
     isSyncingQueue = false,
     isSyncingPatients = false,
     isSyncingAnalytics = false,
-    accessLevel,
+    accessLevel = "full",
   } = props;
 
   const isSyncingAny = isSyncingQueue || isSyncingPatients || isSyncingAnalytics;
+  const isRenderablePdfTemplate = (template: PdfTemplate) =>
+    template.type === "built" &&
+    typeof template.htmlTemplate === "string" &&
+    template.htmlTemplate.trim() !== "" &&
+    template.htmlTemplate.trim() !== "<!-- UPLOADED_PDF_PLACEHOLDER -->";
+  const activePdfTemplate =
+    pdfTemplates.find(
+      (template: PdfTemplate) =>
+        template.isActive && isRenderablePdfTemplate(template),
+    ) ?? null;
 
   // Diagnostic Log
   useEffect(() => {
@@ -943,7 +975,13 @@ const [topbarCompact, setTopbarCompact] = useState(false);
               </button>
               <button
                 type="button"
-                onClick={onSaveEMR}
+                onClick={() => {
+                  if (emrComposerOpen) {
+                    onSaveEMR("MILD");
+                  } else {
+                    onEndConsultation();
+                  }
+                }}
                 className="ghost-btn gap-2 !border-red-400/25 !text-red-300 hover:!border-red-400/40 hover:!bg-red-400/[0.12]"
               >
                 <StopCircle size={16} />
@@ -2915,21 +2953,15 @@ const [topbarCompact, setTopbarCompact] = useState(false);
                         const newTpl: PdfTemplate = {
                           id: `upl_${Date.now()}`,
                           name: file.name.replace('.pdf', ''),
-                          isActive: true,
+                          isActive: false,
                           type: 'uploaded',
                           fields: data.found,
                           htmlTemplate: '<!-- UPLOADED_PDF_PLACEHOLDER -->', // Handle via backend
                           uploadedAt: new Date().toISOString()
                         };
-                        const updated = [
-                          ...pdfTemplates.map(t => ({ ...t, isActive: false })),
-                          newTpl
-                        ];
+                        const updated = [...pdfTemplates, newTpl];
                         onPdfTemplatesChange(updated);
-                        // Backend actually needs the HTML for the generator, but for uploaded PDFs,
-                        // we'd ideally convert PDF to HTML or use a different generator path.
-                        // For this implementation, we focus on the BUILDER path as primary.
-                        showToast(true, "Template uploaded and validated successfully!");
+                        showToast(true, "Template uploaded and validated. Generated prescription PDFs will use the active Visual Builder template.");
                       } else {
                         showToast(false, `Missing fields: ${data.missing.join(', ')}`);
                       }
@@ -2946,7 +2978,7 @@ const [topbarCompact, setTopbarCompact] = useState(false);
               </label>
 
               {/* Active Info Card */}
-              {pdfTemplates.find(t => t.isActive) ? (
+              {activePdfTemplate ? (
                 <div className="p-6 rounded-[32px] border border-neon/20 bg-neon/[0.03] flex flex-col">
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-10 h-10 rounded-full bg-neon/20 flex items-center justify-center">
@@ -2954,16 +2986,16 @@ const [topbarCompact, setTopbarCompact] = useState(false);
                     </div>
                     <span className="text-[10px] font-bold text-neon uppercase tracking-tighter bg-neon/10 px-2 py-0.5 rounded-full">Active</span>
                   </div>
-                  <h4 className="text-sm font-semibold text-white truncate">{pdfTemplates.find(t => t.isActive)?.name}</h4>
+                  <h4 className="text-sm font-semibold text-white truncate">{activePdfTemplate.name}</h4>
                   <p className="mt-1 text-xs text-mist/50">
-                    {pdfTemplates.find(t => t.isActive)?.type === 'built' ? 'Created via Visual Builder' : 'Uploaded PDF Template'}
+                    Created via Visual Builder
                   </p>
                   <div className="mt-auto pt-4 flex items-center gap-2">
                     <button className="text-[10px] text-neon hover:underline font-bold uppercase tracking-wider">Preview</button>
                     <div className="w-1 h-1 rounded-full bg-mist/20" />
                     <button 
                       onClick={() => {
-                        const updated = pdfTemplates.map(t => ({ ...t, isActive: false }));
+                        const updated = pdfTemplates.map((t: PdfTemplate) => ({ ...t, isActive: false }));
                         onPdfTemplatesChange(updated);
                       }}
                       className="text-[10px] text-mist/50 hover:text-red-400 font-bold uppercase tracking-wider transition-colors"
@@ -2975,6 +3007,11 @@ const [topbarCompact, setTopbarCompact] = useState(false);
               ) : (
                 <div className="p-6 rounded-[32px] border border-wire/10 bg-white/[0.01] flex flex-col items-center justify-center border-dashed">
                   <p className="text-xs text-mist/30 italic text-center px-4">No custom template active. Using default Meiosis layout.</p>
+                  {pdfTemplates.some((template: PdfTemplate) => template.type === "uploaded") && (
+                    <p className="mt-2 text-[11px] text-mist/40 text-center px-4">
+                      Uploaded PDFs are validated and stored, but live prescription downloads use Visual Builder templates.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -2992,24 +3029,35 @@ const [topbarCompact, setTopbarCompact] = useState(false);
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-wire/5">
-                    {pdfTemplates.map(tpl => (
+                    {pdfTemplates.map((tpl: PdfTemplate) => {
+                      const isRenderable = isRenderablePdfTemplate(tpl);
+                      const isActiveTemplate = tpl.isActive && isRenderable;
+
+                      return (
                       <tr key={tpl.id} className="hover:bg-white/[0.02] transition-colors group">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${tpl.isActive ? 'bg-neon/10 text-neon' : 'bg-mist/10 text-mist'}`}>
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isActiveTemplate ? 'bg-neon/10 text-neon' : 'bg-mist/10 text-mist'}`}>
                               {tpl.type === 'built' ? <Wand2 size={14} /> : <FileText size={14} />}
                             </div>
-                            <span className={`font-medium ${tpl.isActive ? 'text-white' : 'text-mist/70'}`}>{tpl.name}</span>
+                            <div>
+                              <span className={`font-medium ${isActiveTemplate ? 'text-white' : 'text-mist/70'}`}>{tpl.name}</span>
+                              {!isRenderable && (
+                                <div className="text-[10px] uppercase tracking-[0.16em] text-mist/35">
+                                  Validation only
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 text-xs text-mist/50 capitalize">{tpl.type}</td>
                         <td className="px-6 py-4 text-xs text-mist/50">{new Date(tpl.uploadedAt).toLocaleDateString()}</td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {!tpl.isActive && (
+                            {!isActiveTemplate && isRenderable && (
                               <button 
                                 onClick={() => {
-                                  const updated = pdfTemplates.map(t => ({ ...t, isActive: t.id === tpl.id }));
+                                  const updated = pdfTemplates.map((t: PdfTemplate) => ({ ...t, isActive: t.id === tpl.id }));
                                   onPdfTemplatesChange(updated);
                                 }}
                                 className="p-2 rounded-xl text-mist hover:text-neon hover:bg-neon/10 transition-all"
@@ -3020,7 +3068,7 @@ const [topbarCompact, setTopbarCompact] = useState(false);
                             )}
                             <button 
                                onClick={() => {
-                                 const updated = pdfTemplates.filter(t => t.id !== tpl.id);
+                                 const updated = pdfTemplates.filter((t: PdfTemplate) => t.id !== tpl.id);
                                  onPdfTemplatesChange(updated);
                                }}
                                className="p-2 rounded-xl text-mist hover:text-red-400 hover:bg-red-400/10 transition-all"
@@ -3031,7 +3079,7 @@ const [topbarCompact, setTopbarCompact] = useState(false);
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>
@@ -3090,6 +3138,11 @@ const [topbarCompact, setTopbarCompact] = useState(false);
         {settingsView}
       </Suspense>
     ),
+    "template-builder": (
+      <Suspense fallback={<DashboardLoadingFallback label="Opening Template Builder..." />}>
+        {settingsView}
+      </Suspense>
+    ),
   };
 
   return (
@@ -3112,7 +3165,7 @@ const [topbarCompact, setTopbarCompact] = useState(false);
 
         <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div
-            className="scroll-skin relative z-10 min-h-0 flex-1 overflow-auto"
+            className={`scroll-skin relative z-10 flex min-h-0 flex-1 flex-col ${(nav === "calendar" || nav === "search") ? "overflow-hidden" : "overflow-auto"}`}
             onScroll={(event) => {
               const scrollTop = event.currentTarget.scrollTop;
               if (topbarScrollRaf.current !== null) {
@@ -3143,7 +3196,7 @@ const [topbarCompact, setTopbarCompact] = useState(false);
                     }
                     onOpenCalendar={() => onNavChange("calendar")}
                     liveCount={inSession}
-                    compact={topbarCompact}
+                    compact={nav === "search" || topbarCompact}
                     isOnline={isOnline}
                     syncStatus={syncStatus}
                     pendingCount={pendingCount}
@@ -3151,7 +3204,7 @@ const [topbarCompact, setTopbarCompact] = useState(false);
                 </div>
               )}
 
-            <div className={nav === "calendar" ? "h-full" : "space-y-6"}>
+            <div className={(nav === "calendar" || nav === "search") ? "flex-1 min-h-0" : "space-y-6"}>
               <Suspense
                 fallback={
                   <div className="flex h-64 items-center justify-center text-mist/40 text-sm">
@@ -3375,16 +3428,16 @@ const [topbarCompact, setTopbarCompact] = useState(false);
       )}
 
       {/* EMR save toast */}
-      {emrToast && (
+      {(templateToast || emrToast) && (
         <div
           className={`fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 flex items-center gap-2.5 rounded-2xl border px-4 py-3 text-sm font-medium shadow-xl backdrop-blur-sm transition-all ${
-            emrToast.ok
+            (templateToast || emrToast)?.ok
               ? "border-neon/30 bg-slate-950/90 text-neon"
               : "border-red-400/30 bg-slate-950/90 text-red-300"
           }`}
         >
-          <span>{emrToast.ok ? "✓" : "✕"}</span>
-          {emrToast.msg}
+          <span>{(templateToast || emrToast)?.ok ? "✓" : "✕"}</span>
+          {(templateToast || emrToast)?.msg}
         </div>
       )}
 

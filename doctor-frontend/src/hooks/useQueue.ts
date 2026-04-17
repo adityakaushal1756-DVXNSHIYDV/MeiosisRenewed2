@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CURRENT_DOCTOR } from '../config/doctorProfile';
-import { API_BASE_URL } from '../lib/api';
+import { API_BASE_URL, getAuthHeader } from '../lib/api';
 import { Appointment, QueueStatus } from '../types/Appointment';
 import { Patient } from '../types/Patient';
 import { saveToCache, loadFromCache } from '../utils/persistentCache';
@@ -104,7 +104,8 @@ export function useQueue() {
     setIsSyncing(true);
     try {
       const res = await fetch(
-        `${API_BASE_URL}/appointments?doctorId=${encodeURIComponent(CURRENT_DOCTOR.id)}&date=${date}`
+        `${API_BASE_URL}/appointments?doctorId=${encodeURIComponent(CURRENT_DOCTOR.id)}&date=${date}`,
+        { headers: { ...getAuthHeader() } }
       );
       if (!res.ok) return;
       const data = await res.json();
@@ -173,7 +174,10 @@ export function useQueue() {
     // Persist to backend
     fetch(`${API_BASE_URL}/appointments/${appointmentId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...getAuthHeader()
+      },
       body: JSON.stringify({ status: 'COMPLETED' })
     }).catch(() => { /* silently ignore */ });
   };

@@ -18,13 +18,17 @@ import { CURRENT_DOCTOR } from './config/doctorProfile';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { enqueueEMR } from './utils/offlineQueue';
 import { OfflineSyncBar } from './components/OfflineSyncBar';
-import { apiUrl, assetUrl } from './lib/api';
+import { apiUrl, assetUrl, getAuthHeader } from './lib/api';
 import { AccessDeniedOverlay } from './components/Patient/AccessDeniedOverlay';
 import { HoverRevealSidebar } from './components/HoverRevealSidebar';
 import { LoadingFallback } from './components/LoadingFallback';
 
 const LazyDashboard = lazy(() => import('./pages/Dashboard'));
-const LazyTemplateBuilder = lazy(() => import('./pages/TemplateBuilderPage'));
+const LazyTemplateBuilder = lazy(() =>
+  import('./pages/TemplateBuilderPage').then((module) => ({
+    default: module.TemplateBuilderPage,
+  }))
+);
 
 const CONSOLE_COLLAPSIBLE_KEY = 'meiosis_doctor_console_collapsible_v1';
 const CONSOLE_COLLAPSED_KEY = 'meiosis_doctor_console_collapsed_v1';
@@ -117,22 +121,46 @@ function createEmptyRow(seed: number): PrescriptionRow {
 
 function createInitialEmr(patient?: { name: string; vitals: EMRState['vitals']; visitReason: string } | null): EMRState {
   return {
-    patientInfo: patient ? `${patient.name} reviewed for ${patient.visitReason}. Existing history available in side panel.` : '',
-    vitals: patient?.vitals ?? {
+    patientInfo: patient ? `Name: ${patient.name}\nVisit Reason: ${patient.visitReason}` : '',
+    vitals: patient?.vitals ? { ...patient.vitals } : {
       bloodPressure: '',
       pulse: '',
       temperature: '',
       spo2: '',
       height: '',
-      weight: ''
+      weight: '',
     },
     symptoms: '',
     diagnosis: '',
     labTests: '',
     advice: '',
     followUpDate: '',
-    prescriptionRows: [createEmptyRow(Date.now())]
+    prescriptionRows: [createEmptyRow(Date.now())],
   };
+}
+
+function isEmrDirty(emr: EMRState): boolean {
+  if (!emr) return false;
+  
+  // Check text fields
+  if (emr.symptoms?.trim()) return true;
+  if (emr.diagnosis?.trim()) return true;
+  if (emr.labTests?.trim()) return true;
+  if (emr.advice?.trim()) return true;
+  if (emr.followUpDate?.trim()) return true;
+  
+  // Check vitals (compared to empty)
+  const v = emr.vitals;
+  if (v.bloodPressure?.trim() || v.pulse?.trim() || v.temperature?.trim() || 
+      v.spo2?.trim() || v.height?.trim() || v.weight?.trim()) return true;
+      
+  // Check prescription rows
+  const meaningfulRows = emr.prescriptionRows.filter(r => 
+    [r.medicineName, r.dose, r.frequency, r.duration, r.notes].some(val => val?.trim().length > 0)
+  );
+  if (meaningfulRows.length > 0) return true;
+  
+  return false;
 }
 
 const defaultSchedule: DailySchedule[] = [
@@ -380,6 +408,11 @@ export default function App() {
     }, 360);
   }, []);
 
+  const handleBackToPatientSearch = useCallback(() => {
+    setNav('search');
+    closeViewRecords();
+  }, [closeViewRecords]);
+
   const openViewRecords = useCallback((id: string) => setViewRecordsPatientId(id), []);
 
   const handleBuildEMRFromRecords = useCallback(() => {
@@ -521,7 +554,10 @@ export default function App() {
       pendingPrefsRef.current = {};
       fetch(apiUrl(`/doctors/${CURRENT_DOCTOR.id}/preferences`), {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        },
         body: JSON.stringify(payload),
       }).catch((err) => {
         console.error("[Meiosis] Failed to sync preferences to backend:", err);
@@ -532,7 +568,10 @@ export default function App() {
     const syncSlotDuration = () =>
       fetch(apiUrl(`/doctors/${CURRENT_DOCTOR.id}/slot-duration`), {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        },
         body: JSON.stringify({ slotDuration }),
       }).catch((err) => {
         console.error("[Meiosis] Failed to sync slot duration:", err);
@@ -818,7 +857,10 @@ export default function App() {
   }, [activeAppointment, patients]);
 
   const effectivePatient = selectedQueuePatient ?? selectedPatient;
-  const handleWelcomeDone = useCallback(() => setShowWelcome(false), []);
+  const handleWelcomeDone = useCallback(() => {
+    console.log("[Meiosis] Welcome animation complete. Activating dashboard.");
+    setShowWelcome(false);
+  }, []);
 
   const scannedPatient = useMemo(() => patients.find((p) => p.meiosisCode === 'scanned') ?? null, [patients]);
 
@@ -926,7 +968,15 @@ export default function App() {
     setEmrComposerOpen(true);
   };
 
-  const handleEndConsultation = () => {
+  const handleEndConsultation = (forceDiscard = false) => {
+    // If we're forcing a discard (e.g., from Dashboard "End Session" while closed), 
+    // ask for confirmation if data exists.
+    if (forceDiscard && isEmrDirty(emr)) {
+      if (!window.confirm("You have unsaved EMR data for this patient. Discard and end session?")) {
+        return;
+      }
+    }
+
     if (activeAppointmentId) {
       const nextAppointment = queue.find((item) => item.id !== activeAppointmentId && (item.status === 'WAITING' || item.status === 'LATE'));
       endAppointment(activeAppointmentId);
@@ -1098,7 +1148,10 @@ export default function App() {
     window.setTimeout(() => setEmrToast(null), 4000);
   };
 
-  const handleSaveEMR = async (severity: any = 'MILD') => {
+  const handleSaveEMR = async (severityArg: any = 'MILD') => {
+    // If called directly from a button click, severityArg might be the event object.
+    const severity = (typeof severityArg === 'string') ? severityArg : 'MILD';
+    
     if (!effectivePatient || emrSaving) return;
 
     const savedEmr = emr;
@@ -1196,7 +1249,10 @@ export default function App() {
 
       const res = await fetch(apiUrl('/emr'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        },
         body: JSON.stringify(emrPayload),
         signal: controller.signal
       });
@@ -1276,7 +1332,10 @@ export default function App() {
     try {
       const res = await fetch(apiUrl(`/doctors/${CURRENT_DOCTOR.id}/schedules`), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        },
         body: JSON.stringify({ schedules }),
       });
       return res.ok;
@@ -1383,7 +1442,7 @@ export default function App() {
                   setEmrOpenedFromRecords(false);
                 }}
                 viewRecordsPatientId={viewRecordsPatientId}
-                onViewRecords={openViewRecords}
+                onViewRecords={handleViewRecords}
                 onCloseRecords={closeViewRecords}
                 scheduleDays={scheduleDays}
                 slotDuration={slotDuration}
@@ -1415,7 +1474,7 @@ export default function App() {
                   <LazyTemplateBuilder
                     onBack={() => setNav('settings')}
                     existingTemplates={pdfTemplates}
-                    onSave={(updated) => {
+                    onSave={(updated: PdfTemplate[]) => {
                       setPdfTemplates(updated);
                       try {
                         localStorage.setItem(
@@ -1433,13 +1492,12 @@ export default function App() {
                   <Suspense fallback={<LoadingFallback />}>
                     <EMRv2
                       patientId={viewRecordsPatientId}
-                      doctorName={doctorName}
-                      onClose={closeViewRecords}
-                      onBackToEMR={() => {
-                        setEmrOpenedFromRecords(true);
-                        setEmrComposerOpen(true);
-                      }}
-                      onSelectionIdChange={setExpandedHistoryId}
+                      darkMode={darkMode}
+                      timelineTheme={timelineTheme}
+                      timelineLayout={timelineLayout}
+                      timelineZoom={timelineZoom}
+                      accessLevel={accessLevel}
+                      onBack={handleBackToPatientSearch}
                     />
                   </Suspense>
                 </div>
@@ -1455,6 +1513,7 @@ export default function App() {
                   onBuildEMR={handleBuildEMRFromRecords}
                   isClosing={isClosingRecords}
                 />
+              )}
             </>
           )}
         </Suspense>

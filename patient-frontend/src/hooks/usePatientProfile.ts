@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { apiUrl } from '../lib/api';
+import { apiUrl, getAuthHeader } from '../lib/api';
 import { PatientProfile } from '../types';
 
 export function usePatientProfile(patientId: string | undefined) {
@@ -18,7 +18,9 @@ export function usePatientProfile(patientId: string | undefined) {
       setError(null);
       try {
         const url = apiUrl(`patient/profile?id=${patientId}`);
-        const response = await fetch(url);
+        const response = await fetch(url, {
+          headers: { ...getAuthHeader() }
+        });
         
         if (!response.ok) {
           const errorBody = await response.json().catch(() => ({}));

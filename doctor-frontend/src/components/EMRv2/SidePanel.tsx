@@ -1,9 +1,7 @@
-import { useState, Fragment, useEffect, useRef } from 'react';
-import { Download, X, Pill, Clock, Activity, ShieldCheck, Calendar, HeartPulse } from 'lucide-react';
+import { useState, Fragment, useEffect } from 'react';
+import { Download } from 'lucide-react';
 import type { AppointmentEntry } from './types';
-import { assetUrl } from '../../lib/api';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
+import { apiUrl } from '../../lib/api';
 
 const TIMING_SLOTS = ['Breakfast', 'Lunch', 'Dinner', 'Night'] as const;
 function patternLabel(code: string | undefined): string {
@@ -57,7 +55,7 @@ function NoteRow({ label, value }: { label: string; value: string }) {
 export function SidePanel({ appointment, onClose, accessLevel = 'full' }: SidePanelProps) {
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
   const [isGenerating, setIsGenerating] = useState(false);
-  const modalRef = useRef<HTMLDivElement>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   // Auto-expand all medication instructions on load
   useEffect(() => {
@@ -78,34 +76,68 @@ export function SidePanel({ appointment, onClose, accessLevel = 'full' }: SidePa
     });
   }
 
+  function fallbackFileName() {
+    const doctorSlug = (appointment.doctor || 'doctor').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '');
+    const dateSlug = (appointment.startDate || appointment.date || 'prescription').replace(/[^0-9a-z]+/gi, '_');
+    return `Prescription_${doctorSlug || 'doctor'}_${dateSlug || 'prescription'}.pdf`;
+  }
+
+  function getDownloadFileName(contentDisposition: string | null) {
+    if (!contentDisposition) return fallbackFileName();
+
+    const utfMatch = contentDisposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
+    if (utfMatch?.[1]) {
+      try {
+        return decodeURIComponent(utfMatch[1]).replace(/^["']|["']$/g, '');
+      } catch {
+        return utfMatch[1].replace(/^["']|["']$/g, '');
+      }
+    }
+
+    const asciiMatch = contentDisposition.match(/filename\s*=\s*("?)([^";]+)\1/i);
+    return asciiMatch?.[2] || fallbackFileName();
+  }
+
   const handleDownloadPDF = async () => {
-    if (!modalRef.current) return;
+    if (!appointment.id) {
+      setDownloadError('This prescription is missing its PDF reference.');
+      return;
+    }
+
     setIsGenerating(true);
+    setDownloadError(null);
+
+    let objectUrl: string | null = null;
     try {
-      const element = modalRef.current;
-      // Hide buttons during capture
-      const actions = element.querySelector('.modal-actions');
-      if (actions) (actions as HTMLElement).style.display = 'none';
+      const downloadUrl = apiUrl(`/prescriptions/${encodeURIComponent(appointment.id)}/pdf?download=1`);
+      const response = await fetch(downloadUrl);
 
-      const canvas = await html2canvas(element, {
-        backgroundColor: '#0d1520',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
+      if (!response.ok) {
+        let message = 'Unable to generate the prescription PDF right now.';
+        try {
+          const payload = await response.json();
+          if (payload?.error) message = payload.error;
+        } catch {
+          // Ignore JSON parse errors and keep the generic message.
+        }
+        throw new Error(message);
+      }
 
-      if (actions) (actions as HTMLElement).style.display = 'flex';
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Prescription_${appointment.doctor.replace(/\s+/g, '_')}_${appointment.startDate}.pdf`);
+      const pdfBlob = await response.blob();
+      objectUrl = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = getDownloadFileName(response.headers.get('content-disposition'));
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
     } catch (err) {
       console.error('Failed to generate PDF:', err);
+      setDownloadError(err instanceof Error ? err.message : 'Unable to download the prescription PDF.');
     } finally {
+      if (objectUrl) {
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl as string), 1000);
+      }
       setIsGenerating(false);
     }
   };
@@ -131,7 +163,6 @@ export function SidePanel({ appointment, onClose, accessLevel = 'full' }: SidePa
       onClick={onClose}
     >
       <div
-        ref={modalRef}
         className="w-full max-w-[700px] overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0d1520] shadow-[0_32px_100px_rgba(0,0,0,0.75)]"
         onClick={(e) => e.stopPropagation()}
       >
@@ -341,13 +372,18 @@ export function SidePanel({ appointment, onClose, accessLevel = 'full' }: SidePa
         )}
 
         {/* ── Actions ── */}
+        {downloadError && (
+          <div className="px-5 pt-5 text-sm text-rose-300">
+            {downloadError}
+          </div>
+        )}
         <div className="modal-actions flex gap-3 px-5 py-5">
           <button
             onClick={handleDownloadPDF}
             disabled={isGenerating}
             className="action-btn flex flex-1 items-center justify-center gap-2 py-3 text-sm disabled:opacity-50"
           >
-            {isGenerating ? 'Generating...' : <><Download size={14} /> Download PDF</>}
+            {isGenerating ? 'Preparing PDF...' : <><Download size={14} /> Download PDF</>}
           </button>
           <button
             type="button"

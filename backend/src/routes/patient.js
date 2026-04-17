@@ -5,7 +5,17 @@ const asyncHandler = require('../lib/async-handler');
 const { ensureFutureAppointmentSlots } = require('../lib/appointment-slots');
 const { createPatientSummaryPdf, createPatientAuditPdf } = require('../lib/pdf-documents');
 
+const { authMiddleware } = require('../middleware/auth-middleware');
+
 const router = express.Router();
+
+// Get all patients
+router.get('/', asyncHandler(async (req, res) => {
+  const patients = await prisma.patient.findMany({
+    orderBy: { name: 'asc' }
+  });
+  res.json(patients);
+}));
 
 // Check if a 10-digit code is available (not taken by any patient)
 router.get('/check-code', asyncHandler(async (req, res) => {

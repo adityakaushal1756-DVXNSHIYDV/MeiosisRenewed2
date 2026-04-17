@@ -1,4 +1,4 @@
-import { Calendar, Pill, Activity, TrendingUp, ShieldAlert, FileText, ChevronRight, User, FlaskConical } from 'lucide-react';
+import { Calendar, Pill, Activity, TrendingUp, ShieldAlert, FileText, ChevronRight, User, FlaskConical, CheckCircle2, LoaderCircle, Lock, FileSearch, ShieldCheck } from 'lucide-react';
 import { 
   AreaChart, 
   Area, 
@@ -10,21 +10,93 @@ import {
   ReferenceLine
 } from 'recharts';
 import { format, parseISO, subDays, eachDayOfInterval, isSameDay } from 'date-fns';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../components/Sidebar';
 import type { PatientProfile, Prescription, Appointment } from '../types';
 import { useState, useEffect } from 'react';
 import { RecordDetailPanel } from '../components/RecordDetailPanel';
+import { apiUrl, getAuthHeader } from '../lib/api';
 
 interface RecordsPageProps {
   data: PatientProfile;
 }
 
+type ShareScope = 'none' | 'summary' | 'labs' | 'full';
+
+type ShareSettings = {
+  fullAccess: boolean;
+  labOnly: boolean;
+  summaryOnly: boolean;
+};
+
+const SHARE_OPTIONS: Array<{
+  id: ShareScope;
+  label: string;
+  caption: string;
+  note: string;
+  icon: any;
+  color: string;
+}> = [
+  {
+    id: 'none',
+    label: 'Restricted',
+    caption: 'Locked records',
+    note: 'Zero access policy. No clinical data is shared with doctors.',
+    icon: Lock,
+    color: 'red',
+  },
+  {
+    id: 'summary',
+    label: 'Summary',
+    caption: 'Snapshot only',
+    note: 'Doctors see vitals, allergies, and chronic history but no full records.',
+    icon: FileSearch,
+    color: 'amber',
+  },
+  {
+    id: 'labs',
+    label: 'Lab Only',
+    caption: 'Reports synced',
+    note: 'Access limited strictly to diagnostic reports and imaging.',
+    icon: FlaskConical,
+    color: 'blue',
+  },
+  {
+    id: 'full',
+    label: 'Standard',
+    caption: 'Full visibility',
+    note: 'Doctors can view your complete clinical timeline and EMR history.',
+    icon: ShieldCheck,
+    color: 'green',
+  },
+];
+
+function settingsToScope(settings: ShareSettings): ShareScope {
+  if (settings.fullAccess) return 'full';
+  if (settings.labOnly) return 'labs';
+  if (settings.summaryOnly) return 'summary';
+  return 'none';
+}
+
+function scopeToSettings(scope: ShareScope): ShareSettings {
+  return {
+    fullAccess: scope === 'full',
+    labOnly: scope === 'labs',
+    summaryOnly: scope === 'summary',
+  };
+}
+
 export function RecordsPage({ data }: RecordsPageProps) {
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [shareScope, setShareScope] = useState<ShareScope>('none');
+  const [savedShareScope, setSavedShareScope] = useState<ShareScope>('none');
+  const [shareLoading, setShareLoading] = useState(true);
+  const [shareSaving, setShareSaving] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [shareSuccess, setShareSuccess] = useState<string | null>(null);
 
   // ── Health Sentiment Logic ──────────────────────────────────────────
-  // Extract severity from doctorNote (Metadata in Backend: "Severity: SEVERE")
   const extractSeverity = (note: string = "") => {
     if (note.includes("Severity: SEVERE")) return { value: 20, label: "EXTREME", color: "#FF5252" };
     if (note.includes("Severity: MILD")) return { value: 60, label: "MILD", color: "#FFB347" };
@@ -33,10 +105,6 @@ export function RecordsPage({ data }: RecordsPageProps) {
   };
 
   const prescriptions = data.prescriptions || [];
-  const appointments = data.appointments || [];
-  const labs = data.labReports || [];
-
-  // Sort prescriptions by date for the graph
   const timelineData = [...prescriptions]
     .sort((a, b) => parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime())
     .map(p => {
@@ -50,7 +118,6 @@ export function RecordsPage({ data }: RecordsPageProps) {
       };
     });
 
-  // If no prescriptions, show a flat normal line
   const graphData = timelineData.length > 0 ? timelineData : [
     { date: "Current", sentiment: 100, label: "OPTIMAL", color: "#52FF9D" }
   ];
@@ -64,23 +131,209 @@ export function RecordsPage({ data }: RecordsPageProps) {
     setIsPanelOpen(true);
   };
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadShareSettings = async () => {
+      setShareLoading(true);
+      setShareError(null);
+
+      try {
+        const response = await fetch(apiUrl(`/patient/${encodeURIComponent(data.id)}/share-settings`), {
+          headers: { ...getAuthHeader() }
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error(body.error || `Server responded with ${response.status}`);
+        }
+
+        const settings = (await response.json()) as ShareSettings;
+        if (cancelled) return;
+        const scope = settingsToScope(settings);
+        setShareScope(scope);
+        setSavedShareScope(scope);
+      } catch (err: any) {
+        if (cancelled) return;
+        setShareError(err?.message || 'Unable to load share controls right now.');
+      } finally {
+        if (!cancelled) setShareLoading(false);
+      }
+    };
+
+    loadShareSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data.id]);
+
+  useEffect(() => {
+    if (!shareSuccess) return;
+    const timer = window.setTimeout(() => setShareSuccess(null), 3200);
+    return () => window.clearTimeout(timer);
+  }, [shareSuccess]);
+
+  const selectedOption = SHARE_OPTIONS.find((option) => option.id === shareScope) ?? SHARE_OPTIONS[0];
+  const savedOption = SHARE_OPTIONS.find((option) => option.id === savedShareScope) ?? SHARE_OPTIONS[0];
+  const shareDirty = shareScope !== savedShareScope;
+
+  const handleSaveShareSettings = async () => {
+    setShareSaving(true);
+    setShareError(null);
+    setShareSuccess(null);
+
+    try {
+      const response = await fetch(apiUrl(`/patient/${encodeURIComponent(data.id)}/share-settings`), {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        },
+        body: JSON.stringify(scopeToSettings(shareScope)),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || `Server responded with ${response.status}`);
+      }
+
+      const updated = (await response.json()) as ShareSettings;
+      const scope = settingsToScope(updated);
+      setShareScope(scope);
+      setSavedShareScope(scope);
+      setShareSuccess(scope === 'full'
+        ? 'Full access enabled. Safe care mode activated.'
+        : 'Medical share settings updated successfully.');
+    } catch (err: any) {
+      setShareError(err?.message || 'Could not save share controls.');
+    } finally {
+      setShareSaving(false);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col p-6 md:p-8 pt-[max(1.5rem,env(safe-area-inset-top,1.5rem))] animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto overflow-hidden bg-ink/30 relative">
       
-      {/* Header Area - Fixed */}
+      {/* Header Area */}
       <header className="mb-8 mt-2 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Health Records</h1>
-          <p className="text-mist mt-1 text-sm font-medium">Unified analytics & clinical intelligence console.</p>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Clinical Records</h1>
+          <p className="text-mist mt-1 text-sm font-medium">Unified analytics & patient-controlled intelligence console.</p>
         </div>
         
         <div className="flex bg-white/[0.03] p-1.5 rounded-full border border-wire/5 backdrop-blur-3xl shadow-2xl">
            <div className="px-6 py-2.5 text-xs font-semibold text-neon uppercase tracking-wider flex items-center gap-3">
              <div className="w-2.5 h-2.5 rounded-full bg-neon animate-pulse shadow-[0_0_10px_rgba(82,255,157,0.8)]"></div>
-             Live Analytics Sync
+             Full EMR Visibility
            </div>
         </div>
       </header>
+
+      {/* Share Controls Tier */}
+      <section className="shrink-0 mb-8 glass-card relative overflow-hidden bg-gradient-to-br from-white/[0.01] to-transparent p-6 border-none shadow-[0_32px_80px_rgba(0,0,0,0.2)]">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-neon/[0.04] blur-3xl" />
+        
+        <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between relative z-10">
+          <div className="max-w-xl">
+            <div className="flex items-center gap-2 mb-3">
+              <span className={`chip py-1 text-[11px] font-bold uppercase tracking-widest chip-${SHARE_OPTIONS.find(o => o.id === savedShareScope)?.color}`}>
+                Current: {savedOption.label}
+              </span>
+              {shareDirty && <span className="chip py-1 text-[11px] font-bold uppercase tracking-widest bg-amber-400/10 text-amber-300 border-amber-400/20">Modifying</span>}
+            </div>
+            <h2 className="text-2xl font-bold text-white tracking-tight">Access Control Protocol</h2>
+            <p className="text-mist mt-2 text-sm leading-relaxed font-normal opacity-70">
+              Manage your diagnostic and prescription data visibility. Your doctor's ability to provide accurate care depends on the access levels you grant here.
+            </p>
+            
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={shareScope}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                className="mt-6 p-5 rounded-[24px] bg-white/[0.03] border border-wire/8 shadow-inner"
+              >
+                <div className="flex items-start gap-4">
+                  <div className={`mt-1 h-10 w-10 flex items-center justify-center rounded-2xl bg-${selectedOption.color}-400/10 border border-${selectedOption.color}-400/20 text-${selectedOption.color}-400`}>
+                    <selectedOption.icon size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-bold text-white mb-1">{selectedOption.label} Access Policies</div>
+                    <p className="text-[13px] leading-6 text-mist/80">{selectedOption.note}</p>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          <div className="w-full xl:max-w-[500px]">
+            <div className="rounded-[32px] border border-wire/10 bg-black/20 p-2 shadow-2xl">
+              <div className="relative grid grid-cols-4 gap-2">
+                {SHARE_OPTIONS.map((option) => {
+                  const active = option.id === shareScope;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => {
+                        setShareScope(option.id);
+                        setShareError(null);
+                        setShareSuccess(null);
+                      }}
+                      className={`relative z-[1] rounded-[24px] px-2 py-5 text-center transition-all duration-300 ${active ? 'text-white' : 'text-mist/50 hover:text-mist hover:bg-white/[0.02]'}`}
+                    >
+                      {active && (
+                        <motion.div
+                          layoutId="shareIndicator"
+                          className="absolute inset-0 rounded-[24px] bg-gradient-to-br from-neon/15 to-neon/5 border border-neon/30 shadow-[0_8px_20px_rgba(82,255,157,0.1)]"
+                          transition={{ type: 'spring', bounce: 0.22, duration: 0.5 }}
+                        />
+                      )}
+                      <div className="relative z-10 flex flex-col items-center gap-1.5">
+                        <option.icon size={16} className={cn(active ? "text-neon" : "opacity-30")} />
+                        <span className="text-[9px] font-bold uppercase tracking-[0.2em]">{option.label}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {shareError && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-4 rounded-2xl border border-red-400/20 bg-red-500/8 px-4 py-3 text-sm text-red-300">
+                {shareError}
+              </motion.div>
+            )}
+
+            {shareSuccess && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-4 rounded-2xl border border-neon/20 bg-neon/10 px-4 py-3 text-sm text-neon flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>{shareSuccess}</span>
+              </motion.div>
+            )}
+
+            <div className="mt-6 flex items-center justify-between gap-4">
+              <div className="text-[11px] text-mist/40 font-bold uppercase tracking-widest pl-2">
+                Security Sync Status: <span className="text-mist/70 italic">{shareDirty ? 'Pending' : 'Encrypted'}</span>
+              </div>
+              <button
+                type="button"
+                disabled={shareLoading || shareSaving || !shareDirty}
+                onClick={handleSaveShareSettings}
+                className={cn(
+                  "px-8 py-3.5 rounded-[22px] font-bold text-xs uppercase tracking-widest transition-all shadow-xl",
+                  shareDirty && !shareSaving 
+                    ? "bg-neon text-ink hover:scale-[1.03] active:scale-[0.98] shadow-neon/20" 
+                    : "bg-white/[0.03] text-mist/30 border border-wire/10 cursor-not-allowed"
+                )}
+              >
+                {shareSaving ? 'Updating...' : 'Publish Protocol'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Health Sentiment Graph Section */}
       <section className="shrink-0 mb-10 h-80 glass-card p-6 border border-wire/10 relative overflow-hidden flex flex-col bg-gradient-to-br from-white/[0.03] to-transparent">

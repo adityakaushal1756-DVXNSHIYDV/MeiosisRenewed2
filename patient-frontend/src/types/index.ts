@@ -48,6 +48,8 @@ export interface Appointment {
 export interface LabReport {
   id: string;
   testName: string;
+  title?: string;
+  labName?: string;
   status: string;
   reportDate: string;
   educationalAi: string;

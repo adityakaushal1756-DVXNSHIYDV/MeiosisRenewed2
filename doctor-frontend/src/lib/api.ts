@@ -68,3 +68,21 @@ export function assetUrl(path: string) {
     ? `${normalizedApiBaseUrl}${normalizedPath}`
     : normalizedPath;
 }
+
+/**
+ * Retrieves the JWT from localStorage and returns a formatted Authorization header object.
+ */
+export function getAuthHeader(): Record<string, string> {
+  try {
+    const session = localStorage.getItem('meiosis_auth_session_v1');
+    if (!session) return {};
+    
+    const { token } = JSON.parse(session);
+    if (!token) return {};
+    
+    return { 'Authorization': `Bearer ${token}` };
+  } catch (err) {
+    console.error("[Meiosis API] Failed to parse auth session for token:", err);
+    return {};
+  }
+}

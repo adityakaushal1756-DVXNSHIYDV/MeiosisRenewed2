@@ -113,45 +113,35 @@ export function PatientSearch({
   }, []); // empty deps — stable via refs
 
   return (
-    <section className="glass-card flex h-full min-h-0 flex-col p-6">
-      {/* Header */}
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div>
-          <h2 className="section-title">{t('ps.title')}</h2>
-          <p className="section-copy mt-0.5">{t('ps.hint')}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {patients.length > 0 && (
-            <span className="rounded-full border border-neon/20 bg-neonSoft px-3 py-1 text-xs font-semibold text-neon">
-              {patients.length} {patients.length !== 1 ? t('ps.results') : t('ps.result')}
-            </span>
+    <section className="glass-card flex h-full min-h-0 flex-col p-6 overflow-hidden">
+      {/* Search input + results count */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-mist"
+            size={15}
+          />
+          <input
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            placeholder={t('ps.placeholder')}
+            className="input-shell pl-10 pr-10"
+          />
+          {hasQuery && (
+            <button
+              onClick={() => onQueryChange('')}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-lg p-0.5 text-mist transition hover:text-white"
+              aria-label="Clear search"
+            >
+              <X size={14} />
+            </button>
           )}
-          <div className="rounded-2xl border border-wire/10 bg-slate-950/30 p-2.5 text-mist">
-            <SlidersHorizontal size={15} />
-          </div>
         </div>
-      </div>
-
-      {/* Search input */}
-      <div className="relative">
-        <Search
-          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-mist"
-          size={15}
-        />
-        <input
-          value={query}
-          onChange={(e) => onQueryChange(e.target.value)}
-          placeholder={t('ps.placeholder')}
-          className="input-shell pl-10 pr-10"
-        />
-        {hasQuery && (
-          <button
-            onClick={() => onQueryChange('')}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-lg p-0.5 text-mist transition hover:text-white"
-            aria-label="Clear search"
-          >
-            <X size={14} />
-          </button>
+        
+        {patients.length > 0 && (
+          <span className="shrink-0 rounded-full border border-neon/20 bg-neonSoft px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-neon">
+            {patients.length} {patients.length !== 1 ? t('ps.results') : t('ps.result')}
+          </span>
         )}
       </div>
 
@@ -163,7 +153,7 @@ export function PatientSearch({
       )}
 
       {/* Results */}
-      <div ref={listRef} className="scroll-skin mt-3 min-h-0 flex-1 space-y-2.5 overflow-auto pr-1">
+      <div ref={listRef} className="scroll-skin mt-4 min-h-0 flex-1 space-y-2.5 overflow-auto pr-1">
         {(patients?.length || 0) === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 pb-8 pt-12 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-3xl border border-wire/10 bg-slate-950/30 text-mist">

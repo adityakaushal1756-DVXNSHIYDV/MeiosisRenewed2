@@ -2,6 +2,8 @@ const express = require('express');
 const prisma = require('../lib/prisma');
 const asyncHandler = require('../lib/async-handler');
 const { getDatabaseErrorPayload } = require('../lib/database-errors');
+const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = require('../middleware/auth-middleware');
 
 const router = express.Router();
 
@@ -65,10 +67,17 @@ router.post('/login', asyncHandler(async (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials.' });
   }
 
+  const token = jwt.sign(
+    { id: account.id, role: account.role, meiosisId: account.meiosisId },
+    JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+
   res.json({
     success: true,
     redirect: account.role === 'DOCTOR' ? 'doctor' : 'patient',
-    user: sanitizeUser(account)
+    user: sanitizeUser(account),
+    token
   });
 }));
 
@@ -199,10 +208,17 @@ router.post('/signup', asyncHandler(async (req, res) => {
     return res.status(500).json({ error: txErr.message });
   }
 
+  const token = jwt.sign(
+    { id: created.id, role: created.role, meiosisId: created.meiosisId },
+    JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+
   res.status(201).json({
     success: true,
     redirect: created.role === 'DOCTOR' ? 'doctor' : 'patient',
-    user: sanitizeUser(created)
+    user: sanitizeUser(created),
+    token
   });
 }));
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Patient } from '../types/Patient';
-import { API_BASE_URL } from '../lib/api';
+import { API_BASE_URL, getAuthHeader } from '../lib/api';
 import { saveToCache, loadFromCache } from '../utils/persistentCache';
 
 function normalizePatient(p: any): Patient {
@@ -40,7 +40,9 @@ export function usePatients() {
     const fetchPatients = async () => {
       setIsSyncing(true);
       try {
-        const res = await fetch(`${API_BASE_URL}/patients`);
+        const res = await fetch(`${API_BASE_URL}/patients`, {
+          headers: { ...getAuthHeader() }
+        });
         if (!res.ok) return;
         const data = await res.json();
         if (Array.isArray(data)) {

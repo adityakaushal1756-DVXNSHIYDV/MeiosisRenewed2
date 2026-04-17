@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { CURRENT_DOCTOR } from '../config/doctorProfile';
 
@@ -223,18 +223,18 @@ export function WelcomeAnimation({ onDone }: { onDone: () => void }) {
             backgroundClip:'text',
             animation:'mw-rise 0.5s cubic-bezier(0.4,0,0.2,1) 1.32s both, mw-shimmer 3s linear 1.8s 1',
           }}>
-            {CURRENT_DOCTOR.name}
+            {CURRENT_DOCTOR?.name || 'Doctor'}
           </div>
 
           {/* Specialty / hospital */}
-          {(CURRENT_DOCTOR.specialty || CURRENT_DOCTOR.hospital) && (
+          {(CURRENT_DOCTOR?.specialty || CURRENT_DOCTOR?.hospital) && (
             <div style={{
               fontSize:12, fontWeight:500, letterSpacing:'0.07em',
               color:'rgba(140,190,170,0.58)',
               fontFamily:'Outfit, system-ui, sans-serif',
               animation:'mw-rise 0.5s cubic-bezier(0.4,0,0.2,1) 1.52s both',
             }}>
-              {[CURRENT_DOCTOR.specialty, CURRENT_DOCTOR.hospital]
+              {[CURRENT_DOCTOR?.specialty, CURRENT_DOCTOR?.hospital]
                 .filter(Boolean).join(' · ')}
             </div>
           )}

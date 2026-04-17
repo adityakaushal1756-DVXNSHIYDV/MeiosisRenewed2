@@ -42,6 +42,7 @@ export interface PatientPastAppointment {
   specialty: string;
   mode: 'In-person' | 'Teleconsult';
   status: 'Completed' | 'Cancelled';
+  severity?: string;
   purpose: string;
   chiefComplaint?: string;
   // Rich EMR fields — populated when saved from the EMR builder
@@ -98,4 +99,3 @@ export interface Patient {
   prescriptions: PatientPrescriptionRecord[];
   medicalReports: PatientMedicalReport[];
 }
-

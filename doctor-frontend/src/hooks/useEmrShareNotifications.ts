@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CURRENT_DOCTOR } from '../config/doctorProfile';
-import { API_BASE_URL } from '../lib/api';
+import { API_BASE_URL, getAuthHeader } from '../lib/api';
 
 export interface EmrShareRequest {
   id: string;
@@ -24,7 +24,8 @@ export function useEmrShareNotifications() {
   const fetchPending = useCallback(async () => {
     try {
       const res = await fetch(
-        `${API_BASE_URL}/emr-shares/pending?doctorId=${encodeURIComponent(CURRENT_DOCTOR.id)}`
+        `${API_BASE_URL}/emr-shares/pending?doctorId=${encodeURIComponent(CURRENT_DOCTOR.id)}`,
+        { headers: { ...getAuthHeader() } }
       );
       if (!res.ok) return;
       const data: EmrShareRequest[] = await res.json();
@@ -44,7 +45,10 @@ export function useEmrShareNotifications() {
     try {
       const res = await fetch(`${API_BASE_URL}/emr-shares/${shareId}/respond`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        },
         body: JSON.stringify({ accepted })
       });
       if (!res.ok) throw new Error('respond_failed');

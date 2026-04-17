@@ -16,6 +16,7 @@ const otpRoutes = require('./routes/otp');
 const analyticsRoutes = require('./routes/analytics');
 const extractRoutes = require('./routes/extract');
 const { getDatabaseErrorPayload, isDatabaseUnavailableError } = require('./lib/database-errors');
+const { authMiddleware } = require('./middleware/auth-middleware');
 
 const app = express();
 const corsOrigins = (process.env.CORS_ORIGINS || '')
@@ -101,18 +102,21 @@ app.get('/health', async (req, res) => {
 // where the rewrite might strip the /api prefix before it hits the Express app).
 const apiRouter = express.Router();
 
-apiRouter.use('/patient', patientRoutes);
 apiRouter.use('/auth', authRoutes);
-apiRouter.use('/doctors', doctorRoutes);
-apiRouter.use('/appointments', appointmentRoutes);
-apiRouter.use('/prescriptions', prescriptionRoutes);
-apiRouter.use('/labs', labRoutes);
-apiRouter.use('/messages', messageRoutes);
-apiRouter.use('/emr-shares', shareRoutes);
-apiRouter.use('/emr', emrRoutes);
 apiRouter.use('/otp', otpRoutes);
-apiRouter.use('/analytics', analyticsRoutes);
-apiRouter.use('/extract', extractRoutes);
+
+// Protected Routes
+apiRouter.use('/patient', authMiddleware, patientRoutes);
+apiRouter.use('/patients', authMiddleware, patientRoutes);
+apiRouter.use('/doctors', authMiddleware, doctorRoutes);
+apiRouter.use('/appointments', authMiddleware, appointmentRoutes);
+apiRouter.use('/prescriptions', authMiddleware, prescriptionRoutes);
+apiRouter.use('/labs', authMiddleware, labRoutes);
+apiRouter.use('/messages', authMiddleware, messageRoutes);
+apiRouter.use('/emr-shares', authMiddleware, shareRoutes);
+apiRouter.use('/emr', authMiddleware, emrRoutes);
+apiRouter.use('/analytics', authMiddleware, analyticsRoutes);
+apiRouter.use('/extract', authMiddleware, extractRoutes);
 
 // Helper for root path behavior on serverless functions.
 // If someone hits /api/ directly (common in tests/health checks), return a status.

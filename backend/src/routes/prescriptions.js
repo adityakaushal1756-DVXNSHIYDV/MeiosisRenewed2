@@ -8,6 +8,35 @@ const { resolveUploadPath } = require('../lib/storage-paths');
 
 const router = express.Router();
 
+function isRenderableDoctorTemplate(template) {
+  if (!template || typeof template !== 'object') return false;
+  if (template.isActive !== true) return false;
+  if (template.type !== 'built') return false;
+  if (typeof template.htmlTemplate !== 'string') return false;
+
+  const trimmedHtml = template.htmlTemplate.trim();
+  if (!trimmedHtml || trimmedHtml === '<!-- UPLOADED_PDF_PLACEHOLDER -->') {
+    return false;
+  }
+
+  return /<html[\s>]|<body[\s>]|{{[a-z_]+}}/i.test(trimmedHtml);
+}
+
+function resolveActiveDoctorTemplate(pdfTemplates) {
+  if (!Array.isArray(pdfTemplates)) return null;
+
+  const activeTemplates = pdfTemplates.filter(isRenderableDoctorTemplate);
+  if (!activeTemplates.length) return null;
+
+  activeTemplates.sort((a, b) => {
+    const aTime = new Date(a.uploadedAt || 0).getTime();
+    const bTime = new Date(b.uploadedAt || 0).getTime();
+    return bTime - aTime;
+  });
+
+  return activeTemplates[0];
+}
+
 router.get('/', asyncHandler(async (_req, res) => {
   const prescriptions = await prisma.prescription.findMany({
     include: {
@@ -57,10 +86,7 @@ router.get('/:prescriptionId/pdf', asyncHandler(async (req, res) => {
 
   // ── Resolve active PDF template (if any) ────────────────────────────────────
   const prefs = prescription.doctor?.preferences;
-  let activeTemplate = null;
-  if (prefs?.pdfTemplates && Array.isArray(prefs.pdfTemplates)) {
-    activeTemplate = prefs.pdfTemplates.find(t => t.isActive && t.htmlTemplate) || null;
-  }
+  const activeTemplate = resolveActiveDoctorTemplate(prefs?.pdfTemplates);
 
   // ── Serve cached PDF if it already exists on disk ───────────────────────────
   // Note: custom-template PDFs are always regenerated (no caching) because
@@ -104,4 +130,3 @@ router.get('/:prescriptionId/pdf', asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
-

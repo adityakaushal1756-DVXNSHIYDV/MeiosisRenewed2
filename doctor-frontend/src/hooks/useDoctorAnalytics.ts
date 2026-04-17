@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CURRENT_DOCTOR } from '../config/doctorProfile';
-import { API_BASE_URL } from '../lib/api';
+import { API_BASE_URL, getAuthHeader } from '../lib/api';
 import { saveToCache, loadFromCache } from '../utils/persistentCache';
 
 export interface DoctorCompletedAppointment {
@@ -32,7 +32,8 @@ export function useDoctorAnalytics() {
     setIsSyncing(true);
     try {
       const res = await fetch(
-        `${API_BASE_URL}/appointments?doctorId=${encodeURIComponent(CURRENT_DOCTOR.id)}&status=COMPLETED`
+        `${API_BASE_URL}/appointments?doctorId=${encodeURIComponent(CURRENT_DOCTOR.id)}&status=COMPLETED`,
+        { headers: { ...getAuthHeader() } }
       );
       if (!res.ok) return;
       const data = await res.json();
