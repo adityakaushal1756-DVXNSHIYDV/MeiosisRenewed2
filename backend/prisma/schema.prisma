@@ -30,6 +30,7 @@ model Patient {
   messageThreads   MessageThread[]
   prescriptions    Prescription[]
   account          UserAccount?
+  doctorLinks      PatientDoctor[]
 }
 
 model Doctor {
@@ -38,6 +39,7 @@ model Doctor {
   name               String
   specialty          String
   hospital           String
+  clinicName         String?
   consultFee         Int
   rating             Float
   workingHours       String
@@ -59,6 +61,7 @@ model Doctor {
   messageThreads     MessageThread[]
   prescriptions      Prescription[]
   account            UserAccount?
+  patientLinks       PatientDoctor[]
 }
 
 /// All doctor UI/UX preferences persisted to the DB.
@@ -305,6 +308,22 @@ model EmrShare {
   status        EmrShareStatus @default(PENDING)
   doctor        Doctor         @relation(fields: [doctorId], references: [id])
   patient       Patient        @relation(fields: [patientId], references: [id])
+}
+
+/// Persistent many-to-many doctor ↔ patient network.
+/// Created when a patient adds a doctor manually OR when an appointment is booked.
+/// Drives EMR access control — a doctor can only view/write EMR for patients in their network.
+model PatientDoctor {
+  id        String   @id @default(cuid())
+  patientId String
+  doctorId  String
+  linkedAt  DateTime @default(now())
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@unique([patientId, doctorId])
+  @@index([patientId])
+  @@index([doctorId])
 }
 
 /// Compliance audit trail for every AI-Scribe transcription sent to Gemini.

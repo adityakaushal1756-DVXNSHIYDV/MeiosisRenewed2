@@ -65,7 +65,17 @@ const KEYFRAMES = `
 }
 `;
 
-export function WelcomeAnimation({ onDone }: { onDone: () => void }) {
+export function WelcomeAnimation({ 
+  onDone,
+  doctorName,
+  specialty,
+  hospital
+}: { 
+  onDone: () => void;
+  doctorName?: string;
+  specialty?: string;
+  hospital?: string;
+}) {
   const [phase, setPhase] = useState<Phase>('in');
 
   const onDoneRef = useRef(onDone);
@@ -75,6 +85,7 @@ export function WelcomeAnimation({ onDone }: { onDone: () => void }) {
     let active = true;
     
     // Phase 1: Hold the 'in' animation
+    // Increased to 4200ms to allow text rise (1.52s) + shimmer (4.8s total, but we only need enough to feel good)
     const t1 = setTimeout(() => {
       if (!active) return;
       setPhase('out');
@@ -84,10 +95,10 @@ export function WelcomeAnimation({ onDone }: { onDone: () => void }) {
         if (!active) return;
         setPhase('done');
         onDoneRef.current();
-      }, 420);
+      }, 750);
       
       return () => clearTimeout(t2);
-    }, 550);
+    }, 4000);
 
     return () => {
       active = false;
@@ -110,7 +121,7 @@ export function WelcomeAnimation({ onDone }: { onDone: () => void }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
         animation: exiting
-          ? 'mw-out 0.4s cubic-bezier(0.4,0,1,1) forwards'
+          ? 'mw-out 0.8s cubic-bezier(0.4,0,1,1) forwards'
           : 'mw-in  0.25s ease forwards',
       }}>
 
@@ -223,18 +234,18 @@ export function WelcomeAnimation({ onDone }: { onDone: () => void }) {
             backgroundClip:'text',
             animation:'mw-rise 0.5s cubic-bezier(0.4,0,0.2,1) 1.32s both, mw-shimmer 3s linear 1.8s 1',
           }}>
-            {CURRENT_DOCTOR?.name || 'Doctor'}
+            {doctorName || 'Doctor'}
           </div>
 
           {/* Specialty / hospital */}
-          {(CURRENT_DOCTOR?.specialty || CURRENT_DOCTOR?.hospital) && (
+          {(specialty || hospital) && (
             <div style={{
               fontSize:12, fontWeight:500, letterSpacing:'0.07em',
               color:'rgba(140,190,170,0.58)',
               fontFamily:'Outfit, system-ui, sans-serif',
               animation:'mw-rise 0.5s cubic-bezier(0.4,0,0.2,1) 1.52s both',
             }}>
-              {[CURRENT_DOCTOR?.specialty, CURRENT_DOCTOR?.hospital]
+              {[specialty, hospital]
                 .filter(Boolean).join(' · ')}
             </div>
           )}

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CheckCircle2, FileText, LayoutDashboard, UserPlus, X } from 'lucide-react';
 import { WelcomeAnimation } from './components/WelcomeAnimation';
 import { LanguageContext } from './i18n/LanguageContext';
 import { createT, type LangCode } from './i18n/translations';
@@ -14,7 +15,7 @@ import { EMRState, PrescriptionRow, PrescriptionTemplate, PdfTemplate } from './
 import { Appointment } from './types/Appointment';
 import type { PatientMedicalReport, PatientPastAppointment } from './types/Patient';
 import { DailySchedule } from './components/Schedule/ScheduleDayEditor';
-import { CURRENT_DOCTOR } from './config/doctorProfile';
+import { CURRENT_DOCTOR, type DoctorProfile } from './config/doctorProfile';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { enqueueEMR } from './utils/offlineQueue';
 import { OfflineSyncBar } from './components/OfflineSyncBar';
@@ -22,6 +23,7 @@ import { apiUrl, assetUrl, getAuthHeader } from './lib/api';
 import { AccessDeniedOverlay } from './components/Patient/AccessDeniedOverlay';
 import { HoverRevealSidebar } from './components/HoverRevealSidebar';
 import { LoadingFallback } from './components/LoadingFallback';
+import { EndConsultationDialog } from './components/EMR/EndConsultationDialog';
 
 const LazyDashboard = lazy(() => import('./pages/Dashboard'));
 const LazyTemplateBuilder = lazy(() =>
@@ -207,6 +209,30 @@ export default function App() {
   } = useQueue();
   const { completedAppointments, refreshCompletedAppointments, isSyncing: isSyncingAnalytics } = useDoctorAnalytics();
 
+  const [doctorProfile, setDoctorProfile] = useState<DoctorProfile>(CURRENT_DOCTOR);
+
+  const fetchFullDoctorProfile = useCallback(async () => {
+    try {
+      const res = await fetch(apiUrl(`/doctors/${encodeURIComponent(CURRENT_DOCTOR.id)}`));
+      if (!res.ok) return;
+      const data = await res.json();
+      setDoctorProfile({
+        id: data.id,
+        name: data.name.startsWith('Dr. ') ? data.name : `Dr. ${data.name}`,
+        shortName: data.name.replace(/^Dr\.\s*/i, ''),
+        specialty: data.specialty || 'General Medicine',
+        meiosisId: data.meiosisId || '',
+        hospital: data.hospital || ''
+      });
+    } catch (err) {
+      console.error("[Meiosis] Failed to fetch full doctor profile:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchFullDoctorProfile();
+  }, [fetchFullDoctorProfile]);
+
   const { pending: emrShareRequests, respond: respondToEmrShare, refresh: refreshEmrShareRequests } = useEmrShareNotifications();
 
   useEffect(() => {
@@ -244,16 +270,22 @@ export default function App() {
 
   const fetchDoctorPatients = useCallback(async () => {
     try {
+      // SECURITY: Only fetch patients who have explicitly added this doctor to their network.
+      // The /network/patients/:doctorId endpoint enforces the PatientDoctor join table.
+      // Never use /doctors/:doctorId/patients — that endpoint returns all patients from
+      // appointments/prescriptions and bypasses network gating entirely.
       const res = await fetch(
-        apiUrl(`/doctors/${encodeURIComponent(CURRENT_DOCTOR.id)}/patients`)
+        apiUrl(`/network/patients/${encodeURIComponent(CURRENT_DOCTOR.id)}`),
+        { headers: getAuthHeader() }
       );
       if (!res.ok) return;
-      const data: any[] = await res.json();
-      if (!Array.isArray(data) || data.length === 0) return;
+      const networkData: any[] = await res.json();
+      if (!networkData.length) return;
+
       setPatients((prev) => {
         const map = new Map(prev.map((p) => [p.id, p]));
-        data.forEach((p) => {
-          if (!map.has(p.id)) {
+        networkData.forEach((p) => {
+          if (p?.id && !map.has(p.id)) {
             map.set(p.id, {
               id: p.id,
               meiosisCode: p.universalCode || p.meiosisId || p.id,
@@ -288,18 +320,38 @@ export default function App() {
   const loadPatientEMR = useCallback(async (patientId: string) => {
     try {
       const res = await fetch(
-        apiUrl(`/emr?patientId=${encodeURIComponent(patientId)}`)
+        apiUrl(`/emr?patientId=${encodeURIComponent(patientId)}`),
+        { headers: getAuthHeader() }
       );
+      if (res.status === 403) {
+        // Doctor not in network — show access denied
+        setAccessLevel(null);
+        return;
+      }
       if (!res.ok) return;
       const data: any = await res.json();
       if (!data?.prescriptions) return;
+
+      // Server returns the effective accessLevel — use it
+      if (data.accessLevel) {
+        const lvl = data.accessLevel as 'full' | 'lab' | 'summary';
+        setAccessLevel(lvl);
+      }
 
       const extract = (note: string, prefix: string): string | undefined => {
         const line = (note || '').split('\n').find((l: string) => l.startsWith(prefix));
         return line ? line.slice(prefix.length).trim() || undefined : undefined;
       };
 
-      const pastAppointments: PatientPastAppointment[] = data.prescriptions.map((rx: any) => ({
+      const prescriptions = Array.isArray(data.prescriptions) ? data.prescriptions : [];
+      const appointments  = Array.isArray(data.appointments)  ? data.appointments  : [];
+      const labReports    = Array.isArray(data.labReports)    ? data.labReports    : [];
+
+      // Create a set of dates that already have prescriptions to avoid double-counting consultations
+      const rxDates = new Set(prescriptions.map((rx: any) => new Date(rx.startDate).toISOString().slice(0, 10)));
+
+      // Map prescriptions to our rich encounter model
+      const pastAppointments: PatientPastAppointment[] = prescriptions.map((rx: any) => ({
         id: rx.id,
         date: new Date(rx.startDate).toISOString().slice(0, 10),
         doctorName: rx.doctor?.name || 'Unknown',
@@ -307,8 +359,8 @@ export default function App() {
         mode: 'In-person' as const,
         status: (rx.status === 'ACTIVE' || rx.status === 'COMPLETED') ? 'Completed' as const : 'Cancelled' as const,
         purpose: rx.title || 'Consultation',
-        symptoms:  extract(rx.doctorNote, 'Subjective: '),
-        diagnosis: extract(rx.doctorNote, 'Assessment: '),
+        symptoms:  extract(rx.doctorNote || '', 'Subjective: '),
+        diagnosis: extract(rx.doctorNote || '', 'Assessment: '),
         medications: (rx.items || []).map((item: any) => ({
           medicineId: item.medicineId,
           name: item.medicine,
@@ -326,11 +378,31 @@ export default function App() {
           notes: item.reason || undefined,
         })),
         followUp: rx.endDate ? new Date(rx.endDate).toISOString().slice(0, 10) : undefined,
-        notes: extract(rx.doctorNote, 'Plan: '),
+        notes: extract(rx.doctorNote || '', 'Plan: '),
         documentPath: rx.documentPath || undefined,
       }));
 
-      const medicalReports: PatientMedicalReport[] = data.labReports.map((lr: any) => ({
+      // Add appointments that don't have a corresponding prescription
+      appointments.forEach((apt: any) => {
+        const dateStr = new Date(apt.scheduledDate).toISOString().slice(0, 10);
+        if (!rxDates.has(dateStr)) {
+          pastAppointments.push({
+            id: apt.id,
+            date: dateStr,
+            doctorName: apt.doctor?.name || 'Unknown',
+            specialty: apt.doctor?.specialty || 'General Practice',
+            mode: apt.mode === 'TELECONSULT' ? 'Teleconsult' : 'In-person',
+            status: apt.status === 'COMPLETED' ? 'Completed' : 'Cancelled',
+            purpose: apt.purpose || apt.title || 'Scheduled Visit',
+            notes: apt.notes || undefined,
+          });
+        }
+      });
+
+      // Sort by date descending
+      pastAppointments.sort((a, b) => b.date.localeCompare(a.date));
+
+      const medicalReports: PatientMedicalReport[] = labReports.map((lr: any) => ({
         id: lr.id,
         title: lr.testName,
         category: 'Lab' as const,
@@ -614,6 +686,10 @@ export default function App() {
   const [emrSaving, setEmrSaving] = useState(false);
   const [emrToast, setEmrToast] = useState<{ ok: boolean; msg: string } | null>(null);
   const [showEndConsultDialog, setShowEndConsultDialog] = useState(false);
+  const [pendingSaveSeverity, setPendingSaveSeverity] = useState<any>('MILD');
+  const [lastSavedPrescriptionPath, setLastSavedPrescriptionPath] = useState<string | null>(null);
+  // Keep a snapshot of the patient being treated so dialogs work even after EMR state resets
+  const [finalizedPatientName, setFinalizedPatientName] = useState<string | null>(null);
 
   const { isOnline, syncStatus, pendingCount, refreshPendingCount } = useOfflineSync({
     onToast: (ok, msg) => showToast(ok, msg),
@@ -894,13 +970,16 @@ export default function App() {
 
   const fetchAndSetAccessLevel = async (patientId: string) => {
     try {
-      const res = await fetch(apiUrl(`/patient/${encodeURIComponent(patientId)}/share-settings`));
+      // Check share-settings directly — fast path for UI hint
+      const res = await fetch(apiUrl(`/patient/${encodeURIComponent(patientId)}/share-settings`), {
+        headers: getAuthHeader(),
+      });
       if (res.ok) {
         const settings: { fullAccess: boolean; labOnly: boolean; summaryOnly: boolean } = await res.json();
-        if (settings.fullAccess) setAccessLevel('full');
-        else if (settings.labOnly) setAccessLevel('lab');
+        if (settings.fullAccess)       setAccessLevel('full');
+        else if (settings.labOnly)     setAccessLevel('lab');
         else if (settings.summaryOnly) setAccessLevel('summary');
-        else setAccessLevel(null);
+        else                           setAccessLevel('full'); // default: full access
         return;
       }
     } catch (err) {
@@ -1148,14 +1227,21 @@ export default function App() {
     window.setTimeout(() => setEmrToast(null), 4000);
   };
 
-  const handleSaveEMR = async (severityArg: any = 'MILD') => {
-    // If called directly from a button click, severityArg might be the event object.
+  const handleSaveEMR = (severityArg: any = 'MILD') => {
+    // This now initiates the finalization flow by showing the confirmation dialog
     const severity = (typeof severityArg === 'string') ? severityArg : 'MILD';
-    
+    setPendingSaveSeverity(severity);
+    setShowEndConsultDialog(true);
+  };
+
+  const handleFinalizeConsultation = async () => {
     if (!effectivePatient || emrSaving) return;
 
+    const severity = pendingSaveSeverity;
     const savedEmr = emr;
-    const savedPatient = effectivePatient;
+    const savedPatient = effectivePatient; // Snapshot BEFORE any state resets
+    const savedPatientId = savedPatient.id;
+    const wasOpenedFromRecords = emrOpenedFromRecords;
 
     const now = new Date();
     const nowDate = now.toISOString().slice(0, 10);
@@ -1210,7 +1296,8 @@ export default function App() {
           }))
       : [];
 
-    updatePatient(savedPatient.id, (p) => ({
+    // Optimistic in-memory update so the local timeline is immediately updated
+    updatePatient(savedPatientId, (p) => ({
       ...p,
       lastVisitDate: nowDate,
       pastAppointments: [newAppt, ...p.pastAppointments],
@@ -1218,7 +1305,9 @@ export default function App() {
     }));
 
     const emrPayload = {
-      patientId: savedPatient.meiosisCode,
+      // Use the DB primary key — it's always unambiguous.
+      // meiosisCode can be universalCode/meiosisId/id depending on patient setup and may not match.
+      patientId: savedPatient.id,
       doctorId: CURRENT_DOCTOR.id,
       patientInfo: savedEmr.patientInfo,
       vitals: savedEmr.vitals,
@@ -1236,17 +1325,17 @@ export default function App() {
         await enqueueEMR({ savedAt: Date.now(), patientName: savedPatient.name, payload: emrPayload });
         await refreshPendingCount();
       } catch {}
-      showToast(true, `Offline — EMR for ${savedPatient.name} saved locally. Will sync when connection returns.`);
-      setShowEndConsultDialog(true);
+      showToast(true, `Offline — EMR saved locally. Will sync when connection returns.`);
+      // Close the EMR builder and reset session state
+      setEmrComposerOpen(false);
+      setEmrOpenedFromRecords(false);
+      if (!wasOpenedFromRecords && activeAppointmentId) handleEndConsultation(false);
+      setShowEndConsultDialog(false);
       return;
     }
 
     setEmrSaving(true);
-
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
-
       const res = await fetch(apiUrl('/emr'), {
         method: 'POST',
         headers: { 
@@ -1254,41 +1343,40 @@ export default function App() {
           ...getAuthHeader()
         },
         body: JSON.stringify(emrPayload),
-        signal: controller.signal
       });
 
-      clearTimeout(timeoutId);
-
       if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: 'Save failed' }));
-        throw new Error(body.error ?? `HTTP ${res.status}`);
+        const errBody = await res.json().catch(() => ({}));
+        // patient_not_in_db is a soft failure — optimistic update already applied
+        if ((errBody.reason || errBody.error || '').includes('patient_not_in_db')) {
+          showToast(true, `EMR saved for ${savedPatient.name}`);
+        } else {
+          throw new Error(errBody.error || `HTTP ${res.status}`);
+        }
+      } else {
+        const saved = await res.json();
+        showToast(true, `EMR synced for ${savedPatient.name}`);
+        setLastSavedPrescriptionPath(saved?.prescription?.documentPath || null);
+        // Force the DB data to refresh in cache so next View Records shows the new entry
+        loadPatientEMR(savedPatientId);
       }
 
-      const saved = await res.json().catch(() => ({}));
-      showToast(true, `EMR saved for ${savedPatient.name}`);
-      setShowEndConsultDialog(true);
-      
-      loadPatientEMR(savedPatient.id);
-      
-      if (saved?.prescription?.documentPath) {
-        window.setTimeout(() => window.open(assetUrl(saved.prescription.documentPath), '_blank'), 4000);
-      }
-    } catch (err: any) {
-      const isTimeout = err.name === 'AbortError';
-      const msg = isTimeout ? 'Request timed out' : (err instanceof Error ? err.message : 'Save failed');
-      
-      if (msg.includes('patient_not_in_db')) {
-        showToast(true, `EMR saved for ${savedPatient.name}`);
-        setShowEndConsultDialog(true);
+      // Close EMR builder and cleanly end the consultation session
+      setEmrComposerOpen(false);
+      setEmrOpenedFromRecords(false);
+      if (!wasOpenedFromRecords && activeAppointmentId) {
+        // Queue-based consultation: properly end appointment
+        handleEndConsultation(false);
       } else {
-        try {
-          await enqueueEMR({ savedAt: Date.now(), patientName: savedPatient.name, payload: emrPayload });
-          await refreshPendingCount();
-          showToast(false, isTimeout ? 'Connection slow — EMR queued locally' : `Backend reachable but error: ${msg}. Saved locally.`);
-        } catch {
-          showToast(false, `${savedPatient.name}: ${msg}`);
-        }
+        // Records-based or manual consultation: just reset session
+        setManualConsultationStatus('READY');
       }
+      // Keep dialog open to show prescription link (if any); user can dismiss it
+    } catch (err: any) {
+      console.error("[Meiosis] Finalize failed:", err);
+      showToast(false, `Sync failed: ${err.message}`);
+      // On failure, close the dialog so user can retry via Save EMR button
+      setShowEndConsultDialog(false);
     } finally {
       setEmrSaving(false);
     }
@@ -1357,7 +1445,14 @@ export default function App() {
   return (
     <LanguageContext.Provider value={{ lang, setLang, t: createT(lang) }}>
       <>
-        {showWelcome && <WelcomeAnimation onDone={handleWelcomeDone} />}
+        {showWelcome && (
+          <WelcomeAnimation 
+            onDone={handleWelcomeDone} 
+            doctorName={doctorProfile.name}
+            specialty={doctorProfile.specialty}
+            hospital={doctorProfile.hospital}
+          />
+        )}
         
         <Suspense fallback={<LoadingFallback />}>
           {!showWelcome && (
@@ -1498,22 +1593,41 @@ export default function App() {
                       timelineZoom={timelineZoom}
                       accessLevel={accessLevel}
                       onBack={handleBackToPatientSearch}
+                      onBuildEMR={handleBuildEMRFromRecords}
                     />
                   </Suspense>
                 </div>
               )}
 
               {accessDeniedPatientId && (
-                <AccessDeniedOverlay
-                  patientName={
-                    patients?.find((p) => p.id === accessDeniedPatientId)?.name ||
-                    'Patient'
-                  }
-                  onClose={closeViewRecords}
-                  onBuildEMR={handleBuildEMRFromRecords}
-                  isClosing={isClosingRecords}
-                />
-              )}
+                  <AccessDeniedOverlay
+                    patientName={
+                      patients?.find((p) => p.id === accessDeniedPatientId)?.name ||
+                      'Patient'
+                    }
+                    onClose={closeViewRecords}
+                    onBuildEMR={handleBuildEMRFromRecords}
+                    isClosing={isClosingRecords}
+                  />
+                )}
+
+                {showEndConsultDialog && (
+                  <EndConsultationDialog
+                    patientName={effectivePatient?.name || 'Patient'}
+                    isSaving={emrSaving}
+                    lastSavedPrescriptionPath={lastSavedPrescriptionPath}
+                    onConfirm={handleFinalizeConsultation}
+                    onCancel={() => {
+                      setShowEndConsultDialog(false);
+                      setLastSavedPrescriptionPath(null);
+                    }}
+                    onClose={() => {
+                      setShowEndConsultDialog(false);
+                      setLastSavedPrescriptionPath(null);
+                    }}
+                    onViewPrescription={(path) => window.open(assetUrl(path), '_blank')}
+                  />
+                )}
             </>
           )}
         </Suspense>

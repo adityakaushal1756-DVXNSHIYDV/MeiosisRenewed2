@@ -200,8 +200,16 @@ router.post('/', asyncHandler(async (req, res) => {
     .then(existing => existing || prisma.messageThread.create({ data: { doctorId, patientId } }))
     .catch(() => {});
 
+  // Auto-link doctor into patient's network on appointment booking
+  prisma.patientDoctor.upsert({
+    where:  { patientId_doctorId: { patientId, doctorId } },
+    create: { patientId, doctorId },
+    update: {},
+  }).catch(() => {});
+
   res.status(201).json(appointment);
 }));
+
 
 router.patch('/:appointmentId', asyncHandler(async (req, res) => {
   const { appointmentId } = req.params;

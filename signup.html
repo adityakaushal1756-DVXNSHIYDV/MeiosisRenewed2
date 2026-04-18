@@ -990,7 +990,7 @@ const COMMON_STEPS = [
   { id:'role', type:'role-select' },
   { id:'name', type:'text', label:"What's your full name?", placeholder:'e.g. Rahul Sharma or Dr. Priya Nair', hint:'This appears on your prescriptions and patient records.', autocomplete:'name', required:true },
   { id:'email', type:'email', label:"What's your email address?", placeholder:'you@example.com', hint:"This is your login. We'll never spam you.", autocomplete:'email', required:true },
-  { id:'emailOtp', type:'email-otp', label:'Verify your email', hint:"Enter the 6-digit code we sent to your inbox.", required:true },
+  // { id:'emailOtp', type:'email-otp', label:'Verify your email', hint:"Enter the 6-digit code we sent to your inbox.", required:true },
   { id:'password', type:'password', label:'Create a strong password', hint:'At least 8 characters. Mix letters, numbers, and symbols for best security.', required:true },
   { id:'confirmPassword', type:'confirm-password', label:'Confirm your password', hint:'Re-enter the password to make sure it matches.', required:true },
 ];
@@ -1001,8 +1001,8 @@ const PATIENT_STEPS = [
   { id:'bloodGroup', type:'chips', label:"What's your blood group?", hint:"Critical information for emergencies. Skip if you're unsure.", options:['A+','A\u2212','B+','B\u2212','AB+','AB\u2212','O+','O\u2212','Unknown'], optional:true },
   { id:'conditions', type:'multi-chips', label:'Any existing health conditions?', hint:'Helps your doctor prepare before your first visit. Select all that apply.', options:CONDITIONS, optional:true },
   { id:'emergencyContact', type:'text', label:'Who should we call in an emergency?', placeholder:'Name and phone number', hint:'Completely optional \u2014 you can add this later from your dashboard.', optional:true },
-  { id:'phone', type:'phone', label:"What's your phone number?", hint:'For appointment reminders and critical health alerts. We\u2019ll verify it now.', required:true },
-  { id:'phoneOtp', type:'phone-otp', label:'Verify your number', required:true },
+  { id:'phone', type:'phone', label:"What's your phone number?", hint:'For appointment reminders and critical health alerts.', required:true },
+  // { id:'phoneOtp', type:'phone-otp', label:'Verify your number', required:true },
   { id:'consent', type:'final-patient' },
 ];
 
@@ -1014,8 +1014,8 @@ const DOCTOR_STEPS = [
   { id:'hospital', type:'text', label:'Hospital or clinic you practice at?', placeholder:'Apollo Hospital, Private Clinic, AIIMS\u2026', hint:'Your primary place of work shown to patients.', required:true },
   { id:'consultFee', type:'number', label:'Consultation fee (\u20b9)?', placeholder:'e.g. 800', hint:'The fee patients pay per consultation. You can update this anytime.', required:true },
   { id:'consultMode', type:'chips', label:'How do you see patients?', hint:'Choose your preferred consultation mode.', options:['In-person','Online','Both'], required:true },
-  { id:'phone', type:'phone', label:"What's your phone number?", hint:'For patient alerts and critical clinic notifications. We\u2019ll verify it now.', required:true },
-  { id:'phoneOtp', type:'phone-otp', label:'Verify your number', required:true },
+  { id:'phone', type:'phone', label:"What's your phone number?", hint:'For patient alerts and critical clinic notifications.', required:true },
+  // { id:'phoneOtp', type:'phone-otp', label:'Verify your number', required:true },
   { id:'agreement', type:'final-doctor' },
 ];
 

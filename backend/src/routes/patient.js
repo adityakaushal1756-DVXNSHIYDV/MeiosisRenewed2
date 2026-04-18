@@ -79,6 +79,9 @@ router.get('/profile', asyncHandler(async (req, res) => {
       labReports: {
         include: { doctor: true },
         orderBy: { reportDate: 'desc' }
+      },
+      doctorLinks: {
+        include: { doctor: true }
       }
     }
   });

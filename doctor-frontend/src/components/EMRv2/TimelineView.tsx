@@ -100,21 +100,28 @@ function buildTimelineData(data: any): AppointmentEntry[] {
   }
 
   const prescriptions = Array.isArray(data.prescriptions) ? data.prescriptions : [];
-  const labReports    = Array.isArray(data.labReports) ? data.labReports : [];
+  const labReports    = Array.isArray(data.labReports)    ? data.labReports    : [];
+  const appointments  = Array.isArray(data.appointments)  ? data.appointments  : [];
 
-  return prescriptions.map((rx: any): AppointmentEntry => {
+  // Track dates to avoid double-counting consultations and prescriptions
+  const handledDates = new Set<string>();
+
+  const results: AppointmentEntry[] = prescriptions.map((rx: any): AppointmentEntry => {
     if (!rx || typeof rx !== 'object') {
       return { id: Math.random().toString(), date: 'Unknown', type: 'Invalid Data', specialty: '', doctor: '', metrics: '', labs: [], prescriptions: [], medications: [] };
     }
 
+    const dateStr = rx.startDate ? new Date(rx.startDate).toISOString().slice(0, 10) : 'Unknown';
+    handledDates.add(dateStr);
+
     const rxLabs = labReports.filter((lr: any) => lr.prescriptionId === rx.id);
     
-    let date = 'Unknown Date';
+    let displayDate = 'Unknown Date';
     try {
       if (rx.startDate) {
         const d = new Date(rx.startDate);
         if (!isNaN(d.getTime())) {
-          date = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+          displayDate = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         }
       }
     } catch (e) {
@@ -123,7 +130,7 @@ function buildTimelineData(data: any): AppointmentEntry[] {
 
     return {
       id:         rx.id || `rx-${Math.random()}`,
-      date,
+      date:       displayDate,
       type:       rx.title || 'Consultation',
       specialty:  rx.doctor?.specialty || 'General Practice',
       doctor:     rx.doctor?.name       || 'Unknown',
@@ -157,6 +164,68 @@ function buildTimelineData(data: any): AppointmentEntry[] {
       documentPath: rx.documentPath || undefined,
     };
   });
+
+  // Add appointments that aren't tied to prescriptions
+  appointments.forEach((apt: any) => {
+    const dateStr = apt.scheduledDate ? new Date(apt.scheduledDate).toISOString().slice(0, 10) : 'Unknown';
+    if (!handledDates.has(dateStr)) {
+      handledDates.add(dateStr);
+      let displayDate = 'Unknown Date';
+      try {
+        const d = new Date(apt.scheduledDate);
+        if (!isNaN(d.getTime())) {
+          displayDate = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+      } catch {}
+
+      results.push({
+        id: apt.id,
+        date: displayDate,
+        type: apt.purpose || apt.title || 'Scheduled Visit',
+        specialty: apt.doctor?.specialty || 'General Practice',
+        doctor: apt.doctor?.name || 'Unknown',
+        metrics: 'Review',
+        status: apt.status,
+        notes: apt.notes || undefined,
+        labs: [],
+        prescriptions: [],
+        medications: []
+      });
+    }
+  });
+
+  // Add orphaned lab reports (no prescriptionId)
+  const orphanedLabs = labReports.filter((lr: any) => !lr.prescriptionId);
+  orphanedLabs.forEach((lr: any) => {
+    let displayDate = 'Unknown Date';
+      try {
+        const d = new Date(lr.reportDate);
+        if (!isNaN(d.getTime())) {
+          displayDate = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+      } catch {}
+
+    results.push({
+      id: lr.id,
+      date: displayDate,
+      type: 'Laboratory Result',
+      specialty: 'Diagnostic Lab',
+      doctor: lr.doctor?.name || 'Laboratory Manager',
+      metrics: lr.testName,
+      status: lr.status,
+      labs: [{
+        id: lr.id,
+        label: lr.testName,
+        value: lr.status === 'PENDING' ? 'Pending' : 'Available',
+      }],
+      prescriptions: [],
+      medications: [],
+      documentPath: lr.documentPath || undefined
+    });
+  });
+
+  return results.sort((a, b) => new Date(b.startDate || b.date).getTime() - new Date(a.startDate || a.date).getTime());
+}
 }
 
 // -- Secondary item union -----------------------------------------

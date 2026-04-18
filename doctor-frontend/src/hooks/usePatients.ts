@@ -3,7 +3,7 @@ import { Patient } from '../types/Patient';
 import { API_BASE_URL, getAuthHeader } from '../lib/api';
 import { saveToCache, loadFromCache } from '../utils/persistentCache';
 
-function normalizePatient(p: any): Patient {
+export function normalizePatient(p: any): Patient {
   return {
     id: String(p.id),
     meiosisCode: p.meiosisCode || p.universalCode || p.meiosisId || String(p.id),
@@ -36,28 +36,7 @@ export function usePatients() {
     });
   }, []);
 
-  useEffect(() => {
-    const fetchPatients = async () => {
-      setIsSyncing(true);
-      try {
-        const res = await fetch(`${API_BASE_URL}/patients`, {
-          headers: { ...getAuthHeader() }
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          const normalized = data.map(normalizePatient);
-          setPatients(normalized);
-          saveToCache('patients', normalized);
-        }
-      } catch (err) {
-        console.error("[Meiosis] Failed to initial fetch patients:", err);
-      } finally {
-        setIsSyncing(false);
-      }
-    };
-    fetchPatients();
-  }, []);
+  // Sync is now managed by App.tsx to ensure it uses the network-gated DOCTOR endpoint exclusively.
   const [query, setQuery] = useState('');
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);

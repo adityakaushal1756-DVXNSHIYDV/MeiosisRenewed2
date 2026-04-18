@@ -33,11 +33,12 @@ function saveRootLinks() {
   localStorage.setItem(ROOT_LINKS_KEY, JSON.stringify(deriveRootLinks()));
 }
 
-function saveSession(user) {
+function saveSession(user, token) {
   localStorage.setItem(
     AUTH_SESSION_KEY,
     JSON.stringify({
       ...user,
+      token,
       savedAt: new Date().toISOString(),
     }),
   );
@@ -210,7 +211,7 @@ if (loginForm) {
 
     try {
       const result = await apiPost("/auth/login", { identifier, password });
-      saveSession(result.user);
+      saveSession(result.user, result.token);
       setMessage(message, "Login successful. Redirecting...", "success");
       setTimeout(() => {
         redirectAfterLogin(result.redirect);
@@ -457,7 +458,7 @@ if (signupForm) {
         result.user?.role,
         result.user?.meiosisId,
       );
-      saveSession(result.user);
+      saveSession(result.user, result.token);
       setMessage(
         message,
         `Signup successful. Role: ${result.user.role} | ID: ${result.user.meiosisId} | Redirect: ${result.redirect}`,

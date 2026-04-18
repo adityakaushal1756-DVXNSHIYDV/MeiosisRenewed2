@@ -1264,6 +1264,7 @@ export default function Dashboard(props: DashboardProps) {
         <PatientRecordAccess
           patient={selectedPatient}
           onViewRecords={onViewRecords}
+          onBuildEMR={onStartConsultation}
         />
       )}
     </div>

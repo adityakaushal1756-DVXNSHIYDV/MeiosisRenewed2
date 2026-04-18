@@ -16,6 +16,7 @@ async function main() {
   await prisma.doctorScheduleOverride.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.emrShare.deleteMany();
+  await prisma.patientDoctor.deleteMany(); // network links
   await prisma.userAccount.deleteMany();
   await prisma.patient.deleteMany();
   await prisma.doctor.deleteMany();
@@ -113,10 +114,34 @@ async function main() {
         rating: 4.7,
         workingHours: 'Tue-Sat | 11:00 AM - 05:00 PM'
       }
+    }),
+    prisma.doctor.create({
+      data: {
+        id: 'doc-pablo',
+        meiosisId: 'M-PABLO',
+        name: 'Dr. Pablo Escobar',
+        specialty: 'Clinical Intelligence',
+        hospital: 'Medellin Health',
+        consultFee: 2000,
+        rating: 5.0,
+        workingHours: 'Mon-Sun | 24/7'
+      }
+    }),
+    prisma.doctor.create({
+      data: {
+        id: 'doc-jill',
+        meiosisId: 'M-JILL',
+        name: 'Dr. Jill Valentine',
+        specialty: 'Virology',
+        hospital: 'Raccoon City Hospital',
+        consultFee: 1500,
+        rating: 4.9,
+        workingHours: 'Mon-Fri | 08:00 AM - 04:00 PM'
+      }
     })
   ]);
 
-  const [primaryDoctor, cardioDoctor, endoDoctor] = doctors;
+  const [primaryDoctor, cardioDoctor, endoDoctor, pabloDoctor, jillDoctor] = doctors;
 
   async function createSchedule(doctorId, dayOfWeek, startTime, endTime, slotDuration, breakStart, breakEnd) {
     return prisma.doctorSchedule.create({
@@ -140,8 +165,40 @@ async function main() {
     createSchedule(endoDoctor.id, 3, '11:00', '17:00', 30, '14:00', '14:20'),
     createSchedule(endoDoctor.id, 4, '11:00', '17:00', 30, '14:00', '14:20'),
     createSchedule(endoDoctor.id, 5, '11:00', '17:00', 30, '14:00', '14:20'),
-    createSchedule(endoDoctor.id, 6, '11:00', '17:00', 30, '14:00', '14:20')
+    createSchedule(endoDoctor.id, 6, '11:00', '17:00', 30, '14:00', '14:20'),
+    // Schedules for Pablo and Jill
+    createSchedule(pabloDoctor.id, 1, '09:00', '21:00', 15, '13:00', '14:00'),
+    createSchedule(jillDoctor.id, 1, '08:00', '16:00', 20, '12:00', '13:00'),
   ]);
+
+  // Link patient PAT-001 (Aditya Sharma) to Pablo
+  await prisma.appointment.create({
+    data: {
+      doctorId: pabloDoctor.id,
+      patientId: patient.id,
+      title: 'Monthly Review',
+      purpose: 'Clinical Intelligence Follow-up',
+      scheduledDate: new Date(),
+      status: 'CONFIRMED',
+      mode: 'IN_PERSON',
+    }
+  });
+
+  // Link patient PAT-002 (Nikita Mehra) to Jill
+  const nikita = await prisma.patient.findFirst({ where: { meiosisId: 'PAT-002' } });
+  if (nikita) {
+    await prisma.appointment.create({
+      data: {
+        doctorId: jillDoctor.id,
+        patientId: nikita.id,
+        title: 'Initial Consultation',
+        purpose: 'Viral Screening',
+        scheduledDate: new Date(Date.now() + 3600000),
+        status: 'CONFIRMED',
+        mode: 'TELECONSULT',
+      }
+    });
+  }
 
   await prisma.doctorScheduleOverride.createMany({
     data: [
@@ -201,9 +258,417 @@ async function main() {
         meiosisId: endoDoctor.meiosisId,
         password: 'demo1234',
         doctorId: endoDoctor.id
+      },
+      {
+        role: 'DOCTOR',
+        name: pabloDoctor.name,
+        email: 'pablo.escobar@meiosis.health',
+        meiosisId: pabloDoctor.meiosisId,
+        password: 'demo1234',
+        doctorId: pabloDoctor.id
+      },
+      {
+        role: 'DOCTOR',
+        name: jillDoctor.name,
+        email: 'jill.valentine@meiosis.health',
+        meiosisId: jillDoctor.meiosisId,
+        password: 'demo1234',
+        doctorId: jillDoctor.id
       }
     ]
   });
+
+  /* ─────────────────────────────────────────────────────────────
+     DEEP DIAGNOSTIC DATA: Historical Records & Messages
+  ───────────────────────────────────────────────────────────── */
+  console.log('--- Generating Deep Diagnostic Data ---');
+  
+  const historyDate = (daysAgo) => {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    return d;
+  };
+
+  // Create Message threads and welcome messages
+  const threads = await Promise.all(doctors.map(doc => 
+    prisma.messageThread.create({
+      data: {
+        doctorId: doc.id,
+        patientId: patient.id,
+        messages: {
+          create: [
+            { sender: 'DOCTOR', text: `Hello ${patient.name}, I am Dr. ${doc.name}. Welcome to MEIOSIS. How can I assist you today?`, createdAt: historyDate(10) },
+            { sender: 'PATIENT', text: 'Thank you doctor. I wanted to check my recent reports.', createdAt: historyDate(9) }
+          ]
+        }
+      }
+    })
+  ));
+
+  // Create historical prescriptions (Timeline) for PAT-001
+  await prisma.prescription.createMany({
+    data: [
+      {
+        id: 'rx-hist-001',
+        patientId: patient.id,
+        doctorId: pabloDoctor.id,
+        title: 'Mild Hypertension Management',
+        status: 'COMPLETED',
+        durationDays: 30,
+        refillCount: 0,
+        adherenceScore: 95,
+        startDate: historyDate(120),
+        endDate: historyDate(90),
+        doctorNote: 'Subjective: Patient reported slight headaches.\nAssessment: Mild hypertension.\nPlan: Low sodium diet and Amlodipine 5mg.',
+      },
+      {
+        id: 'rx-hist-002',
+        patientId: patient.id,
+        doctorId: jillDoctor.id,
+        title: 'Seasonal Allergy Treatment',
+        status: 'COMPLETED',
+        durationDays: 14,
+        refillCount: 0,
+        adherenceScore: 100,
+        startDate: historyDate(45),
+        endDate: historyDate(31),
+        doctorNote: 'Subjective: Sneezing and itchy eyes.\nAssessment: Seasonal allergies.\nPlan: Antihistamines for 2 weeks.',
+      }
+    ]
+  });
+
+  // Prescription Items
+  await prisma.prescriptionItem.createMany({
+    data: [
+      { prescriptionId: 'rx-hist-001', medicine: 'Amlodipine', dose: '5mg', frequency: 'Once daily', timing: 'Morning', reason: 'Blood pressure' },
+      { prescriptionId: 'rx-hist-002', medicine: 'Cetirizine', dose: '10mg', frequency: 'Once daily', timing: 'Night', reason: 'Allergy relief' }
+    ]
+  });
+
+  // Historical Lab Reports for Trends
+  await prisma.labReport.createMany({
+    data: [
+      {
+        id: 'lab-hist-001',
+        patientId: patient.id,
+        doctorId: pabloDoctor.id,
+        testName: 'Lipid Profile',
+        status: 'NORMAL',
+        reportDate: historyDate(110),
+        educationalAi: 'Your cholesterol levels are within the target range. LDL is 95mg/dL. Keep up the healthy diet.'
+      },
+      {
+        id: 'lab-hist-002',
+        patientId: patient.id,
+        doctorId: cardioDoctor.id,
+        testName: 'Complete Blood Count (CBC)',
+        status: 'NORMAL',
+        reportDate: historyDate(10),
+        educationalAi: 'Hemoglobin and WBC counts are normal (14.2 g/dL). No signs of infection.'
+      }
+    ]
+  });
+
+  // Custom Demo Accounts requested by user
+  console.log('--- Seeding Custom User Demo Accounts ---');
+  const demoPassword = '1003531935';
+
+  const demoDoctor = await prisma.doctor.create({
+    data: {
+      id: 'doc-demo6',
+      meiosisId: 'M-DEMO6',
+      name: 'Dr. Aditya (Demo)',
+      specialty: 'Clinical Excellence',
+      hospital: 'MEIOSIS Headquarters',
+      consultFee: 1000,
+      rating: 5.0,
+      workingHours: 'Mon-Sun | 24/7',
+      email: 'adityakaushaldemo6@gmail.com'
+    }
+  });
+
+  const demoDoctor10 = await prisma.doctor.create({
+    data: {
+      id: 'doc-demo10',
+      meiosisId: 'M-DEMO10',
+      name: 'Dr. Aditya (Demo 10)',
+      specialty: 'Diagnostic Intelligence',
+      hospital: 'MEIOSIS Innovation Hub',
+      consultFee: 1200,
+      rating: 5.0,
+      workingHours: 'Mon-Sat | 10:00 AM - 06:00 PM',
+      email: 'adityakaushaldemo10@gmail.com'
+    }
+  });
+
+  const demoPatient = await prisma.patient.create({
+    data: {
+      id: 'pat-demo7',
+      meiosisId: 'PAT-DEMO7',
+      name: 'Aditya Demo 7',
+      email: 'adityakaushaldemo7@gmail.com',
+      universalCode: '99999999',
+      phone: '+91-9999999999',
+      bloodGroup: 'O+',
+      address: 'Cloud City',
+      healthScore: 90,
+      insurancePlan: 'Premium MEIOSIS Care',
+      emergencyContact: 'Family'
+    }
+  });
+
+  const demoPatient8 = await prisma.patient.create({
+    data: {
+      id: 'pat-demo8',
+      meiosisId: 'PAT-DEMO8',
+      name: 'Aditya Demo 8',
+      email: 'adityakaushaldemo8@gmail.com',
+      universalCode: '99999998',
+      phone: '+91-9999999998',
+      bloodGroup: 'A+',
+      address: 'Cloud City Sector 8',
+      healthScore: 85,
+      insurancePlan: 'Standard MEIOSIS Care',
+      emergencyContact: 'Family'
+    }
+  });
+
+  const demoPatient9 = await prisma.patient.create({
+    data: {
+      id: 'pat-demo9',
+      meiosisId: 'PAT-DEMO9',
+      name: 'Aditya Demo 9',
+      email: 'adityakaushaldemo9@gmail.com',
+      universalCode: '99999997',
+      phone: '+91-9999999997',
+      bloodGroup: 'B-',
+      address: 'Cloud City Sector 9',
+      healthScore: 82,
+      insurancePlan: 'Basic MEIOSIS Care',
+      emergencyContact: 'On file'
+    }
+  });
+
+  await prisma.userAccount.createMany({
+    data: [
+      {
+        role: 'DOCTOR',
+        name: demoDoctor.name,
+        email: demoDoctor.email,
+        meiosisId: demoDoctor.meiosisId,
+        password: demoPassword,
+        doctorId: demoDoctor.id
+      },
+      {
+        role: 'DOCTOR',
+        name: demoDoctor10.name,
+        email: demoDoctor10.email,
+        meiosisId: demoDoctor10.meiosisId,
+        password: demoPassword,
+        doctorId: demoDoctor10.id
+      },
+      {
+        role: 'PATIENT',
+        name: demoPatient.name,
+        email: demoPatient.email,
+        meiosisId: demoPatient.meiosisId,
+        password: demoPassword,
+        patientId: demoPatient.id
+      },
+      {
+        role: 'PATIENT',
+        name: demoPatient8.name,
+        email: demoPatient8.email,
+        meiosisId: demoPatient8.meiosisId,
+        password: demoPassword,
+        patientId: demoPatient8.id
+      },
+      {
+        role: 'PATIENT',
+        name: demoPatient9.name,
+        email: demoPatient9.email,
+        meiosisId: demoPatient9.meiosisId,
+        password: demoPassword,
+        patientId: demoPatient9.id
+      }
+    ]
+  });
+  // NOTE: No PatientDoctor link created — demo accounts start UNLINKED.
+  // The user must connect them via the Doctor Network UI.
+
+  // 1. Create a Schedule for the Demo Doctor 6
+  const demoSchedule6 = await prisma.doctorSchedule.create({
+    data: {
+      doctorId: demoDoctor.id,
+      dayOfWeek: new Date().getDay(), // Active today
+      startTime: '09:00',
+      endTime: '17:00',
+      slotDuration: 15,
+      isActive: true
+    }
+  });
+
+  // 1b. Create a Schedule for Demo Doctor 10
+  await prisma.doctorSchedule.create({
+    data: {
+      doctorId: demoDoctor10.id,
+      dayOfWeek: new Date().getDay(),
+      startTime: '10:00',
+      endTime: '18:00',
+      slotDuration: 15,
+      isActive: true
+    }
+  });
+  // 2. Generate a valid Slot for today (e.g., 10:30 AM)
+  const todayAt1030 = new Date();
+  todayAt1030.setHours(10, 30, 0, 0);
+  const todayAt1045 = new Date(todayAt1030.getTime() + 15 * 60 * 1000);
+
+  const demoSlot = await prisma.appointmentSlot.create({
+    data: {
+      doctorId: demoDoctor.id,
+      scheduleId: demoSchedule6.id,
+      startAt: todayAt1030,
+      endAt: todayAt1045,
+      available: false, // Booked by demo7
+      status: 'BOOKED',
+      location: 'Consultation Room 1',
+      mode: 'IN_PERSON'
+    }
+  });
+
+  // 3. Create the Appointment linked to the Slot
+  const demoAppointment = await prisma.appointment.create({
+    data: {
+      patientId: demoPatient.id,
+      doctorId: demoDoctor.id,
+      appointmentSlotId: demoSlot.id,
+      title: 'Initial Demo Consultation',
+      purpose: 'Platform Walkthrough',
+      status: 'CONFIRMED',
+      mode: 'IN_PERSON',
+      scheduledDate: todayAt1030,
+      slotStartTime: todayAt1030,
+      doctorFee: 1000,
+      paymentStatus: 'MOCK_CONFIRMED'
+    }
+  });
+
+  // 4. Properly place them in the Queue stack
+  await prisma.appointmentQueue.create({
+    data: {
+      appointmentId: demoAppointment.id,
+      doctorSlotId: demoSlot.id,
+      appointmentTime: todayAt1030,
+      queueNo: 1,
+      status: 'WAITING'
+    }
+  });
+
+  await prisma.messageThread.create({
+    data: {
+      patientId: demoPatient.id,
+      doctorId: demoDoctor.id,
+      messages: {
+        create: [
+          { sender: 'DOCTOR', text: 'Welcome Aditya! This is your personalized doctor channel.' },
+          { sender: 'PATIENT', text: 'Great to be here, doctor.' }
+        ]
+      }
+    }
+  });
+
+  // --- NETWORK LINKS for Demo Accounts ---
+  // Aditya Demo 7 -> Dr. Aditya (Demo 6)
+  await prisma.patientDoctor.upsert({
+    where: { patientId_doctorId: { patientId: demoPatient.id, doctorId: demoDoctor.id } },
+    create: { patientId: demoPatient.id, doctorId: demoDoctor.id },
+    update: {},
+  });
+
+  // Aditya Demo 8 -> Dr. Aditya (Demo 6) 
+  await prisma.patientDoctor.upsert({
+    where: { patientId_doctorId: { patientId: demoPatient8.id, doctorId: demoDoctor.id } },
+    create: { patientId: demoPatient8.id, doctorId: demoDoctor.id },
+    update: {},
+  });
+
+  // Aditya Demo 9 -> Dr. Aditya (Demo 10)
+  await prisma.patientDoctor.upsert({
+    where: { patientId_doctorId: { patientId: demoPatient9.id, doctorId: demoDoctor10.id } },
+    create: { patientId: demoPatient9.id, doctorId: demoDoctor10.id },
+    update: {},
+  });
+
+  // --- SAMPLE EMR DATA for Demo 7 (Existing) ---
+  await prisma.prescription.upsert({
+    where: { id: 'rx-demo-001' },
+    create: {
+      id: 'rx-demo-001',
+      patientId: demoPatient.id,
+      doctorId: demoDoctor.id,
+      title: 'Optimization Protocol',
+      status: 'ACTIVE',
+      durationDays: 90,
+      refillCount: 1,
+      adherenceScore: 100,
+      startDate: historyDate(10),
+      endDate: historyDate(-80),
+      doctorNote: 'Subjective: Patient reports high cognitive load.\nAssessment: Mild fatigue.\nPlan: Optimization protocol initialized.',
+      items: {
+        create: [
+          { medicine: 'FocusMax', dose: '1 tab', frequency: 'Once daily', timing: 'Morning', reason: 'Cognitive load' }
+        ]
+      }
+    },
+    update: {},
+  });
+
+  // --- SAMPLE EMR DATA for Demo 8 (New) ---
+  await prisma.prescription.create({
+    data: {
+      id: 'rx-demo-008',
+      patientId: demoPatient8.id,
+      doctorId: demoDoctor.id,
+      title: 'Wellness Recovery',
+      status: 'COMPLETED',
+      durationDays: 14,
+      refillCount: 0,
+      adherenceScore: 100,
+      startDate: historyDate(45),
+      endDate: historyDate(31),
+      doctorNote: 'Subjective: Post-viral fatigue.\nAssessment: Recovery in progress.\nPlan: Increased hydration and vitamin supplementation.',
+      items: {
+        create: [
+          { medicine: 'Vit-C Plus', dose: '500mg', frequency: 'Twice daily', timing: 'After meals', reason: 'Immunity' }
+        ]
+      }
+    }
+  });
+
+  // --- SAMPLE EMR DATA for Demo 9 (New) ---
+  await prisma.prescription.create({
+    data: {
+      id: 'rx-demo-009',
+      patientId: demoPatient9.id,
+      doctorId: demoDoctor10.id,
+      title: 'Structural Alignment',
+      status: 'ACTIVE',
+      durationDays: 30,
+      refillCount: 0,
+      adherenceScore: 100,
+      startDate: historyDate(5),
+      endDate: historyDate(-25),
+      doctorNote: 'Subjective: Lower back tension.\nAssessment: Poor posture diagnostics.\nPlan: Ergonomic correction and daily mobility drills.',
+      items: {
+        create: [
+          { medicine: 'FlexiSpine', dose: '1 application', frequency: 'Once daily', timing: 'Evening', reason: 'Back tension' }
+        ]
+      }
+    }
+  });
+
+  console.log('--- Seeding Completed Successfully ---');
 }
 
 main()

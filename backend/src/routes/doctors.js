@@ -423,24 +423,44 @@ router.patch('/:doctorId/preferences', asyncHandler(async (req, res) => {
   res.json(prefs);
 }));
 
+router.get('/:doctorId', asyncHandler(async (req, res) => {
+  const { doctorId } = req.params;
+  const doctor = await prisma.doctor.findUnique({
+    where: { id: doctorId }
+  });
+  if (!doctor) {
+    return res.status(404).json({ error: 'Doctor not found.' });
+  }
+  res.json(doctor);
+}));
+
 router.get('/:doctorId/patients', asyncHandler(async (req, res) => {
   const { doctorId } = req.params;
-  const patientSelect = { id: true, name: true, meiosisId: true, universalCode: true, phone: true, email: true };
-  const [apptRows, rxRows] = await Promise.all([
-    prisma.appointment.findMany({
-      where: { doctorId },
-      select: { patient: { select: patientSelect } },
-      distinct: ['patientId']
-    }),
-    prisma.prescription.findMany({
-      where: { doctorId },
-      select: { patient: { select: patientSelect } },
-      distinct: ['patientId']
-    })
-  ]);
-  const map = new Map();
-  [...apptRows, ...rxRows].forEach(r => { if (r.patient) map.set(r.patient.id, r.patient); });
-  res.json([...map.values()]);
+
+  // SECURITY: Only return patients who have explicitly added this doctor to their
+  // network via the PatientDoctor join table. Never derive the patient list from
+  // appointments or prescriptions — that would allow any patient who ever booked
+  // an appointment to appear in the doctor's full patient list without consent.
+  const links = await prisma.patientDoctor.findMany({
+    where: { doctorId },
+    include: {
+      patient: {
+        select: {
+          id: true,
+          name: true,
+          meiosisId: true,
+          universalCode: true,
+          phone: true,
+          email: true,
+          bloodGroup: true,
+          shareSettings: true,
+        }
+      }
+    },
+    orderBy: { linkedAt: 'desc' }
+  });
+
+  res.json(links.map(l => ({ ...l.patient, linkedAt: l.linkedAt })));
 }));
 
 module.exports = router;

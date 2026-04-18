@@ -6,6 +6,7 @@ import { AppointmentsTimelineModal } from './AppointmentsTimelineModal';
 interface PatientRecordAccessProps {
   patient: Patient | null;
   onViewRecords?: (patientId: string) => void;
+  onBuildEMR?: () => void;
 }
 
 function ViewEMRButton({ onClick }: { onClick: () => void }) {
@@ -20,7 +21,7 @@ function ViewEMRButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-export function PatientRecordAccess({ patient, onViewRecords }: PatientRecordAccessProps) {
+export function PatientRecordAccess({ patient, onViewRecords, onBuildEMR }: PatientRecordAccessProps) {
   const [showApptTimeline, setShowApptTimeline] = useState(false);
 
   if (!patient) {
@@ -37,7 +38,11 @@ export function PatientRecordAccess({ patient, onViewRecords }: PatientRecordAcc
   return (
     <>
       {showApptTimeline && (
-        <AppointmentsTimelineModal patient={patient} onClose={() => setShowApptTimeline(false)} />
+        <AppointmentsTimelineModal 
+          patient={patient} 
+          onClose={() => setShowApptTimeline(false)} 
+          onBuildEMR={onBuildEMR}
+        />
       )}
 
     <section className="glass-card p-5">

@@ -15,6 +15,7 @@ const emrRoutes = require('./routes/emr');
 const otpRoutes = require('./routes/otp');
 const analyticsRoutes = require('./routes/analytics');
 const extractRoutes = require('./routes/extract');
+const networkRoutes = require('./routes/network');
 const { getDatabaseErrorPayload, isDatabaseUnavailableError } = require('./lib/database-errors');
 const { authMiddleware } = require('./middleware/auth-middleware');
 
@@ -117,6 +118,7 @@ apiRouter.use('/emr-shares', authMiddleware, shareRoutes);
 apiRouter.use('/emr', authMiddleware, emrRoutes);
 apiRouter.use('/analytics', authMiddleware, analyticsRoutes);
 apiRouter.use('/extract', authMiddleware, extractRoutes);
+apiRouter.use('/network', authMiddleware, networkRoutes);
 
 // Helper for root path behavior on serverless functions.
 // If someone hits /api/ directly (common in tests/health checks), return a status.

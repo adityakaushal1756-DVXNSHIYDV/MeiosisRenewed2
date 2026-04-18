@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Pill,
   Stethoscope,
+  PlusCircle,
   X,
   XCircle
 } from 'lucide-react';
@@ -209,9 +210,10 @@ function ClipRow({ label, icon, children }: { label: string; icon: React.ReactNo
 interface AppointmentsTimelineModalProps {
   patient: Patient;
   onClose: () => void;
+  onBuildEMR?: () => void;
 }
 
-export function AppointmentsTimelineModal({ patient, onClose }: AppointmentsTimelineModalProps) {
+export function AppointmentsTimelineModal({ patient, onClose, onBuildEMR }: AppointmentsTimelineModalProps) {
   const appointments = [...patient.pastAppointments].sort((a, b) => toTs(b.date) - toTs(a.date));
   const [activeIndex,   setActiveIndex]   = useState(0);
   const [selectedAppt,  setSelectedAppt]  = useState<PatientPastAppointment | null>(null);
@@ -297,6 +299,21 @@ export function AppointmentsTimelineModal({ patient, onClose }: AppointmentsTime
                 <span className="chip border-red-400/20 bg-red-400/8 text-red-300">{cancelled} cancelled</span>
               )}
             </div>
+            {onBuildEMR && (
+              <div className="ml-auto hidden sm:block">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onBuildEMR();
+                  }}
+                  className="action-btn gap-2 py-2 text-sm"
+                >
+                  <PlusCircle size={15} />
+                  Build EMR
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

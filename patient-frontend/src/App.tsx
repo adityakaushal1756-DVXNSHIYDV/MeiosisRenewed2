@@ -28,6 +28,9 @@ function App() {
   const { session, isLoading: authLoading } = useAuth();
   const { data, isLoading: dataLoading, error } = usePatientProfile(session?.patientId);
 
+  // Syncing logic: We are loading if auth is loading OR if we have a session but data isn't here yet
+  const isSyncing = authLoading || (session && dataLoading && !data);
+
   // Typography & Theme Engine
   const [theme, setTheme] = useState(localStorage.getItem('meiosis_theme_v1') || 'super-dark');
 
@@ -74,7 +77,7 @@ function App() {
     setShowFloatingBack(false);
   }, [currentSection]);
 
-  if (authLoading || dataLoading) {
+  if (isSyncing) {
     return (
       <div className="min-h-screen bg-ink flex flex-col items-center justify-center">
         <div className="w-8 h-8 border-2 border-neon border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -83,11 +86,11 @@ function App() {
     );
   }
 
-  if (!session) {
+  if (!authLoading && !session) {
     return null; // Will redirect in useAuth
   }
 
-  if (error || !data) {
+  if (!isSyncing && (error || (session && !data))) {
     return (
       <div className="min-h-screen bg-ink flex items-center justify-center p-6">
         <div className="glass-card p-6 border-red-500/20 text-center max-w-md">

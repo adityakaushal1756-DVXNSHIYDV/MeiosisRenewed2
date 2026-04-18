@@ -13,6 +13,7 @@ export function usePatientProfile(patientId: string | undefined) {
       return;
     }
 
+    setIsLoading(true);
     const fetchProfile = async () => {
       setIsLoading(true);
       setError(null);

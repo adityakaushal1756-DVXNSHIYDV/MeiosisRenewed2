@@ -208,15 +208,39 @@ router.post('/', asyncHandler(async (req, res) => {
     console.error('[EMR] Failed to ensure message thread:', threadErr);
   }
 
+  // Automatically link the doctor to the patient's network after treating them.
+  // This ensures the doctor can always access this patient's records in the timeline,
+  // and the GET /api/emr endpoint won't return 403 after consultation.
+  try {
+    await prisma.patientDoctor.upsert({
+      where: { patientId_doctorId: { patientId: patient.id, doctorId: doctor.id } },
+      create: { patientId: patient.id, doctorId: doctor.id },
+      update: {}, // Already linked — no-op
+    });
+  } catch (linkErr) {
+    console.error('[EMR] Failed to auto-link doctor to patient network:', linkErr);
+  }
+
   res.status(201).json({ ok: true, patientId: patient.id, doctorId: doctor.id, ...saved });
 }));
 
 /* ─────────────────────────────────────────────────────────────
    GET /api/emr?patientId=<id|meiosisCode>
-   Retrieve all prescriptions + lab reports for a patient
+   Retrieve prescriptions + lab reports for a patient.
+   
+   Security model:
+   ─ PATIENT role: always returns their own data (full).
+   ─ DOCTOR role: must be in the patient's PatientDoctor network.
+     Access level is derived from patient's shareSettings:
+       fullAccess: true  → full data
+       labOnly: true     → lab reports only
+       summaryOnly: true → prescription titles + doctor only (no items / notes)
+       all false         → full access (default, as per platform policy)
+     If doctor is NOT in the network → 403 not_in_network.
 ───────────────────────────────────────────────────────────── */
 router.get('/', asyncHandler(async (req, res) => {
   const { patientId } = req.query;
+  const caller = req.user; // set by authMiddleware (contains { id, role, meiosisId })
 
   if (!patientId) {
     res.status(400).json({ error: 'patientId query param is required' });
@@ -236,20 +260,84 @@ router.get('/', asyncHandler(async (req, res) => {
     return;
   }
 
-  const [prescriptions, labReports] = await Promise.all([
+  // ── Access control for doctor callers ──────────────────────
+  let accessLevel = 'full'; // default per platform policy
+  if (caller && caller.role === 'DOCTOR') {
+    // Resolve doctor record from JWT claim
+    const doctorAccount = await prisma.userAccount.findUnique({
+      where: { id: caller.id },
+      select: { doctorId: true }
+    });
+    const doctorId = doctorAccount?.doctorId;
+
+    if (doctorId) {
+      // Must be in network
+      const link = await prisma.patientDoctor.findUnique({
+        where: { patientId_doctorId: { patientId: patient.id, doctorId } }
+      });
+
+      if (!link) {
+        // Not in network → strict denial
+        res.status(403).json({
+          error: 'not_in_network',
+          message: 'This patient has not added you to their doctor network.'
+        });
+        return;
+      }
+
+      // Derive access level from patient's shareSettings
+      const settings = (patient.shareSettings && typeof patient.shareSettings === 'object')
+        ? patient.shareSettings
+        : {};
+      if (settings.fullAccess === true)        accessLevel = 'full';
+      else if (settings.labOnly === true)      accessLevel = 'lab';
+      else if (settings.summaryOnly === true)  accessLevel = 'summary';
+      else                                     accessLevel = 'full'; // default: full
+    }
+  }
+
+  // ── Fetch data ──────────────────────────────────────────────
+  const [prescriptions, labReports, appointments] = await Promise.all([
     prisma.prescription.findMany({
       where: { patientId: patient.id },
-      include: { doctor: true, items: true },
+      include: { doctor: true, items: accessLevel !== 'lab' }, // items hidden when lab-only
       orderBy: { startDate: 'desc' }
     }),
     prisma.labReport.findMany({
       where: { patientId: patient.id },
       include: { doctor: true },
       orderBy: { reportDate: 'desc' }
+    }),
+    prisma.appointment.findMany({
+      where: { patientId: patient.id },
+      include: { doctor: true },
+      orderBy: { scheduledDate: 'desc' }
     })
   ]);
 
-  res.json({ patient, prescriptions, labReports });
+  // ── Apply access-level filtering ────────────────────────────
+  let prescriptionsOut = prescriptions;
+  let labReportsOut    = labReports;
+
+  if (accessLevel === 'lab') {
+    prescriptionsOut = []; // doctor only sees labs
+  } else if (accessLevel === 'summary') {
+    // Strip sensitive notes + items; just keep title + doctor name + dates
+    prescriptionsOut = prescriptions.map(rx => ({
+      ...rx,
+      doctorNote: null,
+      items: [],
+    }));
+  }
+
+  res.json({
+    patient,
+    prescriptions: prescriptionsOut,
+    labReports: labReportsOut,
+    appointments,
+    accessLevel,
+  });
 }));
 
 module.exports = router;
+
