@@ -213,7 +213,10 @@ export default function App() {
 
   const fetchFullDoctorProfile = useCallback(async () => {
     try {
-      const res = await fetch(apiUrl(`/doctors/${encodeURIComponent(CURRENT_DOCTOR.id)}`));
+      const res = await fetch(
+        apiUrl(`/doctors/${encodeURIComponent(CURRENT_DOCTOR.id)}`),
+        { headers: getAuthHeader() }
+      );
       if (!res.ok) return;
       const data = await res.json();
       setDoctorProfile({
@@ -827,7 +830,9 @@ export default function App() {
   }, [consoleWidth]);
 
   useEffect(() => {
-    fetch(apiUrl(`/doctors/${CURRENT_DOCTOR.id}/preferences`))
+    fetch(apiUrl(`/doctors/${CURRENT_DOCTOR.id}/preferences`), {
+      headers: getAuthHeader()
+    })
       .then(r => r.ok ? r.json() : null)
       .then((prefs: Record<string, unknown> | null) => {
         if (prefs) {
@@ -1113,7 +1118,10 @@ export default function App() {
 
   const handleViewRecords = async (patientId: string) => {
     try {
-      const res = await fetch(apiUrl(`/patient/${encodeURIComponent(patientId)}/share-settings`));
+      const res = await fetch(
+        apiUrl(`/patient/${encodeURIComponent(patientId)}/share-settings`),
+        { headers: getAuthHeader() }
+      );
       if (res.ok) {
         const settings: { fullAccess: boolean; labOnly: boolean; summaryOnly: boolean } = await res.json();
         if (settings.fullAccess) {

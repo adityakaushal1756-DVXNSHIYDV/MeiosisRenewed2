@@ -123,6 +123,7 @@ router.post('/', asyncHandler(async (req, res) => {
       startDate: now,
       endDate,
       doctorNote: doctorNote || 'Consultation record.',
+      severity: severity || null,
       abdmCareContextId: abdmCareContextId || null,
       diagnosisCode: diagnosisCode || null,
       symptomCode: symptomCode || null,

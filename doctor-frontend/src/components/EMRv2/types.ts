@@ -29,6 +29,7 @@ export interface AppointmentEntry {
   specialty: string;
   doctor: string;
   metrics: string;
+  severity?: 'critical' | 'mild' | 'low';
   notes?: string;
   status?: string;
   startDate?: string;

@@ -1,100 +1,13 @@
 import { Patient } from '../types/Patient';
 import { CURRENT_DOCTOR } from '../config/doctorProfile';
 
-const history = (index: number, label: string) => ([
-  {
-    id: `hist-${index}-1`,
-    date: `2026-03-${String((index % 9) + 1).padStart(2, '0')}`,
-    chiefComplaint: `${label} follow-up`,
-    diagnosis: `${label} under review`,
-    prescriptionSummary: 'Standard follow-up medication plan continued.',
-    doctorNotes: 'Clinical status stable. Continue adherence and review after follow-up period.',
-    labs: ['CBC', 'Lipid profile'],
-    advice: 'Hydration, sleep hygiene, and medication compliance advised.'
-  },
-  {
-    id: `hist-${index}-2`,
-    date: `2026-02-${String((index % 11) + 10).padStart(2, '0')}`,
-    chiefComplaint: `Initial ${label.toLowerCase()} consultation`,
-    diagnosis: `${label} assessment`,
-    prescriptionSummary: 'Initial short medication course and symptom management.',
-    doctorNotes: 'Baseline evaluation completed. Escalate if symptoms worsen.',
-    labs: ['HbA1c'],
-    advice: 'Lifestyle correction discussed in detail.'
-  }
-]);
+const history = (index: number, label: string) => ([]);
 
-const pastAppointments = (index: number, specialty: string, reason: string) => ([
-  {
-    id: `past-apt-${index}-1`,
-    date: `2026-03-${String((index % 7) + 1).padStart(2, '0')} 10:30 AM`,
-    doctorName: specialty === 'Cardiology' ? 'Dr. Arjun Rao' : 'Dr. Sarah Mitchell',
-    specialty,
-    mode: 'In-person' as const,
-    status: 'Completed' as const,
-    purpose: `${reason} review`
-  },
-  {
-    id: `past-apt-${index}-2`,
-    date: `2026-02-${String((index % 7) + 12).padStart(2, '0')} 06:00 PM`,
-    doctorName: specialty === 'Endocrinology' ? 'Dr. Emily Chen' : 'Dr. Sarah Mitchell',
-    specialty,
-    mode: 'Teleconsult' as const,
-    status: 'Completed' as const,
-    purpose: `Previous ${reason.toLowerCase()} consult`
-  }
-]);
+const pastAppointments = (index: number, specialty: string, reason: string) => ([]);
 
-const prescriptions = (index: number, label: string) => ([
-  {
-    id: `rx-${index}-1`,
-    title: `${label} Control Plan`,
-    prescribedOn: `2026-03-${String((index % 5) + 2).padStart(2, '0')}`,
-    doctorName: label === 'Diabetes' ? 'Dr. Emily Chen' : 'Dr. Sarah Mitchell',
-    summary: `${label} medication plan with lifestyle advice and follow-up review.`,
-    medicines: label === 'Diabetes' ? ['Metformin XR 500 mg', 'Vitamin B12 support'] : ['Amlodipine 5 mg', 'Rosuvastatin 10 mg'],
-    status: 'Active' as const
-  },
-  {
-    id: `rx-${index}-2`,
-    title: `${label} Previous Plan`,
-    prescribedOn: `2026-02-${String((index % 5) + 11).padStart(2, '0')}`,
-    doctorName: 'Dr. Sarah Mitchell',
-    summary: 'Completed previous medication cycle with symptom-control note.',
-    medicines: ['Supportive therapy', 'PRN medication'],
-    status: 'Completed' as const
-  }
-]);
+const prescriptions = (index: number, label: string) => ([]);
 
-const medicalReports = (index: number, label: string) => ([
-  {
-    id: `report-${index}-1`,
-    title: `${label} Lab Review`,
-    category: 'Lab' as const,
-    reportDate: `2026-03-${String((index % 6) + 1).padStart(2, '0')}`,
-    doctorName: label === 'Diabetes' ? 'Dr. Emily Chen' : 'Dr. Sarah Mitchell',
-    summary: `Structured lab summary prepared for ${label.toLowerCase()} monitoring with flagged values and next-step note.`,
-    fileLabel: 'Open PDF summary'
-  },
-  {
-    id: `report-${index}-2`,
-    title: `${label} Consultation Summary`,
-    category: 'Consultation' as const,
-    reportDate: `2026-02-${String((index % 8) + 14).padStart(2, '0')}`,
-    doctorName: specialtyDoctor(label),
-    summary: 'Doctor-authored consultation note with assessment, plan, and follow-up advice.',
-    fileLabel: 'Open visit PDF'
-  },
-  {
-    id: `report-${index}-3`,
-    title: `${label} Imaging Review`,
-    category: 'Imaging' as const,
-    reportDate: `2026-01-${String((index % 8) + 10).padStart(2, '0')}`,
-    doctorName: specialtyDoctor(label),
-    summary: 'Previous imaging interpretation with impression and comparison against prior status.',
-    fileLabel: 'Open imaging PDF'
-  }
-]);
+const medicalReports = (index: number, label: string) => ([]);
 
 function specialtyDoctor(label: string) {
   if (label === 'Diabetes' || label === 'Thyroid') return 'Dr. Emily Chen';

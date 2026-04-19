@@ -171,34 +171,6 @@ async function main() {
     createSchedule(jillDoctor.id, 1, '08:00', '16:00', 20, '12:00', '13:00'),
   ]);
 
-  // Link patient PAT-001 (Aditya Sharma) to Pablo
-  await prisma.appointment.create({
-    data: {
-      doctorId: pabloDoctor.id,
-      patientId: patient.id,
-      title: 'Monthly Review',
-      purpose: 'Clinical Intelligence Follow-up',
-      scheduledDate: new Date(),
-      status: 'CONFIRMED',
-      mode: 'IN_PERSON',
-    }
-  });
-
-  // Link patient PAT-002 (Nikita Mehra) to Jill
-  const nikita = await prisma.patient.findFirst({ where: { meiosisId: 'PAT-002' } });
-  if (nikita) {
-    await prisma.appointment.create({
-      data: {
-        doctorId: jillDoctor.id,
-        patientId: nikita.id,
-        title: 'Initial Consultation',
-        purpose: 'Viral Screening',
-        scheduledDate: new Date(Date.now() + 3600000),
-        status: 'CONFIRMED',
-        mode: 'TELECONSULT',
-      }
-    });
-  }
 
   await prisma.doctorScheduleOverride.createMany({
     data: [
@@ -305,69 +277,6 @@ async function main() {
     })
   ));
 
-  // Create historical prescriptions (Timeline) for PAT-001
-  await prisma.prescription.createMany({
-    data: [
-      {
-        id: 'rx-hist-001',
-        patientId: patient.id,
-        doctorId: pabloDoctor.id,
-        title: 'Mild Hypertension Management',
-        status: 'COMPLETED',
-        durationDays: 30,
-        refillCount: 0,
-        adherenceScore: 95,
-        startDate: historyDate(120),
-        endDate: historyDate(90),
-        doctorNote: 'Subjective: Patient reported slight headaches.\nAssessment: Mild hypertension.\nPlan: Low sodium diet and Amlodipine 5mg.',
-      },
-      {
-        id: 'rx-hist-002',
-        patientId: patient.id,
-        doctorId: jillDoctor.id,
-        title: 'Seasonal Allergy Treatment',
-        status: 'COMPLETED',
-        durationDays: 14,
-        refillCount: 0,
-        adherenceScore: 100,
-        startDate: historyDate(45),
-        endDate: historyDate(31),
-        doctorNote: 'Subjective: Sneezing and itchy eyes.\nAssessment: Seasonal allergies.\nPlan: Antihistamines for 2 weeks.',
-      }
-    ]
-  });
-
-  // Prescription Items
-  await prisma.prescriptionItem.createMany({
-    data: [
-      { prescriptionId: 'rx-hist-001', medicine: 'Amlodipine', dose: '5mg', frequency: 'Once daily', timing: 'Morning', reason: 'Blood pressure' },
-      { prescriptionId: 'rx-hist-002', medicine: 'Cetirizine', dose: '10mg', frequency: 'Once daily', timing: 'Night', reason: 'Allergy relief' }
-    ]
-  });
-
-  // Historical Lab Reports for Trends
-  await prisma.labReport.createMany({
-    data: [
-      {
-        id: 'lab-hist-001',
-        patientId: patient.id,
-        doctorId: pabloDoctor.id,
-        testName: 'Lipid Profile',
-        status: 'NORMAL',
-        reportDate: historyDate(110),
-        educationalAi: 'Your cholesterol levels are within the target range. LDL is 95mg/dL. Keep up the healthy diet.'
-      },
-      {
-        id: 'lab-hist-002',
-        patientId: patient.id,
-        doctorId: cardioDoctor.id,
-        testName: 'Complete Blood Count (CBC)',
-        status: 'NORMAL',
-        reportDate: historyDate(10),
-        educationalAi: 'Hemoglobin and WBC counts are normal (14.2 g/dL). No signs of infection.'
-      }
-    ]
-  });
 
   // Custom Demo Accounts requested by user
   console.log('--- Seeding Custom User Demo Accounts ---');
@@ -519,64 +428,6 @@ async function main() {
       isActive: true
     }
   });
-  // 2. Generate a valid Slot for today (e.g., 10:30 AM)
-  const todayAt1030 = new Date();
-  todayAt1030.setHours(10, 30, 0, 0);
-  const todayAt1045 = new Date(todayAt1030.getTime() + 15 * 60 * 1000);
-
-  const demoSlot = await prisma.appointmentSlot.create({
-    data: {
-      doctorId: demoDoctor.id,
-      scheduleId: demoSchedule6.id,
-      startAt: todayAt1030,
-      endAt: todayAt1045,
-      available: false, // Booked by demo7
-      status: 'BOOKED',
-      location: 'Consultation Room 1',
-      mode: 'IN_PERSON'
-    }
-  });
-
-  // 3. Create the Appointment linked to the Slot
-  const demoAppointment = await prisma.appointment.create({
-    data: {
-      patientId: demoPatient.id,
-      doctorId: demoDoctor.id,
-      appointmentSlotId: demoSlot.id,
-      title: 'Initial Demo Consultation',
-      purpose: 'Platform Walkthrough',
-      status: 'CONFIRMED',
-      mode: 'IN_PERSON',
-      scheduledDate: todayAt1030,
-      slotStartTime: todayAt1030,
-      doctorFee: 1000,
-      paymentStatus: 'MOCK_CONFIRMED'
-    }
-  });
-
-  // 4. Properly place them in the Queue stack
-  await prisma.appointmentQueue.create({
-    data: {
-      appointmentId: demoAppointment.id,
-      doctorSlotId: demoSlot.id,
-      appointmentTime: todayAt1030,
-      queueNo: 1,
-      status: 'WAITING'
-    }
-  });
-
-  await prisma.messageThread.create({
-    data: {
-      patientId: demoPatient.id,
-      doctorId: demoDoctor.id,
-      messages: {
-        create: [
-          { sender: 'DOCTOR', text: 'Welcome Aditya! This is your personalized doctor channel.' },
-          { sender: 'PATIENT', text: 'Great to be here, doctor.' }
-        ]
-      }
-    }
-  });
 
   // --- NETWORK LINKS for Demo Accounts ---
   // Aditya Demo 7 -> Dr. Aditya (Demo 6)
@@ -600,73 +451,6 @@ async function main() {
     update: {},
   });
 
-  // --- SAMPLE EMR DATA for Demo 7 (Existing) ---
-  await prisma.prescription.upsert({
-    where: { id: 'rx-demo-001' },
-    create: {
-      id: 'rx-demo-001',
-      patientId: demoPatient.id,
-      doctorId: demoDoctor.id,
-      title: 'Optimization Protocol',
-      status: 'ACTIVE',
-      durationDays: 90,
-      refillCount: 1,
-      adherenceScore: 100,
-      startDate: historyDate(10),
-      endDate: historyDate(-80),
-      doctorNote: 'Subjective: Patient reports high cognitive load.\nAssessment: Mild fatigue.\nPlan: Optimization protocol initialized.',
-      items: {
-        create: [
-          { medicine: 'FocusMax', dose: '1 tab', frequency: 'Once daily', timing: 'Morning', reason: 'Cognitive load' }
-        ]
-      }
-    },
-    update: {},
-  });
-
-  // --- SAMPLE EMR DATA for Demo 8 (New) ---
-  await prisma.prescription.create({
-    data: {
-      id: 'rx-demo-008',
-      patientId: demoPatient8.id,
-      doctorId: demoDoctor.id,
-      title: 'Wellness Recovery',
-      status: 'COMPLETED',
-      durationDays: 14,
-      refillCount: 0,
-      adherenceScore: 100,
-      startDate: historyDate(45),
-      endDate: historyDate(31),
-      doctorNote: 'Subjective: Post-viral fatigue.\nAssessment: Recovery in progress.\nPlan: Increased hydration and vitamin supplementation.',
-      items: {
-        create: [
-          { medicine: 'Vit-C Plus', dose: '500mg', frequency: 'Twice daily', timing: 'After meals', reason: 'Immunity' }
-        ]
-      }
-    }
-  });
-
-  // --- SAMPLE EMR DATA for Demo 9 (New) ---
-  await prisma.prescription.create({
-    data: {
-      id: 'rx-demo-009',
-      patientId: demoPatient9.id,
-      doctorId: demoDoctor10.id,
-      title: 'Structural Alignment',
-      status: 'ACTIVE',
-      durationDays: 30,
-      refillCount: 0,
-      adherenceScore: 100,
-      startDate: historyDate(5),
-      endDate: historyDate(-25),
-      doctorNote: 'Subjective: Lower back tension.\nAssessment: Poor posture diagnostics.\nPlan: Ergonomic correction and daily mobility drills.',
-      items: {
-        create: [
-          { medicine: 'FlexiSpine', dose: '1 application', frequency: 'Once daily', timing: 'Evening', reason: 'Back tension' }
-        ]
-      }
-    }
-  });
 
   console.log('--- Seeding Completed Successfully ---');
 }

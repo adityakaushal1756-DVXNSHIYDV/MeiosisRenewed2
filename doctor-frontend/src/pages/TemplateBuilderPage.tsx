@@ -4,7 +4,7 @@ import {
   FileText, User, Stethoscope, Pill, ClipboardList, Activity, CalendarCheck,
   Info, Upload, ChevronDown, ChevronUp, Eye, EyeOff, Sparkles
 } from 'lucide-react';
-import { apiUrl } from '../lib/api';
+import { apiUrl, getAuthHeader } from '../lib/api';
 import { CURRENT_DOCTOR } from '../config/doctorProfile';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -290,7 +290,10 @@ export function TemplateBuilderPage({ onBack, existingTemplates, onSave }: Templ
     try {
       const res = await fetch(apiUrl(`/doctors/${CURRENT_DOCTOR.id}/preferences`), {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        },
         body: JSON.stringify({ pdfTemplates: updated }),
       });
       if (!res.ok) throw new Error('Save failed');

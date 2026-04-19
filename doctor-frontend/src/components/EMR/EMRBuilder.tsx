@@ -283,7 +283,7 @@ export function EMRBuilder({
   injectStyles();
 
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
-  const [severity, setSeverity] = useState<Severity>('MILD');
+  const [severity, setSeverity] = useState<Severity>('LOW');
   const [minimized, setMinimized] = useState(false);
 
   const {

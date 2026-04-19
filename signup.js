@@ -14,7 +14,7 @@ const DRAFT_KEY    = 'meiosis_signup_draft_v3';
 
 /* ── Specialties list ───────────────────────────────────────────────────── */
 const SPECIALTIES = [
-  'General Medicine', 'General Surgery', 'Cardiology', 'Dermatology',
+  'General Medicine', 'General Surgery', 'General Practice', 'Cardiology', 'Dermatology',
   'Endocrinology', 'Gastroenterology', 'Gynecology & Obstetrics',
   'Hematology', 'Nephrology', 'Neurology', 'Oncology', 'Ophthalmology',
   'Orthopedics', 'Otolaryngology (ENT)', 'Pediatrics', 'Psychiatry',
@@ -963,7 +963,12 @@ function validateStep() {
 
   /* Search-select — must be a valid option */
   if (step.type === 'search-select' && step.required) {
-    if (!step.options.includes(str)) {
+    const match = step.options.find(o => o.toLowerCase() === str.toLowerCase());
+    if (match) {
+      /* Normalize to canonical version if match found */
+      state.data[step.id] = match;
+      if (input) input.value = match;
+    } else {
       state.error = 'Please select a valid option from the list.';
       markInputError();
       return false;
@@ -1055,6 +1060,8 @@ function handleSkip() {
 async function submitSignup() {
   if (state.submitting) return;
 
+  /* Always do a fresh check before failing, in case backend was started mid-signup */
+  await checkBackend();
   if (!state.backendOnline) {
     state.error = 'Cannot reach the backend server. Make sure it is running (cd backend && npm run dev), then try again.';
     render('ob-anim-fwd');

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, forwardRef, useMemo } from 'react';
 import { FlaskConical, Pill, Stethoscope, ChevronDown, Sparkles, Activity, ShieldAlert, TrendingUp, History, Moon, Sun } from 'lucide-react';
-import { API_BASE_URL } from '../../lib/api';
+import { API_BASE_URL, getAuthHeader } from '../../lib/api';
 import { SidePanel } from './SidePanel';
 import type { AppointmentEntry } from './types';
 
@@ -33,7 +33,9 @@ const ACCENT: Record<string, string> = {
 };
 // Palette for unknown specialties (deterministic by name hash)
 const ACCENT_PALETTE = ['#E7F36E','#93C5FD','#6EE7B7','#F9A8D4','#FCA5A5','#FDBA74','#A78BFA','#34D399'];
-function getAccent(specialty: string): string {
+function getAccent(specialty: string, severity?: string, isLab?: boolean): string {
+  if (isLab) return SEVERITY_CLR.lab;
+  if (severity && SEVERITY_CLR[severity.toLowerCase()]) return SEVERITY_CLR[severity.toLowerCase()];
   if (ACCENT[specialty]) return ACCENT[specialty];
   let h = 0;
   for (const c of specialty) h = (h * 31 + c.charCodeAt(0)) & 0x7fffffff;
@@ -42,6 +44,13 @@ function getAccent(specialty: string): string {
 
 const STATUS_CLR: Record<string, string> = {
   normal: '#22C55E', high: '#F97316', low: '#60A5FA', critical: '#EF4444',
+};
+
+const SEVERITY_CLR: Record<string, string> = {
+  critical: '#EF4444', // Red
+  mild:     '#F97316', // Orange
+  low:      '#22C55E', // Green
+  lab:      '#D946EF', // Purple/Pink
 };
 
 const BG_PARTICLES = [
@@ -141,6 +150,7 @@ function buildTimelineData(data: any): AppointmentEntry[] {
       durationDays: rx.durationDays,
       adherenceScore: rx.adherenceScore,
       chiefComplaint: extractFromNote(rx.doctorNote || '', 'Chief Complaint: '),
+      severity:   rx.severity || extractFromNote(rx.doctorNote || '', 'Severity: '),
       plan:       extractFromNote(rx.doctorNote || '', 'Plan: '),
       notes:      extractFromNote(rx.doctorNote || '', 'Plan: ')
                     ?? extractFromNote(rx.doctorNote || '', 'Assessment: '),
@@ -212,7 +222,9 @@ function buildTimelineData(data: any): AppointmentEntry[] {
       specialty: 'Diagnostic Lab',
       doctor: lr.doctor?.name || 'Laboratory Manager',
       metrics: lr.testName,
+      severity: 'low',
       status: lr.status,
+      isLab: true,
       labs: [{
         id: lr.id,
         label: lr.testName,
@@ -221,11 +233,10 @@ function buildTimelineData(data: any): AppointmentEntry[] {
       prescriptions: [],
       medications: [],
       documentPath: lr.documentPath || undefined
-    });
+    } as any);
   });
 
   return results.sort((a, b) => new Date(b.startDate || b.date).getTime() - new Date(a.startDate || a.date).getTime());
-}
 }
 
 // -- Secondary item union -----------------------------------------
@@ -448,7 +459,7 @@ const PCard = forwardRef<HTMLDivElement, PCardProps>(
         </div>
   
         <div style={{ position: 'relative', zIndex: 1, fontSize: Math.max(15, 16 * scale), fontWeight: 800, color: timelineTheme === 'beige-light' ? '#2e2418' : '#FFFFFF', lineHeight: 1.3, marginBottom: 5, textShadow: timelineTheme === 'beige-light' ? '0 1px 0 rgba(255,255,255,0.18)' : '0 1px 0 rgba(0,0,0,0.16)' }}>
-          {apt.type}
+          Consultation, {apt.date}
         </div>
         <div style={{ position: 'relative', zIndex: 1, fontSize: Math.max(10.5, 11 * scale), color: timelineTheme === 'beige-light' ? 'rgba(72,56,38,0.78)' : 'rgba(240,247,255,0.72)', marginBottom: Math.max(14, Math.round(16 * scale)), fontWeight: 500 }}>
           {apt.date} · {apt.doctor}
@@ -502,7 +513,7 @@ function TimelineGroup({ apt, side, baseDelay, floatDelay, primaryCardWidth, sec
     if (accessLevel === 'summary') return false; // Secondary cards (pills/labs) hidden in summary-only
     return false;
   });
-  const accent = getAccent(apt.specialty);
+  const accent = getAccent(apt.specialty, apt.severity, (apt as any).isLab);
   const hi     = hiId === apt.id;
   const isLeft = side === 'left';
 
@@ -1231,7 +1242,7 @@ function VisitHistoryDrawer({
                   <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: clr, marginBottom: 7 }}>
                     {apt.specialty}
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: text, lineHeight: 1.35 }}>{apt.type}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: text, lineHeight: 1.35 }}>Consultation, {apt.date}</div>
                   <div style={{ fontSize: 12, color: muted, marginTop: 6 }}>{apt.date} · {apt.doctor}</div>
                 </div>
               </div>
@@ -1359,7 +1370,7 @@ function SimpleListView({
         {filtered.map((apt, idx) => {
           const isExpanded  = expandedId === apt.id;
           const isLast      = idx === filtered.length - 1;
-          const aptAccent   = getAccent(apt.specialty);
+          const aptAccent   = getAccent(apt.specialty, apt.severity, (apt as any).isLab);
           const isActive    = (apt.status ?? '').toUpperCase() === 'ACTIVE';
           
           const hasLabs     = (apt.labs?.length ?? 0) > 0 && (accessLevel === 'full' || accessLevel === 'lab');
@@ -1498,7 +1509,7 @@ function SimpleListView({
                         </div>
                         {/* Visit title */}
                         <div style={{ fontSize: 14, fontWeight: 700, color: text, lineHeight: 1.35, marginBottom: 4 }}>
-                          {accessLevel ? (apt.type || 'Consultation') : 'Restricted Encounter'}
+                          {accessLevel ? `Consultation, ${apt.date}` : 'Restricted Encounter'}
                         </div>
                         {/* Doctor + chief complaint preview */}
                         <div style={{ fontSize: 12, color: muted, lineHeight: 1.45 }}>
@@ -1813,7 +1824,9 @@ export function TimelineView({ patientId, darkMode, timelineTheme = 'default', t
     setSelApt(null);
     serpAnimDone.current = false;
 
-    fetch(`${API_BASE}/emr?patientId=${encodeURIComponent(patientId)}`)
+    fetch(`${API_BASE}/emr?patientId=${encodeURIComponent(patientId)}`, {
+      headers: getAuthHeader()
+    })
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();

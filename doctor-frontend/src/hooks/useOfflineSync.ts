@@ -10,7 +10,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { apiUrl } from '../lib/api';
+import { apiUrl, getAuthHeader } from '../lib/api';
 import {
   getAllPendingEMRs,
   removePendingEMR,
@@ -100,7 +100,10 @@ export function useOfflineSync({
         try {
           const res = await fetch(apiUrl('/emr'), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              ...getAuthHeader()
+            },
             body: JSON.stringify(item.payload),
           });
 

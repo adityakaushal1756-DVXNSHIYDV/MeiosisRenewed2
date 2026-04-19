@@ -2946,6 +2946,9 @@ export default function Dashboard(props: DashboardProps) {
                     try {
                       const res = await fetch(apiUrl(`/doctors/${CURRENT_DOCTOR.id}/pdf-template/upload`), {
                         method: 'POST',
+                        headers: { 
+                          ...getAuthHeader()
+                        },
                         body: formData
                       });
                       const data = await res.json();

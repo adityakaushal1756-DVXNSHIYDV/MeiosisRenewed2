@@ -194,6 +194,7 @@ model Prescription {
   endDate           DateTime
   doctorNote        String
   documentPath      String?
+  severity          String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   abdmCareContextId String?            @unique
