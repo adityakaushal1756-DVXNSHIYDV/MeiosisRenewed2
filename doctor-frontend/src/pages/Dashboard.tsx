@@ -39,6 +39,7 @@ import { apiUrl } from "../lib/api";
 import { CURRENT_DOCTOR } from "../config/doctorProfile";
 const QueuePanel = lazy(() => import("../components/Queue/QueuePanel").then(m => ({ default: m.QueuePanel })));
 const PatientSearch = lazy(() => import("../components/Patient/PatientSearch").then(m => ({ default: m.PatientSearch })));
+import { SpacetimeSingularity } from "../components/Patient/SpacetimeSingularity";
 const PatientProfile = lazy(() => import("../components/Patient/PatientProfile").then(m => ({ default: m.PatientProfile })));
 const PatientRecordAccess = lazy(() => import("../components/Patient/PatientRecordAccess").then(m => ({ default: m.PatientRecordAccess })));
 const EMRBuilder = lazy(() => import("../components/EMR/EMRBuilder").then(m => ({ default: m.EMRBuilder })));
@@ -1295,21 +1296,27 @@ export default function Dashboard(props: DashboardProps) {
   );
 
   /* ── Patient Search ── */
+  /* ── Patient Search ── */
   const searchView = (
-    <div className="grid h-full min-h-0 gap-5 xl:grid-cols-[0.82fr_1.18fr]">
-      <PatientSearch
-        query={searchQuery}
-        patients={filteredPatients}
-        selectedPatientId={selectedPatientId}
-        viewRecordsPatientId={viewRecordsPatientId}
-        onQueryChange={onSearchChange}
-        onSelectPatient={onSelectPatient}
-        onViewRecords={onViewRecords}
-        onCloseRecords={onCloseRecords}
-      />
-      <div className="scroll-skin min-h-0 overflow-auto pr-1">
-        <div className="space-y-5">
-          <PatientProfile patient={selectedPatient} accessLevel={accessLevel} />
+    <div className="relative h-full w-full">
+      <div className="absolute inset-[-16px] z-0 overflow-hidden rounded-3xl opacity-80 pointer-events-none">
+        <SpacetimeSingularity />
+      </div>
+      <div className="grid h-full min-h-0 gap-5 xl:grid-cols-[0.82fr_1.18fr] relative z-10">
+        <PatientSearch
+          query={searchQuery}
+          patients={filteredPatients}
+          selectedPatientId={selectedPatientId}
+          viewRecordsPatientId={viewRecordsPatientId}
+          onQueryChange={onSearchChange}
+          onSelectPatient={onSelectPatient}
+          onViewRecords={onViewRecords}
+          onCloseRecords={onCloseRecords}
+        />
+        <div className="scroll-skin min-h-0 overflow-auto pr-1 flex flex-col">
+          <div className="space-y-5 flex-1 flex flex-col">
+            <PatientProfile patient={selectedPatient} accessLevel={accessLevel} />
+          </div>
         </div>
       </div>
     </div>

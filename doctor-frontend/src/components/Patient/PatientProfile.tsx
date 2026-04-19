@@ -9,13 +9,13 @@ interface PatientProfileProps {
 export function PatientProfile({ patient, accessLevel }: PatientProfileProps) {
   if (!patient) {
     return (
-      <section className="glass-card flex h-full flex-col items-center justify-center p-8 text-center border-dashed border-wire/20">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-[24px] border border-wire/10 bg-white/[0.04] text-mist/40">
+      <div className="flex flex-col items-center justify-center h-full text-center p-8 opacity-60">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-[24px] border border-wire/10 bg-white/[0.02] text-mist/30">
           <UserCircle2 size={32} />
         </div>
-        <h2 className="text-lg font-semibold text-white/50">Patient Snapshot</h2>
-        <p className="mt-2 max-w-[240px] text-sm text-mist/40">Select a record to visualize clinical intelligence and biometric data.</p>
-      </section>
+        <h2 className="text-lg font-semibold text-white/40">Select a Patient</h2>
+        <p className="mt-2 max-w-[240px] text-sm text-mist/30">Search or select a patient record to begin clinical review.</p>
+      </div>
     );
   }
 

@@ -994,7 +994,12 @@ export default function App() {
     setAccessLevel('full');
   };
 
-  const handleSelectPatient = async (patientId: string) => {
+  const handleSelectPatient = async (patientId: string | null) => {
+    if (!patientId || patientId === selectedPatientId) {
+      setSelectedPatientId(null);
+      setAccessLevel(null);
+      return;
+    }
     setSelectedPatientId(patientId);
     setNav('search');
     setActiveAppointmentId(null);
