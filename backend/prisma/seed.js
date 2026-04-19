@@ -358,6 +358,25 @@ async function main() {
     }
   });
 
+  // Additional batch of demo patients requested: 12, 13, 14, 15
+  const extraDemoPatients = await Promise.all([12, 13, 14, 15].map(x => 
+    prisma.patient.create({
+      data: {
+        id: `pat-demo${x}`,
+        meiosisId: `PAT-DEMO${x}`,
+        name: `Aditya Demo ${x}`,
+        email: `adityakaushaldemo${x}@gmail.com`,
+        universalCode: `999990${x}`,
+        phone: `+91-99999990${x}`,
+        bloodGroup: 'O+',
+        address: 'Cloud City',
+        healthScore: 80,
+        insurancePlan: 'Standard MEIOSIS Care',
+        emergencyContact: 'Family'
+      }
+    })
+  ));
+
   await prisma.userAccount.createMany({
     data: [
       {
@@ -399,7 +418,15 @@ async function main() {
         meiosisId: demoPatient9.meiosisId,
         password: demoPassword,
         patientId: demoPatient9.id
-      }
+      },
+      ...extraDemoPatients.map(p => ({
+        role: 'PATIENT',
+        name: p.name,
+        email: p.email,
+        meiosisId: p.meiosisId,
+        password: demoPassword,
+        patientId: p.id
+      }))
     ]
   });
   // NOTE: No PatientDoctor link created — demo accounts start UNLINKED.
