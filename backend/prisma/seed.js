@@ -21,62 +21,7 @@ async function main() {
   await prisma.patient.deleteMany();
   await prisma.doctor.deleteMany();
 
-  const patient = await prisma.patient.create({
-    data: {
-      meiosisId: 'PAT-001',
-      universalCode: '48291374',
-      name: 'Aditya Sharma',
-      email: 'aditya.sharma@example.com',
-      phone: '+91-98XXXXXX10',
-      bloodGroup: 'B+',
-      address: 'Bengaluru, Karnataka',
-      healthScore: 87,
-      insurancePlan: 'MediSure Gold',
-      emergencyContact: 'Priya Sharma (+91-98XXXXXX10)'
-    }
-  });
-
-  // ── Remaining 19 mock patients (must match universalCode in doctor-frontend/src/mock/mockPatients.ts) ──
-  const otherPatientData = [
-    { meiosisId: 'PAT-002', universalCode: '12345677', name: 'Nikita Mehra',    email: 'nikita.mehra@example.com',    phone: '+91 98220 44556', bloodGroup: 'A+' },
-    { meiosisId: 'PAT-003', universalCode: '12345666', name: 'Rahul Verma',     email: 'rahul.verma@example.com',     phone: '+91 98990 11223', bloodGroup: 'O+' },
-    { meiosisId: 'PAT-004', universalCode: '12345665', name: 'Sneha Iyer',      email: 'sneha.iyer@example.com',      phone: '+91 98765 11111', bloodGroup: 'B+' },
-    { meiosisId: 'PAT-005', universalCode: '12345664', name: 'Siddharth Rao',   email: 'siddharth.rao@example.com',   phone: '+91 98000 44444', bloodGroup: 'AB+' },
-    { meiosisId: 'PAT-006', universalCode: '12345663', name: 'Aarav Bhatia',    email: 'aarav.bhatia@example.com',    phone: '+91 98123 45000', bloodGroup: 'O-' },
-    { meiosisId: 'PAT-007', universalCode: '12345662', name: 'Meera Nair',      email: 'meera.nair@example.com',      phone: '+91 98123 45001', bloodGroup: 'A-' },
-    { meiosisId: 'PAT-008', universalCode: '12345661', name: 'Arjun Kapoor',    email: 'arjun.kapoor@example.com',    phone: '+91 98123 45002', bloodGroup: 'B+' },
-    { meiosisId: 'PAT-009', universalCode: '12345660', name: 'Pooja Singh',     email: 'pooja.singh@example.com',     phone: '+91 98123 45003', bloodGroup: 'O+' },
-    { meiosisId: 'PAT-010', universalCode: '12345659', name: 'Rohan Sethi',     email: 'rohan.sethi@example.com',     phone: '+91 98123 45004', bloodGroup: 'A+' },
-    { meiosisId: 'PAT-011', universalCode: '12345658', name: 'Lavanya Reddy',   email: 'lavanya.reddy@example.com',   phone: '+91 98123 45005', bloodGroup: 'B-' },
-    { meiosisId: 'PAT-012', universalCode: '12345657', name: 'Vikram Joshi',    email: 'vikram.joshi@example.com',    phone: '+91 98123 45006', bloodGroup: 'AB+' },
-    { meiosisId: 'PAT-013', universalCode: '12345656', name: 'Ananya Bose',     email: 'ananya.bose@example.com',     phone: '+91 98123 45007', bloodGroup: 'O+' },
-    { meiosisId: 'PAT-014', universalCode: '12345655', name: 'Dev Malhotra',    email: 'dev.malhotra@example.com',    phone: '+91 98123 45008', bloodGroup: 'A+' },
-    { meiosisId: 'PAT-015', universalCode: '12345654', name: 'Tanya Chawla',    email: 'tanya.chawla@example.com',    phone: '+91 98123 45009', bloodGroup: 'B+' },
-    { meiosisId: 'PAT-016', universalCode: '12345653', name: 'Kunal Mehta',     email: 'kunal.mehta@example.com',     phone: '+91 98123 45010', bloodGroup: 'O+' },
-    { meiosisId: 'PAT-017', universalCode: '12345652', name: 'Isha Anand',      email: 'isha.anand@example.com',      phone: '+91 98123 45011', bloodGroup: 'A+' },
-    { meiosisId: 'PAT-018', universalCode: '12345651', name: 'Pranav Kulkarni', email: 'pranav.kulkarni@example.com', phone: '+91 98123 45012', bloodGroup: 'B+' },
-    { meiosisId: 'PAT-019', universalCode: '12345650', name: 'Sanya Khurana',   email: 'sanya.khurana@example.com',   phone: '+91 98123 45013', bloodGroup: 'O-' },
-    { meiosisId: 'PAT-020', universalCode: '12345649', name: 'Harsh Dubey',     email: 'harsh.dubey@example.com',     phone: '+91 98123 45014', bloodGroup: 'AB-' },
-  ];
-
-  await Promise.all(
-    otherPatientData.map(p =>
-      prisma.patient.create({
-        data: {
-          meiosisId:        p.meiosisId,
-          universalCode:    p.universalCode,
-          name:             p.name,
-          email:            p.email,
-          phone:            p.phone,
-          bloodGroup:       p.bloodGroup,
-          address:          'India',
-          healthScore:      75,
-          insurancePlan:    'Basic Cover',
-          emergencyContact: 'On file'
-        }
-      })
-    )
-  );
+  // Removed mock patients PAT-001 through PAT-020 to ensure clean environment
 
   const doctors = await Promise.all([
     prisma.doctor.create({
@@ -200,14 +145,6 @@ async function main() {
   await prisma.userAccount.createMany({
     data: [
       {
-        role: 'PATIENT',
-        name: patient.name,
-        email: patient.email,
-        meiosisId: patient.meiosisId,
-        password: 'demo1234',
-        patientId: patient.id
-      },
-      {
         role: 'DOCTOR',
         name: primaryDoctor.name,
         email: 'sarah.mitchell@meiosis.health',
@@ -250,32 +187,7 @@ async function main() {
     ]
   });
 
-  /* ─────────────────────────────────────────────────────────────
-     DEEP DIAGNOSTIC DATA: Historical Records & Messages
-  ───────────────────────────────────────────────────────────── */
-  console.log('--- Generating Deep Diagnostic Data ---');
-  
-  const historyDate = (daysAgo) => {
-    const d = new Date();
-    d.setDate(d.getDate() - daysAgo);
-    return d;
-  };
-
-  // Create Message threads and welcome messages
-  const threads = await Promise.all(doctors.map(doc => 
-    prisma.messageThread.create({
-      data: {
-        doctorId: doc.id,
-        patientId: patient.id,
-        messages: {
-          create: [
-            { sender: 'DOCTOR', text: `Hello ${patient.name}, I am Dr. ${doc.name}. Welcome to MEIOSIS. How can I assist you today?`, createdAt: historyDate(10) },
-            { sender: 'PATIENT', text: 'Thank you doctor. I wanted to check my recent reports.', createdAt: historyDate(9) }
-          ]
-        }
-      }
-    })
-  ));
+  // Removed fake message threads targeting PAT-001
 
 
   // Custom Demo Accounts requested by user
