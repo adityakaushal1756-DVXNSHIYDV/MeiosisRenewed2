@@ -1595,6 +1595,7 @@ export default function App() {
                       timelineTheme={timelineTheme}
                       timelineLayout={timelineLayout}
                       timelineZoom={timelineZoom}
+                      setTimelineZoom={setTimelineZoom}
                       accessLevel={accessLevel}
                       onBack={handleBackToPatientSearch}
                       onBuildEMR={handleBuildEMRFromRecords}

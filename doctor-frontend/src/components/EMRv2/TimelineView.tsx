@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, forwardRef, useMemo } from 'react';
-import { FlaskConical, Pill, Stethoscope, ChevronDown, Sparkles, Activity, ShieldAlert, TrendingUp, History, Moon, Sun } from 'lucide-react';
+import { FlaskConical, Pill, Stethoscope, ChevronDown, Sparkles, Activity, ShieldAlert, TrendingUp, History, Moon, Sun, ArrowLeft, PlusCircle } from 'lucide-react';
 import { API_BASE_URL, getAuthHeader } from '../../lib/api';
 import { SidePanel } from './SidePanel';
 import type { AppointmentEntry } from './types';
@@ -842,7 +842,7 @@ function RightPanel({ onSelect, data }: { onSelect: (apt: AppointmentEntry) => v
   );
 }
 
-function AIAnalysisPanel({ data, darkMode, stacked = false, accessLevel }: { data: AppointmentEntry[]; darkMode?: boolean; stacked?: boolean; accessLevel?: 'full' | 'lab' | 'summary' | null }) {
+function AIAnalysisPanel({ data, darkMode, stacked = false, accessLevel, onBack }: { data: AppointmentEntry[]; darkMode?: boolean; stacked?: boolean; accessLevel?: 'full' | 'lab' | 'summary' | null; onBack?: () => void }) {
   const totalVisits = data.length;
   const latest = data[0];
   const specialtyCounts = data.reduce<Record<string, number>>((acc, apt) => {
@@ -936,9 +936,44 @@ function AIAnalysisPanel({ data, darkMode, stacked = false, accessLevel }: { dat
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: darkMode ? 'var(--doctor-accent)' : '#0f766e' }}>
-            Overview
-          </div>
+          {onBack ? (
+            <button
+              onClick={onBack}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                borderRadius: 99,
+                background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+                border: darkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.08)',
+                color: darkMode ? 'var(--doctor-text)' : '#475569',
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+                e.currentTarget.style.transform = 'translateX(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+                e.currentTarget.style.transform = 'translateX(0)';
+              }}
+            >
+              <ArrowLeft size={12} strokeWidth={3} />
+              Back
+            </button>
+          ) : (
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: darkMode ? 'var(--doctor-accent)' : '#0f766e' }}>
+              Overview
+            </div>
+          )}
           <div
             style={{
               width: 28,
@@ -1707,8 +1742,121 @@ function SimpleListView({
   );
 }
 
+// -- BottomZoomSlider --------------------------------------------
+function BottomZoomSlider({ value, onChange, chromeDarkMode }: { value: number; onChange: (v: number) => void; chromeDarkMode: boolean }) {
+  const MIN_Z = 0.8;
+  const MAX_Z = 1.4;
+  const [active, setActive] = useState(false);
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setActive(true);
+    if (!trackRef.current) return;
+    
+    // Make sure we have the initial clientX captured
+    const handleMove = (clientX: number) => {
+      if (!trackRef.current) return;
+      const rect = trackRef.current.getBoundingClientRect();
+      let ratio = (clientX - rect.left) / rect.width;
+      ratio = Math.max(0, Math.min(1, ratio));
+      onChange(MIN_Z + ratio * (MAX_Z - MIN_Z));
+    };
+
+    handleMove(e.clientX);
+    
+    const onMove = (ev: PointerEvent) => handleMove(ev.clientX);
+    const onUp = () => {
+      setActive(false);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
+  const percent = ((value - MIN_Z) / (MAX_Z - MIN_Z)) * 100;
+  const accent = chromeDarkMode ? 'var(--doctor-accent, #52ff9d)' : '#10B981';
+
+  return (
+    <div 
+      style={{
+        position: 'absolute',
+        bottom: 32,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 100,
+        background: chromeDarkMode ? 'rgba(10, 24, 40, 0.65)' : 'rgba(255, 255, 255, 0.75)',
+        backdropFilter: 'blur(20px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+        border: chromeDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)',
+        boxShadow: chromeDarkMode ? '0 16px 32px rgba(0,0,0,0.4)' : '0 16px 32px rgba(0,0,0,0.08)',
+        borderRadius: 999,
+        padding: '12px 24px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+        transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+        transformOrigin: 'bottom center',
+        ...(active ? { transform: 'translateX(-50%) scale(1.02)' } : {})
+      }}
+      onMouseEnter={() => setActive(true)}
+      onMouseLeave={() => setActive(false)}
+    >
+      <span style={{ fontSize: 13, fontWeight: 700, color: chromeDarkMode ? '#8ca1b4' : '#64748b', letterSpacing: '0.04em', userSelect: 'none' }}>ZOOM</span>
+      
+      <div 
+        ref={trackRef}
+        onPointerDown={handlePointerDown}
+        style={{
+          width: 140,
+          height: 24,
+          display: 'flex',
+          alignItems: 'center',
+          cursor: 'pointer',
+          position: 'relative'
+        }}
+      >
+        <div style={{
+          width: '100%',
+          height: active ? 10 : 4,
+          background: chromeDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+          borderRadius: 999,
+          position: 'absolute',
+          transition: 'height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)'
+        }} />
+        
+        <div style={{
+          width: `${percent}%`,
+          height: active ? 10 : 4,
+          background: accent,
+          borderRadius: 999,
+          position: 'absolute',
+          transition: active ? 'none' : 'height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+          boxShadow: `0 0 12px ${accent}40`
+        }} />
+        
+        <div style={{
+          position: 'absolute',
+          left: `${percent}%`,
+          width: active ? 18 : 14,
+          height: active ? 18 : 14,
+          borderRadius: '50%',
+          background: '#fff',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          transform: 'translateX(-50%)',
+          transition: active ? 'none' : 'width 0.3s cubic-bezier(0.2,0.8,0.2,1), height 0.3s cubic-bezier(0.2,0.8,0.2,1)',
+        }} />
+      </div>
+
+      <span style={{ fontSize: 13, fontWeight: 800, color: chromeDarkMode ? '#f8fafc' : '#0f172a', width: 44, textAlign: 'right', userSelect: 'none', fontVariantNumeric: 'tabular-nums' }}>
+        {Math.round(value * 100)}%
+      </span>
+    </div>
+  );
+}
+
 // -- TimelineView -------------------------------------------------
-export function TimelineView({ patientId, darkMode, timelineTheme = 'default', timelineLayout = 'advanced', timelineZoom = 1, accessLevel }: { patientId?: string | null; darkMode?: boolean; timelineTheme?: TimelineTheme; timelineLayout?: 'simple' | 'advanced'; timelineZoom?: number; accessLevel?: 'full' | 'lab' | 'summary' | null }) {
+export function TimelineView({ patientId, darkMode, timelineTheme = 'default', timelineLayout = 'advanced', timelineZoom = 1, setTimelineZoom, accessLevel, onBack, onBuildEMR }: { patientId?: string | null; darkMode?: boolean; timelineTheme?: TimelineTheme; timelineLayout?: 'simple' | 'advanced'; timelineZoom?: number; setTimelineZoom?: (zoom: number) => void; accessLevel?: 'full' | 'lab' | 'summary' | null; onBack?: () => void; onBuildEMR?: () => void }) {
   const [forcedDarker, setForcedDarker] = useState(false);
   const [listMode, setListMode] = useState(() => timelineLayout === 'simple');
   const effectiveTheme: TimelineTheme = forcedDarker ? 'dashboard-dark' : timelineTheme;
@@ -2028,10 +2176,6 @@ export function TimelineView({ patientId, darkMode, timelineTheme = 'default', t
             filter: blur(6px);
           }
           42% {
-            opacity: 1;
-            transform: translate3d(-50%, -50%, 0) scale3d(1.04, 0.84, 1);
-            filter: blur(0.8px);
-          }
           68% {
             opacity: 1;
             transform: translate3d(-50%, -50%, 0) scale3d(0.992, 1.018, 1);
@@ -2045,9 +2189,107 @@ export function TimelineView({ patientId, darkMode, timelineTheme = 'default', t
         }
       `}</style>
 
-      {/* Top-right button cluster */}
-      <div style={{ position: 'absolute', top: 18, right: 24, zIndex: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* Global Timeline Background Layer */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: 0,
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          zIndex: 0,
+          opacity: 0.98,
+        }}
+      >
+        <svg
+          aria-hidden
+          viewBox="0 0 1200 900"
+          preserveAspectRatio="none"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            opacity: chromeDarkMode ? 0.72 : 0.92,
+            filter: `drop-shadow(0 0 18px ${bgWaveSoft})`,
+            animation: 'emrSpiralShift 43s ease-in-out infinite',
+            transformOrigin: '62% 34%',
+            willChange: 'transform',
+          }}
+        >
+          <path
+            d="M 1080 84 C 912 110 828 190 826 278 C 824 358 914 408 992 394 C 1082 378 1108 284 1048 228 C 982 166 846 188 770 270 C 698 348 698 466 780 534 C 870 608 1014 584 1094 492"
+            fill="none"
+            stroke={bgWaveStroke}
+            strokeWidth="2"
+            strokeLinecap="round"
+            opacity="0.9"
+            strokeDasharray="6 14"
+            style={{ animation: 'emrWaveDrift 36.7s ease-in-out infinite, emrDashFlow 30s linear infinite' }}
+          />
+          <path
+            d="M 968 128 C 842 144 776 206 774 272 C 772 334 840 380 906 372 C 980 364 1004 298 958 252 C 906 200 798 214 738 284 C 676 356 674 450 742 510 C 816 574 932 560 1002 494"
+            fill="none"
+            stroke={bgWaveStroke}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            opacity="0.58"
+            strokeDasharray="4 12"
+            style={{ animation: 'emrWaveDriftAlt 40s ease-in-out infinite, emrDashFlow 33.3s linear infinite reverse' }}
+          />
+          <path
+            d="M 860 640 C 744 622 660 650 620 716 C 584 778 610 838 670 854 C 736 872 808 836 822 774 C 836 712 772 652 686 656 C 584 660 504 732 492 826"
+            fill="none"
+            stroke={bgWaveStroke}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            opacity="0.56"
+            strokeDasharray="5 13"
+            style={{ animation: 'emrWaveDrift 46.7s ease-in-out infinite reverse, emrDashFlow 40s linear infinite' }}
+          />
+        </svg>
+        <div
+          style={{
+            position: 'absolute',
+            inset: '-8% -10%',
+            background: 'radial-gradient(60% 40% at 30% 24%, rgba(82,255,157,0.06), transparent 70%), radial-gradient(52% 34% at 72% 58%, rgba(82,255,157,0.04), transparent 72%)',
+            filter: 'blur(28px)',
+            animation: 'emrWaveDrift 30s ease-in-out infinite',
+            willChange: 'transform',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            inset: '-6% -8%',
+            background: 'radial-gradient(44% 18% at 46% 32%, rgba(82,255,157,0.05), transparent 74%), radial-gradient(40% 16% at 58% 74%, rgba(82,255,157,0.035), transparent 76%)',
+            filter: 'blur(40px)',
+            animation: 'emrWaveDriftAlt 36.7s ease-in-out infinite',
+            willChange: 'transform',
+          }}
+        />
+        {BG_PARTICLES.map((particle, index) => (
+          <span
+            key={`${particle.top}-${particle.left}-${index}`}
+            style={{
+              position: 'absolute',
+              top: particle.top,
+              left: particle.left,
+              width: particle.size,
+              height: particle.size,
+              borderRadius: '50%',
+              background: 'rgba(110, 231, 183, 0.22)',
+              boxShadow: '0 0 10px rgba(82,255,157,0.08)',
+              animation: `emrParticleFloat ${particle.duration} ease-in-out ${particle.delay} infinite`,
+              willChange: 'transform, opacity',
+            }}
+          />
+        ))}
+      </div>
 
+      {/* Top-right button cluster */}
+      <div style={{ position: 'absolute', top: 18, right: 24, zIndex: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+        
         {/* Dark mode toggle */}
         <button
           type="button"
@@ -2056,26 +2298,75 @@ export function TimelineView({ patientId, darkMode, timelineTheme = 'default', t
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
-            border: chromeDarkMode ? '1px solid var(--doctor-border)' : '1px solid rgba(148,163,184,0.22)',
+            justifyContent: 'center',
+            width: 38,
+            height: 38,
+            border: chromeDarkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(148,163,184,0.18)',
             background: forcedDarker
-              ? 'color-mix(in srgb, var(--doctor-accent, #52ff9d) 14%, transparent)'
-              : chromeDarkMode ? 'color-mix(in srgb, var(--doctor-card-tint) 92%, transparent)' : 'rgba(255,255,255,0.9)',
+              ? 'color-mix(in srgb, var(--doctor-accent, #52ff9d) 12%, transparent)'
+              : chromeDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.8)',
             color: forcedDarker
               ? 'var(--doctor-accent, #52ff9d)'
-              : chromeDarkMode ? 'var(--doctor-text)' : '#0f172a',
-            borderRadius: 14,
-            padding: '9px 12px',
+              : chromeDarkMode ? 'var(--doctor-text, #f8fafc)' : '#0f172a',
+            borderRadius: 12,
             cursor: 'pointer',
-            boxShadow: chromeDarkMode ? '0 14px 32px rgba(0,0,0,0.24)' : '0 10px 24px rgba(37,67,112,0.12)',
+            boxShadow: chromeDarkMode ? '0 8px 32px rgba(0,0,0,0.2)' : '0 8px 24px rgba(0,0,0,0.04)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            transition: 'background 0.2s, color 0.2s, border-color 0.2s',
+            transition: 'all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.background = chromeDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.background = forcedDarker
+              ? 'color-mix(in srgb, var(--doctor-accent, #52ff9d) 12%, transparent)'
+              : chromeDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.8)';
           }}
         >
-          {forcedDarker ? <Sun size={15} /> : <Moon size={15} />}
+          {forcedDarker ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
+        {onBuildEMR && (
+          <button
+            type="button"
+            onClick={onBuildEMR}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              border: '1px solid var(--doctor-accent, #52ff9d)',
+              background: 'color-mix(in srgb, var(--doctor-accent, #52ff9d) 15%, transparent)',
+              color: 'var(--doctor-accent, #52ff9d)',
+              borderRadius: 99,
+              padding: '10px 20px',
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              boxShadow: '0 8px 32px rgba(82,255,157,0.15)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              transition: 'all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
+              e.currentTarget.style.background = 'color-mix(in srgb, var(--doctor-accent, #52ff9d) 25%, transparent)';
+              e.currentTarget.style.boxShadow = '0 12px 40px rgba(82,255,157,0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0) scale(1)';
+              e.currentTarget.style.background = 'color-mix(in srgb, var(--doctor-accent, #52ff9d) 15%, transparent)';
+              e.currentTarget.style.boxShadow = '0 8px 32px rgba(82,255,157,0.15)';
+            }}
+          >
+            <PlusCircle size={16} strokeWidth={2.5} />
+            Build EMR
+          </button>
+        )}
       </div>
 
       <div
@@ -2089,7 +2380,7 @@ export function TimelineView({ patientId, darkMode, timelineTheme = 'default', t
           minHeight: stackAnalysisPanel ? 0 : '100%',
         }}
       >
-        <AIAnalysisPanel data={filteredData} darkMode={chromeDarkMode} stacked={stackAnalysisPanel} accessLevel={accessLevel} />
+        <AIAnalysisPanel data={filteredData} darkMode={chromeDarkMode} stacked={stackAnalysisPanel} accessLevel={accessLevel} onBack={onBack} />
       </div>
 
 
@@ -2107,110 +2398,22 @@ export function TimelineView({ patientId, darkMode, timelineTheme = 'default', t
         }}
       >
         <div
-          aria-hidden
+          ref={contentRef}
           style={{
             position: 'absolute',
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: -backdropLeftBleed,
-            overflow: 'hidden',
-            pointerEvents: 'none',
-            zIndex: 0,
-            opacity: 0.98,
+            inset: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+          }}
+          onScroll={(e) => {
+            if (scrollRef.current) scrollRef.current.scrollTop = e.currentTarget.scrollTop;
           }}
         >
-          <svg
-            aria-hidden
-            viewBox="0 0 1200 900"
-            preserveAspectRatio="none"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              opacity: chromeDarkMode ? 0.72 : 0.92,
-              filter: `drop-shadow(0 0 18px ${bgWaveSoft})`,
-              animation: 'emrSpiralShift 43s ease-in-out infinite',
-              transformOrigin: '62% 34%',
-              willChange: 'transform',
-            }}
-          >
-            <path
-              d="M 1080 84 C 912 110 828 190 826 278 C 824 358 914 408 992 394 C 1082 378 1108 284 1048 228 C 982 166 846 188 770 270 C 698 348 698 466 780 534 C 870 608 1014 584 1094 492"
-              fill="none"
-              stroke={bgWaveStroke}
-              strokeWidth="2"
-              strokeLinecap="round"
-              opacity="0.9"
-              strokeDasharray="6 14"
-              style={{ animation: 'emrWaveDrift 36.7s ease-in-out infinite, emrDashFlow 30s linear infinite' }}
-            />
-            <path
-              d="M 968 128 C 842 144 776 206 774 272 C 772 334 840 380 906 372 C 980 364 1004 298 958 252 C 906 200 798 214 738 284 C 676 356 674 450 742 510 C 816 574 932 560 1002 494"
-              fill="none"
-              stroke={bgWaveStroke}
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              opacity="0.58"
-              strokeDasharray="4 12"
-              style={{ animation: 'emrWaveDriftAlt 40s ease-in-out infinite, emrDashFlow 33.3s linear infinite reverse' }}
-            />
-            <path
-              d="M 860 640 C 744 622 660 650 620 716 C 584 778 610 838 670 854 C 736 872 808 836 822 774 C 836 712 772 652 686 656 C 584 660 504 732 492 826"
-              fill="none"
-              stroke={bgWaveStroke}
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              opacity="0.56"
-              strokeDasharray="5 13"
-              style={{ animation: 'emrWaveDrift 46.7s ease-in-out infinite reverse, emrDashFlow 40s linear infinite' }}
-            />
-          </svg>
+          {/* -- Scroll region -- */}
           <div
+            ref={scrollRef}
             style={{
-              position: 'absolute',
-              inset: '-8% -10%',
-              background: 'radial-gradient(60% 40% at 30% 24%, rgba(82,255,157,0.06), transparent 70%), radial-gradient(52% 34% at 72% 58%, rgba(82,255,157,0.04), transparent 72%)',
-              filter: 'blur(28px)',
-              animation: 'emrWaveDrift 30s ease-in-out infinite',
-              willChange: 'transform',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              inset: '-6% -8%',
-              background: 'radial-gradient(44% 18% at 46% 32%, rgba(82,255,157,0.05), transparent 74%), radial-gradient(40% 16% at 58% 74%, rgba(82,255,157,0.035), transparent 76%)',
-              filter: 'blur(40px)',
-              animation: 'emrWaveDriftAlt 36.7s ease-in-out infinite',
-              willChange: 'transform',
-            }}
-          />
-          {BG_PARTICLES.map((particle, index) => (
-            <span
-              key={`${particle.top}-${particle.left}-${index}`}
-              style={{
-                position: 'absolute',
-                top: particle.top,
-                left: particle.left,
-                width: particle.size,
-                height: particle.size,
-                borderRadius: '50%',
-                background: 'rgba(110, 231, 183, 0.22)',
-                boxShadow: '0 0 10px rgba(82,255,157,0.08)',
-                animation: `emrParticleFloat ${particle.duration} ease-in-out ${particle.delay} infinite`,
-                willChange: 'transform, opacity',
-              }}
-            />
-          ))}
-        </div>
-
-      {/* -- Scroll region -- */}
-      <div
-        ref={scrollRef}
-        style={{
-          position: 'relative',
+              position: 'relative',
           zIndex: 1,
           height: '100%',
           overflowY: 'auto',
@@ -2433,12 +2636,16 @@ export function TimelineView({ patientId, darkMode, timelineTheme = 'default', t
           </div>
         )}
       </div>
-
+      </div>{/* end contentRef wrapper */}
       </div>{/* end timeline column */}
-
       {/* -- Side panel (absolute, overlays all) -- */}
       {selApt && (
         <SidePanel appointment={selApt} onClose={() => setSelApt(null)} darkMode={chromeDarkMode} accessLevel={accessLevel} />
+      )}
+
+      {/* -- Bottom Floating Zoom Slider -- */}
+      {setTimelineZoom && (
+        <BottomZoomSlider value={timelineZoom} onChange={setTimelineZoom} chromeDarkMode={chromeDarkMode || false} />
       )}
     </div>
   );
