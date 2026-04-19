@@ -691,6 +691,7 @@ export default function App() {
   const [showEndConsultDialog, setShowEndConsultDialog] = useState(false);
   const [pendingSaveSeverity, setPendingSaveSeverity] = useState<any>('MILD');
   const [lastSavedPrescriptionPath, setLastSavedPrescriptionPath] = useState<string | null>(null);
+  const [emrSaveSuccess, setEmrSaveSuccess] = useState(false);
   // Keep a snapshot of the patient being treated so dialogs work even after EMR state resets
   const [finalizedPatientName, setFinalizedPatientName] = useState<string | null>(null);
 
@@ -1239,6 +1240,9 @@ export default function App() {
     // This now initiates the finalization flow by showing the confirmation dialog
     const severity = (typeof severityArg === 'string') ? severityArg : 'MILD';
     setPendingSaveSeverity(severity);
+    setEmrSaveSuccess(false);
+    setLastSavedPrescriptionPath(null);
+    setFinalizedPatientName(effectivePatient?.name || 'Patient');
     setShowEndConsultDialog(true);
   };
 
@@ -1365,21 +1369,13 @@ export default function App() {
         const saved = await res.json();
         showToast(true, `EMR synced for ${savedPatient.name}`);
         setLastSavedPrescriptionPath(saved?.prescription?.documentPath || null);
+        setEmrSaveSuccess(true);
         // Force the DB data to refresh in cache so next View Records shows the new entry
         loadPatientEMR(savedPatientId);
       }
 
-      // Close EMR builder and cleanly end the consultation session
-      setEmrComposerOpen(false);
-      setEmrOpenedFromRecords(false);
-      if (!wasOpenedFromRecords && activeAppointmentId) {
-        // Queue-based consultation: properly end appointment
-        handleEndConsultation(false);
-      } else {
-        // Records-based or manual consultation: just reset session
-        setManualConsultationStatus('READY');
-      }
-      // Keep dialog open to show prescription link (if any); user can dismiss it
+      // We DO NOT close the EMR builder here anymore; we let the success dialog tick animation play out,
+      // and perform the UI cleanup in the dialog's onClose callback.
     } catch (err: any) {
       console.error("[Meiosis] Finalize failed:", err);
       showToast(false, `Sync failed: ${err.message}`);
@@ -1621,8 +1617,9 @@ export default function App() {
 
                 {showEndConsultDialog && (
                   <EndConsultationDialog
-                    patientName={effectivePatient?.name || 'Patient'}
+                    patientName={finalizedPatientName || effectivePatient?.name || 'Patient'}
                     isSaving={emrSaving}
+                    isSuccess={emrSaveSuccess}
                     lastSavedPrescriptionPath={lastSavedPrescriptionPath}
                     onConfirm={handleFinalizeConsultation}
                     onCancel={() => {
@@ -1632,6 +1629,14 @@ export default function App() {
                     onClose={() => {
                       setShowEndConsultDialog(false);
                       setLastSavedPrescriptionPath(null);
+                      // Perform cleanup that was previously in handleFinalizeConsultation
+                      setEmrComposerOpen(false);
+                      setEmrOpenedFromRecords(false);
+                      if (!emrOpenedFromRecords && activeAppointmentId) {
+                        handleEndConsultation(false);
+                      } else {
+                        setManualConsultationStatus('READY');
+                      }
                     }}
                     onViewPrescription={(path) => window.open(assetUrl(path), '_blank')}
                   />

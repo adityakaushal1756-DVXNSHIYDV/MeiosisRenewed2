@@ -11,6 +11,7 @@ import {
 interface EndConsultationDialogProps {
   patientName: string;
   isSaving: boolean;
+  isSuccess: boolean;
   /** When set, the EMR has already been saved. Dialog becomes a success summary. */
   lastSavedPrescriptionPath: string | null;
   /** Called when doctor clicks "End Consultation & Sync" to trigger the actual save */
@@ -52,13 +53,13 @@ const SUCCESS_STYLES = `
 export function EndConsultationDialog({
   patientName,
   isSaving,
+  isSuccess,
   lastSavedPrescriptionPath,
   onConfirm,
   onCancel,
   onViewPrescription,
   onClose,
 }: EndConsultationDialogProps) {
-  const isSuccess = !!lastSavedPrescriptionPath && !isSaving;
   const autoCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {

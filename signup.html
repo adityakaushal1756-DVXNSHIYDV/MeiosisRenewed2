@@ -908,17 +908,7 @@
     }
   </style>
 
-  <!-- Supabase (email OTP) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./config.js?v=3"></script>
-  <script>
-    // ⚠ Replace with your Supabase project credentials.
-    // Supabase Dashboard → Project Settings → API → Project URL & anon/public key
-    window._supabase = supabase.createClient(
-      'https://gvlannjlmcifhupftxth.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2bGFubmpsbWNpZmh1cGZ0eHRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNTk2NzgsImV4cCI6MjA4NzkzNTY3OH0.J2EJjCElJjP5lcnA1nz3aJuPTlUDnJfQOQh8crdteEs'
-    );
-  </script>
 </head>
 <body>
   <!-- Ambient background blobs -->
@@ -959,7 +949,7 @@
 'use strict';
 
 const runtimeConfig = window.MEIOSIS_RUNTIME_CONFIG || {};
-const API         = String(runtimeConfig.backendOrigin || 'http://localhost:5000').replace(/\/+$/, '') + '/api';
+const API         = String(runtimeConfig.backendOrigin || 'http://localhost:5002').replace(/\/+$/, '') + '/api';
 const SESSION_KEY = 'meiosis_auth_session_v1';
 const LINKS_KEY   = 'meiosis_root_links_v1';
 const DRAFT_KEY   = 'meiosis_signup_draft_v3';
@@ -1037,55 +1027,12 @@ function loadDraft() {
     const d = JSON.parse(raw);
     if (d.role) state.role = d.role;
     if (typeof d.stepIndex === 'number') state.stepIndex = d.stepIndex;
-    if (d.data && typeof d.data === 'object') state.data = d.data;
-    const steps = getSteps();
-    if (state.stepIndex >= steps.length) state.stepIndex = 0;
-  } catch(e){}
-}
-function clearDraft() { try { sessionStorage.removeItem(DRAFT_KEY); } catch(e){} }
-
-async function checkBackend() {
-  try {
-    const r = await fetch(API.replace('/api','') + '/health', {cache:'no-store'});
-    state.backendOnline = r.ok;
-  } catch(e) { state.backendOnline = false; }
-}
-
-let _emailDebounce = null;
-async function checkEmailAvailability(email) {
-  state.emailStatus = 'checking'; renderEmailBadge();
-  try {
-    const r = await fetch(API + '/auth/check-email?email=' + encodeURIComponent(email));
-    if (!r.ok) { state.emailStatus = null; renderEmailBadge(); return; }
-    const d = await r.json();
-    state.emailStatus = d.available ? 'available' : 'taken';
-  } catch(e) { state.emailStatus = null; }
-  renderEmailBadge();
-}
-function renderEmailBadge() {
-  const el = document.getElementById('ob-email-badge');
-  if (!el) return;
-  el.className = 'ob-email-badge';
-  if (!state.emailStatus) { el.style.display = 'none'; return; }
-  el.classList.add(state.emailStatus);
-  const labels = { checking:'• Checking availability\u2026', available:'\u2713 Email is available', taken:'\u2715 Already registered \u2014 try logging in instead' };
-  el.innerHTML = '<span class="ob-dot"></span>' + escHtml(labels[state.emailStatus] || '');
-}
-
-function escHtml(s) {
-  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-function escAttr(s) { return String(s == null ? '' : s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-function iconEye() {
-  return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-}
-
-function render(animClass) {
+    if (d.data &function render(animClass) {
   if (animClass === undefined) animClass = 'ob-anim-fwd';
-  if (window._otpCountdown) { clearInterval(window._otpCountdown); window._otpCountdown = null; }
   var step = currentStep();
   if (!step) { state.stepIndex = 0; step = currentStep(); }
   if (!step) return;
+
   var total = totalSteps();
   var pct = Math.round(((state.stepIndex + 1) / total) * 100);
   var isPatient = state.role === 'PATIENT';
@@ -1107,7 +1054,7 @@ function render(animClass) {
   var next = document.getElementById('ob-next');
   if (next) {
     next.classList.toggle('mode-doctor', isDoctor);
-    next.disabled = state.submitting || (step.type === 'role-select' && !state.role) || step.type === 'email-otp' || step.type === 'phone-otp';
+    next.disabled = state.submitting || (step.type === 'role-select' && !state.role);
     if (state.submitting) {
       next.innerHTML = '<span class="ob-spinner"></span>';
     } else if (final) {
@@ -1128,14 +1075,11 @@ function render(animClass) {
 
   var oldWrapper = container.firstElementChild;
   if (oldWrapper) {
-    /* Exit: remove from flow so new content can set the container height */
     var exitClass = (animClass === 'ob-anim-back') ? 'ob-exit-right' : 'ob-exit-left';
     oldWrapper.style.cssText = 'position:absolute;top:0;left:0;right:0;pointer-events:none;z-index:1;';
     container.style.position = 'relative';
     oldWrapper.className = exitClass;
-    /* New content enters while old content exits */
     container.appendChild(newWrapper);
-    /* Clean up old wrapper after exit animation (220ms + small buffer) */
     var _done = false;
     var _cleanup = function() {
       if (_done) return; _done = true;
@@ -1162,18 +1106,7 @@ function buildStepHTML(step, isPatient, isDoctor) {
   var inputHTML = '';
 
   if (step.type === 'text' || step.type === 'email') {
-    var _socialHTML = '';
-    if (step.type === 'email') {
-      var _gIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>';
-      var _aIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>';
-      _socialHTML =
-        '<div style="display:flex;flex-direction:column;gap:10px;">' +
-          '<button type="button" class="ob-social-btn" id="ob-google-btn">' + _gIcon + ' Continue with Google</button>' +
-          '<button type="button" class="ob-social-btn" id="ob-apple-btn">'  + _aIcon + ' Continue with Apple</button>' +
-        '</div>' +
-        '<div class="ob-social-divider">or continue with email</div>';
-    }
-    inputHTML = _socialHTML + '<div class="ob-input-wrap"><input id="ob-input" class="ob-input" type="' + step.type + '" placeholder="' + escAttr(step.placeholder || '') + '" value="' + escAttr(String(val)) + '" autocomplete="' + escAttr(step.autocomplete || 'off') + '" /></div>' +
+    inputHTML = '<div class="ob-input-wrap"><input id="ob-input" class="ob-input" type="' + step.type + '" placeholder="' + escAttr(step.placeholder || '') + '" value="' + escAttr(String(val)) + '" autocomplete="' + escAttr(step.autocomplete || 'off') + '" /></div>' +
       (step.type === 'email' ? '<div id="ob-email-badge" class="ob-email-badge" style="display:none"></div>' : '');
   } else if (step.type === 'number') {
     inputHTML = '<div class="ob-input-wrap"><input id="ob-input" class="ob-input" type="number" min="0" placeholder="' + escAttr(step.placeholder || '') + '" value="' + escAttr(String(val)) + '" autocomplete="off" /></div>';
@@ -1197,31 +1130,6 @@ function buildStepHTML(step, isPatient, isDoctor) {
   } else if (step.type === 'phone') {
     var phoneDigits = state.data.phone ? String(state.data.phone).replace(/\D/g, '').slice(-10) : '';
     inputHTML = '<div class="ob-phone-wrap" id="ob-phone-wrap"><span class="ob-phone-prefix">+91</span><input id="ob-phone-field" class="ob-phone-field" type="tel" inputmode="numeric" placeholder="98765 43210" value="' + escAttr(phoneDigits) + '" maxlength="10" autocomplete="tel" /></div>';
-  } else if (step.type === 'phone-otp') {
-    var rawPhone = String(state.data.phone || '').replace(/\D/g, '').slice(-10);
-    var maskedPhone = rawPhone.length === 10 ? ('+91\u00a0' + rawPhone.slice(0,5) + '\u00a0' + rawPhone.slice(5)) : (state.data.phone || 'your number');
-    inputHTML = '<p class="ob-otp-dest">Code sent to <strong>' + escHtml(maskedPhone) + '</strong>.<br>Use <strong>123456</strong> as the OTP for now.</p>' +
-      '<div class="ob-otp-group" id="ob-otp-group">' +
-      [0,1,2,3,4,5].map(function(idx){
-        return '<div class="ob-otp-cell" id="ob-otp-cell-' + idx + '">' +
-               '<input class="ob-otp-input" id="ob-otp-' + idx + '" type="text" inputmode="numeric" maxlength="1"' + (idx === 0 ? ' autocomplete="one-time-code"' : '') + '>' +
-               '<span class="ob-otp-digit" id="ob-otp-dig-' + idx + '"></span>' +
-               '</div>';
-      }).join('') +
-      '</div>' +
-      '<div class="ob-otp-resend"><span id="ob-otp-timer-lbl"></span><button id="ob-otp-resend-btn" type="button" disabled>Resend code</button></div>';
-  } else if (step.type === 'email-otp') {
-    var otpEmail = String(state.data.email || '').trim();
-    inputHTML = '<p class="ob-otp-dest">A 6-digit code was sent to <strong>' + escHtml(otpEmail) + '</strong>. Check your inbox (and spam folder).</p>' +
-      '<div class="ob-otp-group" id="ob-otp-group">' +
-      [0,1,2,3,4,5].map(function(idx){
-        return '<div class="ob-otp-cell" id="ob-otp-cell-' + idx + '">' +
-               '<input class="ob-otp-input" id="ob-otp-' + idx + '" type="text" inputmode="numeric" maxlength="1"' + (idx === 0 ? ' autocomplete="one-time-code"' : '') + '>' +
-               '<span class="ob-otp-digit" id="ob-otp-dig-' + idx + '"></span>' +
-               '</div>';
-      }).join('') +
-      '</div>' +
-      '<div class="ob-otp-resend"><span id="ob-otp-timer-lbl"></span><button id="ob-otp-resend-btn" type="button" disabled>Resend code</button></div>';
   }
 
   var errHTML = state.error ? '<div class="ob-error-msg">\u26a0 ' + escHtml(state.error) + '</div>' : '';
@@ -1346,15 +1254,6 @@ function attachStepBehaviour(step) {
     pwToggle.addEventListener('click', function(){ input.type = input.type === 'password' ? 'text' : 'password'; });
   }
 
-  if (step.type === 'email') {
-    var _esc = document.getElementById('ob-step-container');
-    var _esw = (_esc && _esc.lastElementChild) || document;
-    var _gBtn = _esw.querySelector('#ob-google-btn');
-    var _aBtn = _esw.querySelector('#ob-apple-btn');
-    if (_gBtn) _gBtn.addEventListener('click', function(){ handleSocialAuth('google'); });
-    if (_aBtn) _aBtn.addEventListener('click', function(){ handleSocialAuth('apple'); });
-  }
-
   if (step.type === 'chips') {
     var selClass = state.role === 'DOCTOR' ? 'sel-doctor' : 'sel-patient';
     document.querySelectorAll('#ob-chips .ob-chip').forEach(function(chip) {
@@ -1433,388 +1332,44 @@ function attachStepBehaviour(step) {
       phoneField.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); handleNext(); } });
     }
   }
-
-  if (step.type === 'phone-otp') {
-    var isDoc = state.role === 'DOCTOR';
-    var _sc = document.getElementById('ob-step-container');
-    var _sw = (_sc && _sc.lastElementChild) || document;
-    var boxes  = [0,1,2,3,4,5].map(function(i){ return _sw.querySelector('#ob-otp-' + i); });
-    var cells  = [0,1,2,3,4,5].map(function(i){ return _sw.querySelector('#ob-otp-cell-' + i); });
-    var digits = [0,1,2,3,4,5].map(function(i){ return _sw.querySelector('#ob-otp-dig-' + i); });
-
-    var getCode = function() { return boxes.map(function(b){ return b ? b.value : ''; }).join(''); };
-
-    /* ── Animation helpers ── */
-    var digIn = function(i) {
-      var d = digits[i]; if (!d) return;
-      d.style.animation = 'none'; void d.offsetWidth;
-      d.style.animation = 'ob-dig-in 0.40s cubic-bezier(0.34,1.56,0.64,1) both';
+}
+id] = v; dropdown.style.display = 'none'; kbdIndex = -1; saveDraft();
     };
-    var digOut = function(i, kf, cb) {
-      var d = digits[i]; if (!d) return;
-      d.style.animation = 'none'; void d.offsetWidth;
-      d.style.animation = kf + ' 0.22s cubic-bezier(0.4,0,1,0.6) both';
-      d.addEventListener('animationend', function() { d.textContent = ''; d.style.animation = ''; if (cb) cb(); }, {once:true});
+    var updateKbdFocus = function(items) {
+      items.forEach(function(el,i){ el.classList.toggle('kbd-focus', i === kbdIndex); });
+      if (items[kbdIndex]) items[kbdIndex].scrollIntoView({block:'nearest'});
     };
-    var cellAnim = function(i, kf, dur) {
-      var c = cells[i]; if (!c) return;
-      c.style.animation = 'none'; void c.offsetWidth;
-      c.style.animation = kf + ' ' + (dur || '0.44s') + ' cubic-bezier(0.34,1.56,0.64,1) both';
-      c.addEventListener('animationend', function(){ c.style.animation = ''; }, {once:true});
-    };
-    var awaitCell = function(i) {
-      var c = cells[i]; if (!c || c.classList.contains('filled')) return;
-      c.classList.add('awaiting');
-      c.addEventListener('animationend', function(){ c.classList.remove('awaiting'); }, {once:true});
-    };
-
-    /* ── Shake all boxes ── */
-    var triggerShake = function() {
-      var grp = _sw.querySelector('#ob-otp-group');
-      if (!grp) return;
-      grp.classList.remove('shake'); void grp.offsetWidth;
-      grp.classList.add('shake');
-      grp.addEventListener('animationend', function(){ grp.classList.remove('shake'); }, {once:true});
-    };
-
-    /* ── Win sequence (staggered per box) ── */
-    var triggerWin = function() {
-      [0,1,2,3,4,5].forEach(function(j) {
-        setTimeout(function() {
-          if (cells[j]) { cells[j].classList.remove('filled','doc'); cells[j].classList.add('ok'); }
-          cellAnim(j, 'ob-cell-win', '0.52s');
-          if (digits[j]) { digits[j].style.color = '#9bffca'; digits[j].style.transition = 'color 200ms'; }
-        }, j * 65);
-      });
-      setTimeout(function(){ handleNext(); }, 5 * 65 + 600);
-    };
-
-    /* ── Clear all boxes ── */
-    var clearBoxes = function(animated) {
-      [0,1,2,3,4,5].forEach(function(j) {
-        if (boxes[j]) boxes[j].value = '';
-        if (cells[j]) cells[j].classList.remove('filled','doc','ok','focused','err');
-        if (animated && digits[j] && digits[j].textContent) {
-          digOut(j, 'ob-dig-err');
-        } else {
-          if (digits[j]) { digits[j].textContent = ''; digits[j].style.animation = ''; digits[j].style.color = ''; }
-        }
-      });
-      state.data.phoneOtp = '';
-      setTimeout(function(){ if (boxes[0]) boxes[0].focus(); }, animated ? 160 : 0);
-    };
-
-    /* ── Restore previously entered digits (e.g. going back then forward) ── */
-    var prev = String(state.data.phoneOtp || '');
-    prev.split('').forEach(function(ch, i) {
-      if (!ch || !boxes[i]) return;
-      boxes[i].value = ch;
-      if (digits[i]) digits[i].textContent = ch;
-      if (cells[i]) { cells[i].classList.add('filled'); if (isDoc) cells[i].classList.add('doc'); }
+    input.addEventListener('focus', function(){ showDropdown(input.value); });
+    input.addEventListener('input', function(){ state.data[step.id] = input.value; showDropdown(input.value); saveDraft(); });
+    input.addEventListener('blur', function(){ setTimeout(function(){ if(dropdown) dropdown.style.display = 'none'; }, 200); });
+    input.addEventListener('keydown', function(e) {
+      var items = dropdown ? dropdown.querySelectorAll('.ob-dropdown-item') : [];
+      if (!items.length) return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); kbdIndex = Math.min(kbdIndex+1, items.length-1); updateKbdFocus(items); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); kbdIndex = Math.max(kbdIndex-1, 0); updateKbdFocus(items); }
+      else if (e.key === 'Enter' && kbdIndex >= 0) { e.preventDefault(); selectSpecialty(items[kbdIndex].getAttribute('data-val')); }
     });
+  }
 
-    setTimeout(function(){ if (boxes[0]) boxes[0].focus(); }, 60);
-
-    /* ── Per-box event listeners ── */
-    boxes.forEach(function(box, i) {
-      if (!box) return;
-
-      box.addEventListener('focus', function() {
-        if (cells[i]) cells[i].classList.add('focused');
+  if (step.type === 'phone') {
+    var _psc = document.getElementById('ob-step-container');
+    var _psw = (_psc && _psc.lastElementChild) || document;
+    var phoneField = _psw.querySelector('#ob-phone-field');
+    var phoneWrap  = _psw.querySelector('#ob-phone-wrap');
+    if (phoneField) {
+      setTimeout(function(){ phoneField.focus(); }, 60);
+      phoneField.addEventListener('input', function() {
+        var digits = phoneField.value.replace(/\D/g,'').slice(0,10);
+        phoneField.value = digits;
+        state.data.phone = digits;
+        if (phoneWrap) phoneWrap.classList.remove('ob-err');
+        saveDraft();
       });
-      box.addEventListener('blur', function() {
-        if (cells[i]) cells[i].classList.remove('focused');
-      });
-
-      box.addEventListener('keydown', function(e) {
-        if (e.key === 'Backspace') {
-          e.preventDefault();
-          if (box.value) {
-            box.value = '';
-            digOut(i, 'ob-dig-out');
-            if (cells[i]) cells[i].classList.remove('filled','doc','ok');
-            cellAnim(i, 'ob-cell-erase', '0.30s');
-          } else if (i > 0) {
-            boxes[i-1].focus();
-            boxes[i-1].value = '';
-            digOut(i-1, 'ob-dig-out');
-            if (cells[i-1]) cells[i-1].classList.remove('filled','doc','ok');
-            cellAnim(i-1, 'ob-cell-erase', '0.30s');
-          }
-          state.data.phoneOtp = getCode(); saveDraft();
-        }
-        if (e.key === 'ArrowLeft'  && i > 0) boxes[i-1].focus();
-        if (e.key === 'ArrowRight' && i < 5) boxes[i+1].focus();
-      });
-
-      box.addEventListener('input', function() {
-        var ch = box.value.replace(/\D/g,'').slice(-1);
-        box.value = ch;
-        if (ch) {
-          if (digits[i]) digits[i].textContent = ch;
-          digIn(i);
-          cellAnim(i, 'ob-cell-land');
-          if (cells[i]) { cells[i].classList.add('filled'); if (isDoc) cells[i].classList.add('doc'); cells[i].classList.remove('ok'); }
-          state.data.phoneOtp = getCode(); saveDraft();
-
-          if (i < 5) {
-            setTimeout(function(){ boxes[i+1].focus(); awaitCell(i+1); }, 30);
-          } else {
-            // All 6 digits — verify
-            var code = getCode();
-            if (code === '123456') {
-              triggerWin();
-            } else {
-              setTimeout(function(){
-                [0,1,2,3,4,5].forEach(function(j) {
-                  if (cells[j]) cells[j].classList.add('err');
-                  if (digits[j]) { digits[j].style.color = '#ff9090'; digits[j].style.transition = 'color 120ms'; }
-                });
-                triggerShake();
-                setTimeout(function(){ clearBoxes(true); state.error = 'Incorrect code \u2014 the demo OTP is 123456.'; render('ob-anim-fwd'); }, 520);
-              }, 80);
-            }
-          }
-        } else {
-          if (cells[i]) cells[i].classList.remove('filled','doc','ok');
-          if (digits[i]) { digits[i].textContent = ''; digits[i].style.animation = ''; }
-          state.data.phoneOtp = getCode(); saveDraft();
-        }
-      });
-
-      box.addEventListener('paste', function(e) {
-        e.preventDefault();
-        var pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);
-        pasted.split('').forEach(function(ch, j) {
-          if (!boxes[j]) return;
-          boxes[j].value = ch;
-          if (digits[j]) digits[j].textContent = ch;
-          setTimeout(function(){ digIn(j); cellAnim(j, 'ob-cell-land'); if(cells[j]){ cells[j].classList.add('filled'); if(isDoc) cells[j].classList.add('doc'); } }, j * 55);
-        });
-        var last = Math.min(pasted.length - 1, 5);
-        if (boxes[last]) boxes[last].focus();
-        state.data.phoneOtp = getCode(); saveDraft();
-        if (pasted.length === 6) {
-          var pastedDelay = 6 * 55 + 80;
-          if (pasted === '123456') {
-            setTimeout(triggerWin, pastedDelay);
-          } else {
-            setTimeout(function(){
-              [0,1,2,3,4,5].forEach(function(j) {
-                if (cells[j]) cells[j].classList.add('err');
-                if (digits[j]) { digits[j].style.color = '#ff9090'; digits[j].style.transition = 'color 120ms'; }
-              });
-              triggerShake();
-              setTimeout(function(){ clearBoxes(true); state.error = 'Incorrect code \u2014 the demo OTP is 123456.'; render('ob-anim-fwd'); }, 520);
-            }, pastedDelay);
-          }
-        }
-      });
-    });
-
-    /* ── Resend countdown ── */
-    var timerLbl  = _sw.querySelector('#ob-otp-timer-lbl');
-    var resendBtn = _sw.querySelector('#ob-otp-resend-btn');
-    var secs = 30;
-    var tick = function() {
-      secs--;
-      if (timerLbl) timerLbl.textContent = secs > 0 ? ('Resend in ' + secs + 's\u00a0\u2014\u00a0') : '';
-      if (secs <= 0 && resendBtn) resendBtn.disabled = false;
-    };
-    if (timerLbl) timerLbl.textContent = 'Resend in 30s\u00a0\u2014\u00a0';
-    window._otpCountdown = setInterval(tick, 1000);
-
-    if (resendBtn) {
-      resendBtn.addEventListener('click', function() {
-        clearInterval(window._otpCountdown);
-        resendBtn.disabled = true; secs = 30;
-        if (timerLbl) timerLbl.textContent = 'Resend in 30s\u00a0\u2014\u00a0';
-        clearBoxes(false);
-        window._otpCountdown = setInterval(tick, 1000);
-      });
+      phoneField.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); handleNext(); } });
     }
   }
 
-  if (step.type === 'email-otp') {
-    var isDoc = state.role === 'DOCTOR';
-    var _sc = document.getElementById('ob-step-container');
-    var _sw = (_sc && _sc.lastElementChild) || document;
-    var boxes  = [0,1,2,3,4,5].map(function(i){ return _sw.querySelector('#ob-otp-' + i); });
-    var cells  = [0,1,2,3,4,5].map(function(i){ return _sw.querySelector('#ob-otp-cell-' + i); });
-    var digits = [0,1,2,3,4,5].map(function(i){ return _sw.querySelector('#ob-otp-dig-' + i); });
 
-    var getCode = function() { return boxes.map(function(b){ return b ? b.value : ''; }).join(''); };
-
-    var digIn = function(i) {
-      var d = digits[i]; if (!d) return;
-      d.style.animation = 'none'; void d.offsetWidth;
-      d.style.animation = 'ob-dig-in 0.40s cubic-bezier(0.34,1.56,0.64,1) both';
-    };
-    var digOut = function(i, kf) {
-      var d = digits[i]; if (!d) return;
-      d.style.animation = 'none'; void d.offsetWidth;
-      d.style.animation = kf + ' 0.22s cubic-bezier(0.4,0,1,0.6) both';
-      d.addEventListener('animationend', function(){ d.textContent = ''; d.style.animation = ''; }, {once:true});
-    };
-    var cellAnim = function(i, kf, dur) {
-      var c = cells[i]; if (!c) return;
-      c.style.animation = 'none'; void c.offsetWidth;
-      c.style.animation = kf + ' ' + (dur || '0.44s') + ' cubic-bezier(0.34,1.56,0.64,1) both';
-      c.addEventListener('animationend', function(){ c.style.animation = ''; }, {once:true});
-    };
-    var awaitCell = function(i) {
-      var c = cells[i]; if (!c || c.classList.contains('filled')) return;
-      c.classList.add('awaiting');
-      c.addEventListener('animationend', function(){ c.classList.remove('awaiting'); }, {once:true});
-    };
-    var triggerShake = function() {
-      var grp = _sw.querySelector('#ob-otp-group');
-      if (!grp) return;
-      grp.classList.remove('shake'); void grp.offsetWidth;
-      grp.classList.add('shake');
-      grp.addEventListener('animationend', function(){ grp.classList.remove('shake'); }, {once:true});
-    };
-    var triggerWin = function() {
-      [0,1,2,3,4,5].forEach(function(j) {
-        setTimeout(function() {
-          if (cells[j]) { cells[j].classList.remove('filled','doc'); cells[j].classList.add('ok'); }
-          cellAnim(j, 'ob-cell-win', '0.52s');
-          if (digits[j]) { digits[j].style.color = '#9bffca'; digits[j].style.transition = 'color 200ms'; }
-        }, j * 65);
-      });
-      setTimeout(function(){ handleNext(); }, 5 * 65 + 600);
-    };
-    var clearBoxes = function(animated) {
-      [0,1,2,3,4,5].forEach(function(j) {
-        if (boxes[j]) { boxes[j].value = ''; boxes[j].disabled = false; }
-        if (cells[j]) cells[j].classList.remove('filled','doc','ok','focused','err');
-        if (animated && digits[j] && digits[j].textContent) {
-          digOut(j, 'ob-dig-err');
-        } else {
-          if (digits[j]) { digits[j].textContent = ''; digits[j].style.animation = ''; digits[j].style.color = ''; }
-        }
-      });
-      state.data.emailOtp = '';
-      setTimeout(function(){ if (boxes[0]) boxes[0].focus(); }, animated ? 160 : 0);
-    };
-    var triggerError = function(msg) {
-      [0,1,2,3,4,5].forEach(function(j) {
-        if (cells[j]) cells[j].classList.add('err');
-        if (digits[j]) { digits[j].style.color = '#ff9090'; digits[j].style.transition = 'color 120ms'; }
-      });
-      triggerShake();
-      setTimeout(function(){ clearBoxes(true); state.error = msg; render('ob-anim-fwd'); }, 520);
-    };
-    var verifyEmailCode = function(code) {
-      if (!window._supabase) { triggerError('Supabase is not configured. Add your credentials to the script block.'); return; }
-      boxes.forEach(function(b){ if (b) b.disabled = true; });
-      var email = String(state.data.email || '').trim();
-      window._supabase.auth.verifyOtp({ email: email, token: code, type: 'email' })
-        .then(function(result) {
-          boxes.forEach(function(b){ if (b) b.disabled = false; });
-          if (result.error) {
-            var msg = (result.error.message || '').toLowerCase().indexOf('expired') >= 0
-              ? 'Code expired — request a new one.'
-              : 'Incorrect code. Please try again.';
-            triggerError(msg); return;
-          }
-          state.data.emailVerified = true;
-          triggerWin();
-        })
-        .catch(function(err) {
-          boxes.forEach(function(b){ if (b) b.disabled = false; });
-          triggerError(err.message || 'Verification failed. Please try again.');
-        });
-    };
-
-    setTimeout(function(){ if (boxes[0]) boxes[0].focus(); }, 60);
-
-    boxes.forEach(function(box, i) {
-      if (!box) return;
-      box.addEventListener('focus', function(){ if (cells[i]) cells[i].classList.add('focused'); });
-      box.addEventListener('blur',  function(){ if (cells[i]) cells[i].classList.remove('focused'); });
-      box.addEventListener('keydown', function(e) {
-        if (e.key === 'Backspace') {
-          e.preventDefault();
-          if (box.value) {
-            box.value = ''; digOut(i, 'ob-dig-out');
-            if (cells[i]) cells[i].classList.remove('filled','doc','ok');
-            cellAnim(i, 'ob-cell-erase', '0.30s');
-          } else if (i > 0) {
-            boxes[i-1].focus(); boxes[i-1].value = ''; digOut(i-1, 'ob-dig-out');
-            if (cells[i-1]) cells[i-1].classList.remove('filled','doc','ok');
-            cellAnim(i-1, 'ob-cell-erase', '0.30s');
-          }
-          state.data.emailOtp = getCode(); saveDraft();
-        }
-        if (e.key === 'ArrowLeft'  && i > 0) boxes[i-1].focus();
-        if (e.key === 'ArrowRight' && i < 5) boxes[i+1].focus();
-      });
-      box.addEventListener('input', function() {
-        var ch = box.value.replace(/\D/g,'').slice(-1);
-        box.value = ch;
-        if (ch) {
-          if (digits[i]) digits[i].textContent = ch;
-          digIn(i); cellAnim(i, 'ob-cell-land');
-          if (cells[i]) { cells[i].classList.add('filled'); if (isDoc) cells[i].classList.add('doc'); cells[i].classList.remove('ok'); }
-          state.data.emailOtp = getCode(); saveDraft();
-          if (i < 5) {
-            setTimeout(function(){ boxes[i+1].focus(); awaitCell(i+1); }, 30);
-          } else {
-            setTimeout(function(){ verifyEmailCode(getCode()); }, 80);
-          }
-        } else {
-          if (cells[i]) cells[i].classList.remove('filled','doc','ok');
-          if (digits[i]) { digits[i].textContent = ''; digits[i].style.animation = ''; }
-          state.data.emailOtp = getCode(); saveDraft();
-        }
-      });
-      box.addEventListener('paste', function(e) {
-        e.preventDefault();
-        var pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);
-        pasted.split('').forEach(function(ch, j) {
-          if (!boxes[j]) return;
-          boxes[j].value = ch;
-          if (digits[j]) digits[j].textContent = ch;
-          setTimeout(function(){ digIn(j); cellAnim(j, 'ob-cell-land'); if(cells[j]){ cells[j].classList.add('filled'); if(isDoc) cells[j].classList.add('doc'); } }, j * 55);
-        });
-        var last = Math.min(pasted.length - 1, 5);
-        if (boxes[last]) boxes[last].focus();
-        state.data.emailOtp = getCode(); saveDraft();
-        if (pasted.length === 6) { setTimeout(function(){ verifyEmailCode(pasted); }, 6 * 55 + 80); }
-      });
-    });
-
-    /* ── Resend countdown ── */
-    var timerLbl  = _sw.querySelector('#ob-otp-timer-lbl');
-    var resendBtn = _sw.querySelector('#ob-otp-resend-btn');
-    var secs = 30;
-    var tick = function() {
-      secs--;
-      if (timerLbl) timerLbl.textContent = secs > 0 ? ('Resend in ' + secs + 's\u00a0\u2014\u00a0') : '';
-      if (secs <= 0 && resendBtn) resendBtn.disabled = false;
-    };
-    if (timerLbl) timerLbl.textContent = 'Resend in 30s\u00a0\u2014\u00a0';
-    window._otpCountdown = setInterval(tick, 1000);
-
-    if (resendBtn) {
-      resendBtn.addEventListener('click', function() {
-        clearInterval(window._otpCountdown);
-        resendBtn.disabled = true; secs = 30;
-        if (timerLbl) timerLbl.textContent = 'Resend in 30s\u00a0\u2014\u00a0';
-        clearBoxes(false);
-        var email = String(state.data.email || '').trim();
-        if (window._supabase) {
-          window._supabase.auth.signInWithOtp({ email: email, options: { shouldCreateUser: true } })
-            .then(function(result) {
-              if (result.error) { state.error = result.error.message; render('ob-anim-fwd'); return; }
-              window._otpCountdown = setInterval(tick, 1000);
-            })
-            .catch(function(err) { state.error = err.message || 'Failed to resend.'; render('ob-anim-fwd'); });
-        }
-      });
-    }
-  }
 
   if (isFinalStep(step)) {
     var _fsc = document.getElementById('ob-step-container');
@@ -1860,21 +1415,7 @@ function validateStep() {
     if (!/^[6-9]\d{9}$/.test(digits)) { state.error = 'Indian mobile numbers start with 6, 7, 8, or 9.'; var w2 = document.getElementById('ob-phone-wrap'); if (w2) w2.classList.add('ob-err'); return false; }
     return true;
   }
-  if (step.type === 'email-otp') {
-    if (!state.data.emailVerified) { state.error = 'Please enter the 6-digit code sent to your email.'; return false; }
-    return true;
-  }
-  if (step.type === 'phone-otp') {
-    var code = String(state.data.phoneOtp || '');
-    if (code.length < 6) { state.error = 'Please enter the complete 6-digit code.'; return false; }
-    if (code !== '123456') {
-      state.error = 'Incorrect code \u2014 the demo OTP is 123456.';
-      var grp = document.getElementById('ob-otp-group');
-      if (grp) { grp.classList.remove('shake'); void grp.offsetWidth; grp.classList.add('shake'); grp.addEventListener('animationend', function(){ grp.classList.remove('shake'); }, {once:true}); }
-      return false;
-    }
-    return true;
-  }
+
   var val = state.data[step.id];
   var str = String(val != null ? val : '').trim();
   if (step.required && !str) { state.error = (step.label ? step.label.replace(/[?!.]/g,'').trim() : step.id) + ' is required.'; markInputError(); return false; }
@@ -1903,84 +1444,28 @@ function collectCurrentInput() {
     if (pf) state.data.phone = pf.value.replace(/\D/g,'').slice(0,10);
     return;
   }
-  if (step.type === 'email-otp') return; // managed live in attachStepBehaviour
-  if (step.type === 'phone-otp') return; // managed live in attachStepBehaviour
+
   var input = document.getElementById('ob-input');
   if (!input) return;
   var raw = input.value;
   state.data[step.id] = (step.type === 'number' && raw !== '') ? Number(raw) : raw;
 }
 
-async function handleSocialAuth(provider) {
-  if (!window._supabase) { state.error = 'Supabase is not configured. Add your credentials.'; render('ob-anim-fwd'); return; }
-  try {
-    sessionStorage.setItem('meiosis_oauth_pending', '1');
-    await window._supabase.auth.signInWithOAuth({
-      provider: provider,
-      options: { redirectTo: window.location.href.split('#')[0] }
-    });
-  } catch(err) {
-    sessionStorage.removeItem('meiosis_oauth_pending');
-    state.error = err.message || 'Authentication failed. Please try again.';
-    render('ob-anim-fwd');
-  }
-}
 
-async function sendEmailOtp() {
-  var email = String(state.data.email || '').trim();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    state.error = 'Please enter a valid email address.'; render('ob-anim-fwd'); return;
-  }
-  if (state.emailStatus === 'taken') {
-    state.error = 'This email is already registered. Please log in instead.'; render('ob-anim-fwd'); return;
-  }
-  if (state.emailStatus === 'checking') {
-    state.error = 'Checking email availability \u2014 please wait a moment.'; render('ob-anim-fwd'); return;
-  }
-  if (!window._supabase) {
-    state.error = 'Supabase is not configured. Add your credentials to the script block.'; render('ob-anim-fwd'); return;
-  }
-  state.submitting = true; state.error = null; render('ob-anim-fwd');
-  try {
-    var result = await window._supabase.auth.signInWithOtp({ email: email, options: { shouldCreateUser: true } });
-    if (result.error) throw result.error;
-    state.submitting = false;
-    state.data.emailVerified = false;
-    state.stepIndex++; saveDraft(); render('ob-anim-fwd');
-  } catch(err) {
-    state.submitting = false;
-    state.error = err.message || 'Failed to send verification code. Please try again.';
-    render('ob-anim-fwd');
-  }
-}
-
-var _oauthSkipTypes = { 'email': true, 'email-otp': true, 'password': true, 'confirm-password': true };
 
 function handleNext() {
   if (state.submitting) return;
   collectCurrentInput();
   var step = currentStep();
-  if (step.type === 'email' && !state.data.isOAuthUser) { sendEmailOtp(); return; }
   if (!validateStep()) { render('ob-anim-fwd'); return; }
   if (isFinalStep(step)) { submitSignup(); return; }
   state.stepIndex++;
-  // OAuth users: auto-skip email / OTP / password steps
-  if (state.data.isOAuthUser) {
-    while (state.stepIndex < totalSteps() && _oauthSkipTypes[currentStep().type]) state.stepIndex++;
-  }
   saveDraft(); render('ob-anim-fwd');
 }
 function handleBack() {
   if (state.stepIndex === 0) return;
   state.error = null;
-  var leaving = currentStep();
-  if (leaving && leaving.type === 'email-otp') { state.data.emailOtp = ''; state.data.emailVerified = false; }
-  if (leaving && leaving.type === 'phone-otp') { state.data.phoneOtp = ''; }
   state.stepIndex--;
-  // OAuth users: auto-skip backwards over email / OTP / password steps
-  if (state.data.isOAuthUser) {
-    while (state.stepIndex > 0 && _oauthSkipTypes[currentStep().type]) state.stepIndex--;
-  }
   render('ob-anim-back');
 }
 function handleSkip() {
@@ -2047,30 +1532,6 @@ window.doRedirect = doRedirect;
 
 async function boot() {
   loadDraft();
-
-  // Detect OAuth callback (Google / Apple redirect back to this page)
-  if (window._supabase && sessionStorage.getItem('meiosis_oauth_pending')) {
-    sessionStorage.removeItem('meiosis_oauth_pending');
-    try {
-      var _sr = await window._supabase.auth.getSession();
-      if (_sr.data && _sr.data.session) {
-        var _ou = _sr.data.session.user;
-        var _op = (_ou.app_metadata || {}).provider;
-        if (_op && _op !== 'email') {
-          var _om = _ou.user_metadata || {};
-          state.data.email    = _ou.email || '';
-          state.data.name     = state.data.name || _om.full_name || _om.name || '';
-          state.data.emailVerified = true;
-          state.data.isOAuthUser   = true;
-          // Generate random password — user will always sign in via OAuth
-          state.data.password = state.data.confirmPassword =
-            btoa(Math.random().toString(36) + Date.now()).slice(0, 20);
-          if (!state.role) state.stepIndex = 0;
-          saveDraft();
-        }
-      }
-    } catch(e) {}
-  }
 
   var next = document.getElementById('ob-next');
   var back = document.getElementById('ob-back');
