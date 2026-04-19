@@ -3,6 +3,7 @@ import { FlaskConical, Pill, Stethoscope, ChevronDown, Sparkles, Activity, Shiel
 import { API_BASE_URL, getAuthHeader } from '../../lib/api';
 import { SidePanel } from './SidePanel';
 import type { AppointmentEntry } from './types';
+import { SpacetimeSingularity } from '../Patient/SpacetimeSingularity';
 
 const API_BASE = API_BASE_URL;
 
@@ -855,14 +856,14 @@ function AIAnalysisPanel({ data, darkMode, stacked = false, accessLevel, onBack 
   const medicationCount = data.reduce((sum, apt) => sum + apt.medications.length, 0);
 
   const shellBg = darkMode
-    ? 'linear-gradient(180deg, color-mix(in srgb, var(--doctor-card-tint) 96%, rgba(9,16,28,0.2)) 0%, color-mix(in srgb, var(--doctor-card-tint) 90%, transparent) 100%)'
-    : 'linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(241,245,249,0.9) 100%)';
+    ? 'rgba(3, 21, 37, 0.72)' // Matches the PatientSearch slab color
+    : 'rgba(255, 255, 255, 0.9)';
   const shellBorder = darkMode
-    ? '1px solid color-mix(in srgb, var(--doctor-accent-secondary) 14%, var(--doctor-border) 86%)'
-    : '1px solid rgba(148,163,184,0.22)';
+    ? '1px solid rgba(103, 232, 249, 0.12)'
+    : '1px solid rgba(148, 163, 184, 0.18)';
   const shellShadow = darkMode
-    ? '0 24px 70px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.05)'
-    : '0 24px 54px rgba(37,67,112,0.12)';
+    ? '0 12px 48px rgba(0,0,0,0.3)'
+    : '0 12px 32px rgba(31,41,55,0.08)';
   const titleClr = darkMode ? 'var(--doctor-text)' : '#0f172a';
   const muted = darkMode ? 'var(--doctor-muted)' : '#64748b';
   const latestDate = data[0]?.date ?? '';
@@ -927,8 +928,8 @@ function AIAnalysisPanel({ data, darkMode, stacked = false, accessLevel, onBack 
           padding: '16px 14px',
           width: 'calc(100% - 20px)',
           marginLeft: 5,
-          backdropFilter: 'blur(14px)',
-          WebkitBackdropFilter: 'blur(14px)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           maxHeight: stacked ? 'none' : '34%',
           overflowY: 'auto',
           minHeight: 220,
@@ -1040,8 +1041,8 @@ function AIAnalysisPanel({ data, darkMode, stacked = false, accessLevel, onBack 
           padding: '18px 16px',
           width: 'calc(100% - 20px)',
           marginLeft: 5,
-          backdropFilter: 'blur(14px)',
-          WebkitBackdropFilter: 'blur(14px)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           flex: stacked ? '1 1 420px' : 1,
           minHeight: stacked ? 220 : 0,
           overflowY: 'auto',
@@ -1856,7 +1857,7 @@ function BottomZoomSlider({ value, onChange, chromeDarkMode }: { value: number; 
 }
 
 // -- TimelineView -------------------------------------------------
-export function TimelineView({ patientId, darkMode, timelineTheme = 'default', timelineLayout = 'advanced', timelineZoom = 1, setTimelineZoom, accessLevel, onBack, onBuildEMR }: { patientId?: string | null; darkMode?: boolean; timelineTheme?: TimelineTheme; timelineLayout?: 'simple' | 'advanced'; timelineZoom?: number; setTimelineZoom?: (zoom: number) => void; accessLevel?: 'full' | 'lab' | 'summary' | null; onBack?: () => void; onBuildEMR?: () => void }) {
+export function TimelineView({ patientId, darkMode, timelineTheme = 'default', timelineWarp = false, timelineLayout = 'advanced', timelineZoom = 1, setTimelineZoom, accessLevel, onBack, onBuildEMR }: { patientId?: string | null; darkMode?: boolean; timelineTheme?: TimelineTheme; timelineWarp?: boolean; timelineLayout?: 'simple' | 'advanced'; timelineZoom?: number; setTimelineZoom?: (zoom: number) => void; accessLevel?: 'full' | 'lab' | 'summary' | null; onBack?: () => void; onBuildEMR?: () => void }) {
   const [forcedDarker, setForcedDarker] = useState(false);
   const [listMode, setListMode] = useState(() => timelineLayout === 'simple');
   const effectiveTheme: TimelineTheme = forcedDarker ? 'dashboard-dark' : timelineTheme;
@@ -2149,6 +2150,11 @@ export function TimelineView({ patientId, darkMode, timelineTheme = 'default', t
         gridTemplateRows: stackAnalysisPanel ? 'auto minmax(0, 1fr)' : 'minmax(0, 1fr)',
       }}
     >
+      {timelineWarp && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden', opacity: 0.8 }}>
+          <SpacetimeSingularity />
+        </div>
+      )}
       <style>{`
         @keyframes pInL      { from{opacity:0;transform:translateX(-22px) scale(0.97)} to{opacity:1;transform:translateX(0) scale(1)} }
         @keyframes pInR      { from{opacity:0;transform:translateX(22px)  scale(0.97)} to{opacity:1;transform:translateX(0) scale(1)} }
@@ -2198,7 +2204,8 @@ export function TimelineView({ patientId, darkMode, timelineTheme = 'default', t
           overflow: 'hidden',
           pointerEvents: 'none',
           zIndex: 0,
-          opacity: 0.98,
+          opacity: timelineWarp ? 0 : 0.98,
+          transition: 'opacity 0.4s ease-in-out',
         }}
       >
         <svg

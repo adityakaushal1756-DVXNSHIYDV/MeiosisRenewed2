@@ -1,4 +1,5 @@
 import { ShieldOff, X } from 'lucide-react';
+import { SpacetimeSingularity } from './SpacetimeSingularity';
 
 interface AccessDeniedOverlayProps {
   patientName: string;
@@ -22,11 +23,20 @@ export function AccessDeniedOverlay({ patientName, onClose, onBuildEMR, isClosin
         style={{ top: 20, left: 20, right: 20, bottom: 0, background: '#070e1a' }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Background Animation */}
+        <div className="absolute inset-0 z-0 pointer-events-none opacity-80">
+          <SpacetimeSingularity
+            coreColorHex="#ff4444"
+            edgeColorHex="#1e40af"
+            text="ACCESS DENIED: MEDICAL DATA IS ENCRYPTED AND PATIENT LOCKED."
+          />
+        </div>
+
         {/* Drag handle */}
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 h-[5px] w-12 rounded-full bg-white/20 pointer-events-none" />
 
         {/* Toolbar */}
-        <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
+        <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between">
           <button
             type="button"
             onClick={onClose}
@@ -52,9 +62,9 @@ export function AccessDeniedOverlay({ patientName, onClose, onBuildEMR, isClosin
         </div>
 
         {/* Content */}
-        <div className="flex h-full flex-col items-center justify-center gap-6 px-6 text-center">
+        <div className="relative z-10 flex h-full flex-col items-center justify-center gap-6 px-6 text-center">
           {/* Shield icon */}
-          <div className="flex h-24 w-24 items-center justify-center rounded-3xl border border-red-400/20 bg-red-400/[0.08]">
+          <div className="flex h-24 w-24 items-center justify-center rounded-3xl border border-red-400/20 bg-red-400/[0.08] backdrop-blur-md">
             <ShieldOff size={40} className="text-red-400/70" />
           </div>
 

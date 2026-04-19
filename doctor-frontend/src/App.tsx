@@ -40,6 +40,7 @@ const DOCTOR_CUSTOM_THEME_KEY = 'meiosis_doctor_custom_theme_v1';
 const DOCTOR_DARKER_TIMELINE_KEY = 'meiosis_doctor_darker_timeline_v1';
 const DOCTOR_TIMELINE_THEME_KEY = 'meiosis_doctor_timeline_theme_v1';
 const DOCTOR_TIMELINE_ZOOM_KEY        = 'meiosis_doctor_timeline_zoom_v1';
+const DOCTOR_TIMELINE_WARP_KEY        = 'meiosis_doctor_timeline_warp_v1';
 const DOCTOR_EMR_BUILDER_V2_THEME_KEY = 'meiosis_doctor_emr_builder_v2_theme_v1';
 const DOCTOR_EMR_BUILDER_LAYOUT_KEY   = 'meiosis_doctor_emr_builder_layout_v1';
 const DOCTOR_TIMELINE_LAYOUT_KEY      = 'meiosis_doctor_timeline_layout_v1';
@@ -534,6 +535,17 @@ export default function App() {
     const next = clampTimelineZoom(value);
     setTimelineZoomState(next);
     try { localStorage.setItem(DOCTOR_TIMELINE_ZOOM_KEY, String(next)); } catch {}
+  };
+  const [timelineWarp, setTimelineWarpState] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(DOCTOR_TIMELINE_WARP_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const handleTimelineWarpChange = (value: boolean) => {
+    setTimelineWarpState(value);
+    try { localStorage.setItem(DOCTOR_TIMELINE_WARP_KEY, String(value)); } catch {}
   };
   const [emrBuilderLayout, setEmrBuilderLayoutState] = useState<'simple' | 'modern'>(() => {
     try {
@@ -1480,6 +1492,8 @@ export default function App() {
                 darkMode={darkMode}
                 themeMode={themeMode}
                 customTheme={customTheme}
+                timelineWarp={timelineWarp}
+                onTimelineWarpChange={handleTimelineWarpChange}
                 onThemeModeChange={setThemeMode}
                 onCustomThemeChange={setCustomTheme}
                 onToggleTheme={() => setThemeMode((current) => (current === 'light' ? 'dark' : 'light'))}
@@ -1598,6 +1612,7 @@ export default function App() {
                       patientId={viewRecordsPatientId}
                       darkMode={darkMode}
                       timelineTheme={timelineTheme}
+                      timelineWarp={timelineWarp}
                       timelineLayout={timelineLayout}
                       timelineZoom={timelineZoom}
                       setTimelineZoom={setTimelineZoom}

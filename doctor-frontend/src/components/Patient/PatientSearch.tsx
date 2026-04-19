@@ -113,7 +113,7 @@ export function PatientSearch({
   }, []); // empty deps — stable via refs
 
   return (
-    <section className="glass-card flex h-full min-h-0 flex-col p-6 overflow-hidden">
+    <section className="flex h-full min-h-0 flex-col p-6 overflow-hidden rounded-[24px] bg-[#031525]/60 backdrop-blur-md border border-white/5 shadow-2xl">
       {/* Search input + results count */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">

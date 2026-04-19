@@ -92,6 +92,8 @@ interface DashboardProps {
     | "yellow"
     | "custom";
   customTheme: { hue: number; brightness: number };
+  timelineWarp: boolean;
+  onTimelineWarpChange: (value: boolean) => void;
   onThemeModeChange: (
     theme:
       | "dark"
@@ -690,6 +692,8 @@ export default function Dashboard(props: DashboardProps) {
     darkMode,
     themeMode,
     customTheme,
+    timelineWarp,
+    onTimelineWarpChange,
     onThemeModeChange,
     onCustomThemeChange,
     onToggleTheme,
@@ -1299,9 +1303,6 @@ export default function Dashboard(props: DashboardProps) {
   /* ── Patient Search ── */
   const searchView = (
     <div className="relative h-full w-full">
-      <div className="absolute inset-[-16px] z-0 overflow-hidden rounded-3xl opacity-80 pointer-events-none">
-        <SpacetimeSingularity />
-      </div>
       <div className="grid h-full min-h-0 gap-5 xl:grid-cols-[0.82fr_1.18fr] relative z-10">
         <PatientSearch
           query={searchQuery}
@@ -1501,8 +1502,32 @@ export default function Dashboard(props: DashboardProps) {
                       >
                         <option value="default">Default</option>
                         <option value="dashboard-dark">Dashboard Dark</option>
-                        <option value="beige-light">Beige Light</option>
+                        <option value="beige-light">Clinical Light</option>
                       </select>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-wire/8 bg-slate-950/20 p-4 mt-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="font-medium text-white">Timeline Warp</div>
+                        <div className="mt-1 text-sm text-mist">
+                          Overlay the 3D singularity animation underneath the EMR timeline.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onTimelineWarpChange(!timelineWarp)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          timelineWarp ? "bg-neon" : "bg-white/10"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            timelineWarp ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -3160,6 +3185,12 @@ export default function Dashboard(props: DashboardProps) {
     <div
       className={`relative h-screen overflow-hidden ${darkMode ? "bg-ink text-white" : "bg-slate-100 text-slate-950"}`}
     >
+      {/* Global Spacetime Background for Search View */}
+      {nav === "search" && (
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <SpacetimeSingularity />
+        </div>
+      )}
       <div
         className="relative mx-auto flex h-full max-w-[1720px] gap-0 px-4 pb-4 pt-20 xl:gap-4 xl:px-6 xl:py-6"
       >

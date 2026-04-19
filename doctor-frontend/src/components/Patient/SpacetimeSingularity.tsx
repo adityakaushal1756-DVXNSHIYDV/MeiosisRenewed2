@@ -8,19 +8,30 @@ varying float vDist;
 void main() {
   vec3 pos = position;
   
-  // Calculate radial distance from origin (center of the grid)
+  // Convert standard grid coordinates to polar
   float r = length(pos.xy);
-  vDist = r;
+  float theta = atan(pos.y, pos.x);
   
-  // Gravitational parameters
-  float A = 120.0; // intensity
-  float c = 5.0; // softening
+  // Maximum active radius to consider before respawning
+  float max_r = 35.0;
   
-  // Spacetime bending: deeper near the center
-  pos.z = -(A / (r * 0.4 + c)) * 2.0;
+  // Inflow dynamic: particles move radially inward.
+  // mod() allows them to sink into the singularity and wrap around to the edge
+  float new_r = mod(r - uTime * 2.5, max_r);
   
-  // Spiral orbital rotation based on inverse distance and time
-  float omega = uTime * 0.2 + (15.0 / (r + 2.0));
+  // Reconstruct XY position in cartesian space
+  pos.x = new_r * cos(theta);
+  pos.y = new_r * sin(theta);
+  
+  // Gravitational bending depth
+  float A = 140.0; // intensity
+  float c = 4.0;   // softening
+  
+  // Spacetime well drops sharply at the center
+  pos.z = -(A / (new_r * 0.4 + c)) * 2.2;
+  
+  // Orbital rotation (swirl effect) intensifies near the center
+  float omega = uTime * 0.3 + (18.0 / (new_r + 1.5));
   float s = sin(omega);
   float cos_omega = cos(omega);
   
@@ -31,8 +42,9 @@ void main() {
   
   pos.xy = rotatedXY;
   
-  // Particle size: smaller at the singularity core, larger at the event horizon/periphery
-  gl_PointSize = clamp(r * 0.08, 0.8, 3.5);
+  // Scale points up and make them larger towards the edges, smaller in the well
+  gl_PointSize = clamp(new_r * 0.15, 1.5, 4.5);
+  vDist = new_r; // Forward the dynamically looped radius for color/fade processing
   
   gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
 }
@@ -40,62 +52,69 @@ void main() {
 
 const fragmentShader = `
 varying float vDist;
+uniform vec3 uCoreColor;
+uniform vec3 uEdgeColor;
 
 void main() {
-  // Create rounded points
+  // Circular point mask with smooth edge
   vec2 coord = gl_PointCoord - vec2(0.5);
   float dist = length(coord);
   if (dist > 0.5) discard;
   
-  // Soft bloom blur
   float alpha = smoothstep(0.5, 0.1, dist);
   
-  // Core dims slightly, edges are brighter
-  float brightness = clamp(vDist / 10.0, 0.15, 1.0);
+  // Tighter fade in the center so we don't hide the vibrant core color!
+  float fade = smoothstep(0.0, 1.5, vDist) * smoothstep(35.0, 25.0, vDist);
   
-  // Theme colors: Neon green (#52ff9d) core, fading to Sky blue (#38bdf8) edges
-  vec3 coreColor = vec3(0.32, 1.0, 0.61);
-  vec3 edgeColor = vec3(0.22, 0.74, 0.97);
-  vec3 color = mix(coreColor, edgeColor, clamp(vDist / 25.0, 0.0, 1.0)) * brightness;
+  // Make the core color much more dominant across the grid by using a power curve
+  float blendFactor = clamp(pow(vDist / 35.0, 2.5), 0.0, 1.0);
+  vec3 color = mix(uCoreColor, uEdgeColor, blendFactor);
   
-  gl_FragColor = vec4(color, alpha * 0.6); // Subtle opacity so it sits in the background well
+  // Overdrive brightness based on how close it is to the core
+  float glow = 1.0 + (1.0 - blendFactor) * 1.5; 
+  
+  gl_FragColor = vec4(color * glow, alpha * fade * 1.5); // Boosted alpha and color glow
 }
 `;
 
-export function SpacetimeSingularity() {
+export function SpacetimeSingularity({
+  coreColorHex = '#52ff9d',
+  edgeColorHex = '#38bdf8',
+  text = '"Spacetime tells matter how to move, matter tells spacetime how to curve."'
+}: {
+  coreColorHex?: string;
+  edgeColorHex?: string;
+  text?: string;
+}) {
   const mountRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!mountRef.current) return;
 
-    // 1. Setup Scene
     const scene = new THREE.Scene();
-    scene.background = null; // Transparent to inherit dashboard bg
-    scene.fog = new THREE.FogExp2('#031525', 0.015); // Match deep blue dashboard
+    scene.background = null; 
+    scene.fog = new THREE.FogExp2('#031525', 0.02);
 
-    // 2. Setup Camera
     const container = mountRef.current;
     const width = container.clientWidth;
     const height = container.clientHeight;
     
-    // 45-degree isometric-like perspective looking down
+    // Zoomed-in camera for denser, up-close view
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.set(0, -35, 25);
-    camera.lookAt(0, 0, -10);
+    camera.position.set(0, -22, 16);
+    camera.lookAt(0, 0, -8);
 
-    // 3. Setup Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x000000, 0); // Transparent 
+    renderer.setClearColor(0x000000, 0); 
     container.appendChild(renderer.domElement);
 
-    // 4. Create Grid Geometry
+    // Increase point density for the closer camera shot
     const gridSize = 50;
-    const gridSegments = 100; // 10k vertices
+    const gridSegments = 130; 
     const geometry = new THREE.PlaneGeometry(gridSize, gridSize, gridSegments, gridSegments);
 
-    // 5. Create Shader Material
     const material = new THREE.ShaderMaterial({
       vertexShader,
       fragmentShader,
@@ -103,15 +122,15 @@ export function SpacetimeSingularity() {
       depthWrite: false,
       blending: THREE.AdditiveBlending,
       uniforms: {
-        uTime: { value: 0.0 }
+        uTime: { value: 0.0 },
+        uCoreColor: { value: new THREE.Color(coreColorHex) },
+        uEdgeColor: { value: new THREE.Color(edgeColorHex) },
       }
     });
 
-    // 6. Create Points Object
     const points = new THREE.Points(geometry, material);
     scene.add(points);
 
-    // 7. Animation Loop
     let animationFrameId: number;
     const clock = new THREE.Clock();
 
@@ -122,7 +141,6 @@ export function SpacetimeSingularity() {
     };
     animate();
 
-    // 8. Handle Resize
     const handleResize = () => {
       const nw = container.clientWidth;
       const nh = container.clientHeight;
@@ -132,7 +150,6 @@ export function SpacetimeSingularity() {
     };
     window.addEventListener('resize', handleResize);
 
-    // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
@@ -144,7 +161,7 @@ export function SpacetimeSingularity() {
       }
       renderer.dispose();
     };
-  }, []);
+  }, [coreColorHex, edgeColorHex]);
 
   return (
     <div className="relative w-full h-full overflow-hidden rounded-[inherit] pointer-events-none">
@@ -153,13 +170,6 @@ export function SpacetimeSingularity() {
       
       {/* Vignette Overlay to blend with dashboard edges */}
       <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_center,transparent_0%,#031525_100%)] opacity-80" />
-
-      {/* Typography Overlay */}
-      <div className="absolute bottom-12 left-0 right-0 z-20 flex justify-center">
-        <p className="text-[11px] font-medium tracking-[0.2em] text-neon/40 uppercase w-full text-center px-6 drop-shadow-md">
-          "Spacetime tells matter how to move, matter tells spacetime how to curve."
-        </p>
-      </div>
     </div>
   );
 }

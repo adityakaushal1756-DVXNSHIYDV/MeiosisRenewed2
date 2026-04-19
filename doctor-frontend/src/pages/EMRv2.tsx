@@ -5,6 +5,7 @@ interface EMRv2Props {
   patientId?: string | null;
   darkMode?: boolean;
   timelineTheme?: 'default' | 'dashboard-dark' | 'beige-light';
+  timelineWarp?: boolean;
   timelineLayout?: 'simple' | 'advanced';
   timelineZoom?: number;
   setTimelineZoom?: (zoom: number) => void;
@@ -19,6 +20,7 @@ export default function EMRv2({
   patientId,
   darkMode,
   timelineTheme = 'default',
+  timelineWarp = false,
   timelineLayout = 'advanced',
   timelineZoom = 1,
   setTimelineZoom,
@@ -63,6 +65,7 @@ export default function EMRv2({
         patientId={patientId} 
         darkMode={darkMode} 
         timelineTheme={timelineTheme} 
+        timelineWarp={timelineWarp}
         timelineLayout={timelineLayout} 
         timelineZoom={timelineZoom} 
         setTimelineZoom={setTimelineZoom} 
