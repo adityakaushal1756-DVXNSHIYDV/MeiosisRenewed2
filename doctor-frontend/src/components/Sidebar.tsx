@@ -102,8 +102,10 @@ export function Sidebar({
     borderRadius: 32,
     border: '1px solid var(--doctor-border)',
     background:
-      'linear-gradient(180deg, color-mix(in srgb, var(--doctor-card-tint) 96%, transparent), color-mix(in srgb, var(--doctor-card-tint) 88%, transparent))',
+      'linear-gradient(180deg, color-mix(in srgb, var(--doctor-card-tint) 64%, transparent), color-mix(in srgb, var(--doctor-card-tint) 48%, transparent))',
     boxShadow: '0 28px 90px rgba(0,0,0,0.50)',
+    backdropFilter: 'blur(32px)',
+    WebkitBackdropFilter: 'blur(32px)',
   };
 
   return (

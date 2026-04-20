@@ -41,6 +41,9 @@ const DOCTOR_DARKER_TIMELINE_KEY = 'meiosis_doctor_darker_timeline_v1';
 const DOCTOR_TIMELINE_THEME_KEY = 'meiosis_doctor_timeline_theme_v1';
 const DOCTOR_TIMELINE_ZOOM_KEY        = 'meiosis_doctor_timeline_zoom_v1';
 const DOCTOR_TIMELINE_WARP_KEY        = 'meiosis_doctor_timeline_warp_v1';
+const DOCTOR_SINGULARITY_MODERN_KEY = 'meiosis_doctor_singularity_modern_v1';
+const DOCTOR_SINGULARITY_SPEED_KEY = 'meiosis_doctor_singularity_speed_v1';
+const DOCTOR_SINGULARITY_ENABLED_KEY = 'meiosis_doctor_singularity_enabled_v1';
 const DOCTOR_EMR_BUILDER_V2_THEME_KEY = 'meiosis_doctor_emr_builder_v2_theme_v1';
 const DOCTOR_EMR_BUILDER_LAYOUT_KEY   = 'meiosis_doctor_emr_builder_layout_v1';
 const DOCTOR_TIMELINE_LAYOUT_KEY      = 'meiosis_doctor_timeline_layout_v1';
@@ -48,7 +51,6 @@ const DOCTOR_PRESCRIPTION_TEMPLATES_KEY = 'meiosis_doctor_prescription_templates
 const DOCTOR_SLOT_DURATION_KEY        = 'meiosis_doctor_slot_duration_v1';
 const DOCTOR_QUEUE_BLOCK_DURATION_KEY = 'meiosis_doctor_queue_block_duration_v1';
 const DOCTOR_FOLLOWUP_GAP_KEY         = 'meiosis_doctor_followup_gap_v1';
-const DOCTOR_SINGULARITY_MODERN_KEY   = 'meiosis_doctor_singularity_modern_v1';
 const TIMELINE_ZOOM_MIN = 0.8;
 const TIMELINE_ZOOM_MAX = 1.4;
 const TIMELINE_ZOOM_STEP = 0.05;
@@ -550,14 +552,40 @@ export default function App() {
   };
   const [singularityModern, setSingularityModernState] = useState<boolean>(() => {
     try {
-      return localStorage.getItem(DOCTOR_SINGULARITY_MODERN_KEY) === 'true';
+      const stored = localStorage.getItem(DOCTOR_SINGULARITY_MODERN_KEY);
+      return stored === null ? true : stored === 'true';
     } catch {
-      return false;
+      return true;
     }
   });
   const handleSingularityModernChange = (value: boolean) => {
     setSingularityModernState(value);
     try { localStorage.setItem(DOCTOR_SINGULARITY_MODERN_KEY, String(value)); } catch {}
+  };
+  const [singularitySpeed, setSingularitySpeedState] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem(DOCTOR_SINGULARITY_SPEED_KEY);
+      return stored ? parseFloat(stored) : 1.0;
+    } catch {
+      return 1.0;
+    }
+  });
+  const handleSingularitySpeedChange = (value: number) => {
+    console.log("[Meiosis] singularitySpeed updated to:", value);
+    setSingularitySpeedState(value);
+    try { localStorage.setItem(DOCTOR_SINGULARITY_SPEED_KEY, String(value)); } catch {}
+  };
+  const [singularityEnabled, setSingularityEnabledState] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem(DOCTOR_SINGULARITY_ENABLED_KEY);
+      return stored !== null ? stored === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+  const handleSingularityEnabledChange = (enabled: boolean) => {
+    setSingularityEnabledState(enabled);
+    try { localStorage.setItem(DOCTOR_SINGULARITY_ENABLED_KEY, String(enabled)); } catch {}
   };
   const [emrBuilderLayout, setEmrBuilderLayoutState] = useState<'simple' | 'modern'>(() => {
     try {
@@ -1508,6 +1536,10 @@ export default function App() {
                 onTimelineWarpChange={handleTimelineWarpChange}
                 singularityModern={singularityModern}
                 onSingularityModernChange={handleSingularityModernChange}
+                singularitySpeed={singularitySpeed}
+                onSingularitySpeedChange={handleSingularitySpeedChange}
+                singularityEnabled={singularityEnabled}
+                onSingularityEnabledChange={handleSingularityEnabledChange}
                 onThemeModeChange={setThemeMode}
                 onCustomThemeChange={setCustomTheme}
                 onToggleTheme={() => setThemeMode((current) => (current === 'light' ? 'dark' : 'light'))}

@@ -94,6 +94,7 @@ void main() {
      // Reproject after modifying Z
      clipPos = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
   }
+  
   vFilament = filament;
   
   gl_PointSize = clamp(new_r * 0.22, 1.0, 5.5);
@@ -155,13 +156,21 @@ void main() {
 export function SpacetimeSingularity({
   coreColorHex = '#67e8f9',
   edgeColorHex = '#06111d',
-  modern = false
+  modern = false,
+  speed = 1.0
 }: {
   coreColorHex?: string;
   edgeColorHex?: string;
   modern?: boolean;
+  speed?: number;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const speedRef = useRef(speed);
+
+  // Sync speed prop to ref for the animation loop
+  useEffect(() => {
+    speedRef.current = speed;
+  }, [speed]);
   
   const mouseNDCRef = useRef(new THREE.Vector2(-999, -999));
 
@@ -202,22 +211,25 @@ export function SpacetimeSingularity({
         uMouseNDC: { value: mouseNDCRef.current },
         uAspect: { value: camera.aspect },
         uCoreColor: { value: new THREE.Color(coreColorHex) },
-        uEdgeColor: { value: new THREE.Color(edgeColorHex) },
+        uEdgeColor: { value: new THREE.Color(edgeColorHex) }
       }
     });
 
     const points = new THREE.Points(geometry, material);
     scene.add(points);
 
-
-
     let animationFrameId: number;
     const clock = new THREE.Clock();
+    const accumulatedTime = { current: 0.0 };
 
     const animate = () => {
-      material.uniforms.uTime.value = clock.getElapsedTime();
+      const delta = clock.getDelta();
+      accumulatedTime.current += delta * speedRef.current;
+      
+      material.uniforms.uTime.value = accumulatedTime.current;
       material.uniforms.uMouseNDC.value = mouseNDCRef.current;
       material.uniforms.uAspect.value = camera.aspect;
+      
       renderer.render(scene, camera);
       animationFrameId = requestAnimationFrame(animate);
     };

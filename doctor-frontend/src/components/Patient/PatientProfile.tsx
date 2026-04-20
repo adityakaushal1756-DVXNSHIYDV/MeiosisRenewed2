@@ -9,12 +9,25 @@ interface PatientProfileProps {
 export function PatientProfile({ patient, accessLevel }: PatientProfileProps) {
   if (!patient) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-8 opacity-60">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-[24px] border border-wire/10 bg-white/[0.02] text-mist/30">
-          <UserCircle2 size={32} />
+      <div className="glass-panel flex flex-col h-full overflow-hidden border-wire/12 bg-slate-950/35 relative">
+        <div className="flex flex-col items-center justify-center flex-1 text-center p-8 opacity-60">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-[24px] border border-wire/10 bg-white/[0.02] text-mist/30">
+            <UserCircle2 size={32} />
+          </div>
+          <h2 className="text-lg font-semibold text-white/40">Select a Patient</h2>
+          <p className="mt-2 max-w-[240px] text-sm text-mist/30">Search or select a patient record to begin clinical review.</p>
         </div>
-        <h2 className="text-lg font-semibold text-white/40">Select a Patient</h2>
-        <p className="mt-2 max-w-[240px] text-sm text-mist/30">Search or select a patient record to begin clinical review.</p>
+
+        {/* Console Footer Bar (Disabled State) */}
+        <div className="px-6 py-2 border-t border-wire/8 bg-slate-950/50 flex items-center justify-between">
+           <div className="text-[8px] font-bold uppercase tracking-[0.25em] text-mist/10">
+             System Verification End-Point: IDLE
+           </div>
+           <div className="flex items-center gap-2">
+              <span className="h-1 w-1 rounded-full bg-white/5" />
+              <span className="text-[8px] font-medium text-mist/10 uppercase tracking-widest">Awaiting Input</span>
+           </div>
+        </div>
       </div>
     );
   }
@@ -34,11 +47,28 @@ export function PatientProfile({ patient, accessLevel }: PatientProfileProps) {
         : { label: "Routine Care", tone: "green" };
 
   return (
-    <section className="relative flex flex-col gap-6">
+    <div className="glass-panel flex flex-col h-full overflow-hidden border-wire/12 bg-slate-950/35 relative">
+      {/* Console Header / Status Row */}
+      <div className="flex items-center justify-between px-6 py-3 border-b border-wire/10 bg-white/[0.02]">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <div className="h-1.5 w-1.5 rounded-full bg-neon animate-pulse" />
+            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-neon">Intelligence Active</span>
+          </div>
+          <span className="h-3 w-px bg-wire/15" />
+          <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-mist/40 italic">Meiosis Console v4.2</span>
+        </div>
+        <div className="flex items-center gap-4 text-[9px] font-bold uppercase tracking-[0.15em] text-mist/30">
+          <span className="flex items-center gap-1"><Lock size={10} /> Encrypted Session</span>
+          <span className="flex items-center gap-1"><Database size={10} /> Local Cache Ready</span>
+        </div>
+      </div>
+
+      <section className="relative flex-1 overflow-auto scroll-skin p-6 flex flex-col gap-8">
       
       {/* TIER 1: IDENTITY HEADER (Full Width) */}
-      <div className="glass-card relative overflow-hidden bg-gradient-to-br from-white/[0.03] to-transparent p-6">
-        <div className="pointer-events-none absolute -right-6 -top-6 h-48 w-48 rounded-full bg-neon/[0.07] blur-3xl" />
+      <div className="relative overflow-hidden rounded-[28px] border border-wire/10 bg-gradient-to-br from-white/[0.04] to-transparent p-7 shadow-2xl">
+        <div className="pointer-events-none absolute -right-6 -top-6 h-48 w-48 rounded-full bg-neon/[0.07] blur-3xl opacity-50" />
         
         <div className="relative flex flex-col gap-6 md:flex-row md:items-center">
           <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-[24px] border border-wire/15 bg-slate-950/40 text-neon shadow-xl">
@@ -81,7 +111,7 @@ export function PatientProfile({ patient, accessLevel }: PatientProfileProps) {
         
         {/* Left: Telemetry (8 cols) */}
         <div className="xl:col-span-8">
-          <div className="glass-panel h-full p-5">
+          <div className="h-full">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-mist/40">
                 <Gauge size={14} /> Biometric Telemetry
@@ -140,7 +170,7 @@ export function PatientProfile({ patient, accessLevel }: PatientProfileProps) {
 
         {/* Right: Context (4 cols) */}
         <div className="xl:col-span-4">
-          <div className="glass-panel h-full p-5 flex flex-col">
+          <div className="h-full p-0 flex flex-col">
             <div className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-mist/40">Patient Context</div>
             <div className="space-y-4 flex-1">
               <div className="flex items-center gap-3">
@@ -166,7 +196,7 @@ export function PatientProfile({ patient, accessLevel }: PatientProfileProps) {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-12 lg:grid-cols-12">
         
         {/* Panel 1: Safety Alerts */}
-        <div className="glass-panel p-5 border-l-4 border-l-red-500/30 md:col-span-4 flex flex-col">
+        <div className="p-5 border-l-4 border-l-red-500/30 md:col-span-4 flex flex-col bg-white/[0.01] rounded-3xl border border-wire/5">
           <div className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-red-400/80">
             <ShieldAlert size={14} /> Safety Warnings
           </div>
@@ -187,7 +217,7 @@ export function PatientProfile({ patient, accessLevel }: PatientProfileProps) {
         </div>
 
         {/* Panel 2: MEIOSIS Insights */}
-        <div className="glass-panel relative overflow-hidden p-5 border-l-4 border-l-neon/30 md:col-span-5 bg-gradient-to-br from-neon/[0.02] to-transparent flex flex-col">
+        <div className="relative overflow-hidden p-5 border-l-4 border-l-neon/30 md:col-span-5 bg-gradient-to-br from-neon/[0.03] to-transparent flex flex-col rounded-3xl border border-wire/5">
           <div className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-neon/70">
             <Siren size={14} /> Augmented Intelligence
           </div>
@@ -206,7 +236,7 @@ export function PatientProfile({ patient, accessLevel }: PatientProfileProps) {
         </div>
 
         {/* Panel 3: Data Coverage & Coverage Logic */}
-        <div className="glass-panel p-5 bg-slate-950/20 md:col-span-3 flex flex-col">
+        <div className="p-5 bg-slate-950/20 md:col-span-3 flex flex-col rounded-3xl border border-wire/5">
           <div className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-mist/40">
             <Database size={14} /> Data Coverage
           </div>
@@ -227,6 +257,18 @@ export function PatientProfile({ patient, accessLevel }: PatientProfileProps) {
         </div>
 
       </div>
-    </section>
+      </section>
+
+      {/* Console Footer Bar */}
+      <div className="px-6 py-2 border-t border-wire/8 bg-slate-950/50 flex items-center justify-between">
+         <div className="text-[8px] font-bold uppercase tracking-[0.25em] text-mist/20">
+           System Verification End-Point: {patient.meiosisCode || '---'}
+         </div>
+         <div className="flex items-center gap-2">
+            <span className="h-1 w-1 rounded-full bg-white/10" />
+            <span className="text-[8px] font-medium text-mist/15 uppercase tracking-widest">Protocol Secured</span>
+         </div>
+      </div>
+    </div>
   );
 }

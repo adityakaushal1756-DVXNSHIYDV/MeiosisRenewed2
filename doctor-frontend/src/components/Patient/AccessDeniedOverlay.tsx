@@ -36,31 +36,7 @@ export function AccessDeniedOverlay({ patientName, onClose, onBuildEMR, isClosin
         {/* Drag handle */}
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 h-[5px] w-12 rounded-full bg-white/20 pointer-events-none" />
 
-        {/* Toolbar */}
-        <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex items-center gap-1.5 rounded-2xl border border-white/10 bg-black/40 px-3 py-1.5 text-xs font-medium text-white/70 backdrop-blur-sm transition hover:bg-black/60 hover:text-white"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Back
-          </button>
 
-          <button
-            type="button"
-            onClick={onBuildEMR}
-            className="flex items-center gap-1.5 rounded-2xl border border-neon/25 bg-neon/10 px-3 py-1.5 text-xs font-medium text-neon backdrop-blur-sm transition hover:bg-neon/20 hover:border-neon/40"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.6"/>
-              <path d="M7 5v4M5 7h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-            </svg>
-            Build EMR
-          </button>
-        </div>
 
         {/* Content Legibility Overlay */}
         <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.7)_0%,transparent_60%)] pointer-events-none" />

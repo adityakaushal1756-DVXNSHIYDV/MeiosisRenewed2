@@ -95,7 +95,11 @@ interface DashboardProps {
   timelineWarp: boolean;
   onTimelineWarpChange: (value: boolean) => void;
   singularityModern: boolean;
-  onSingularityModernChange: (value: boolean) => void;
+  onSingularityModernChange: (v: boolean) => void;
+  singularitySpeed: number;
+  onSingularitySpeedChange: (v: number) => void;
+  singularityEnabled: boolean;
+  onSingularityEnabledChange: (v: boolean) => void;
   onThemeModeChange: (
     theme:
       | "dark"
@@ -698,6 +702,10 @@ export default function Dashboard(props: DashboardProps) {
     onTimelineWarpChange,
     singularityModern,
     onSingularityModernChange,
+    singularitySpeed,
+    onSingularitySpeedChange,
+    singularityEnabled,
+    onSingularityEnabledChange,
     onThemeModeChange,
     onCustomThemeChange,
     onToggleTheme,
@@ -932,74 +940,8 @@ export default function Dashboard(props: DashboardProps) {
           <span className="text-[10px] font-bold uppercase tracking-widest text-neon">Syncing Dashboard</span>
         </div>
       )}
-      {/* Active consultation spotlight */}
-      {activeAppointment && (
-        <div className="stat-live-glow rounded-[28px] border border-neon/35 bg-gradient-to-r from-neon/[0.1] via-neon/[0.04] to-transparent p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl border border-neon/30 bg-neon/[0.15] text-lg font-bold text-neon">
-                {activePatient
-                  ? activePatient.name
-                      .split(" ")
-                      .slice(0, 2)
-                      .map((w: string) => w[0])
-                      .join("")
-                      .toUpperCase()
-                  : "?"}
-                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-neon">
-                  <span
-                    className="live-dot"
-                    style={{
-                      width: "5px",
-                      height: "5px",
-                      background: "#031525",
-                    }}
-                  />
-                </span>
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="live-dot" />
-                  <span className="text-xs font-semibold uppercase tracking-[0.24em] text-neon/80">
-                    Live Consultation
-                  </span>
-                </div>
-                <h3 className="mt-1 text-xl font-semibold text-white">
-                  {activePatient?.name ?? "Patient"}
-                </h3>
-                <p className="text-sm text-mist">
-                  {activeAppointment.visitReason} ·{" "}
-                  {activeAppointment.appointmentTime}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={onOpenEmrComposer}
-                className="action-btn gap-2"
-              >
-                <ClipboardPlus size={16} />
-                Open EMR
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (emrComposerOpen) {
-                    onSaveEMR("MILD");
-                  } else {
-                    onEndConsultation();
-                  }
-                }}
-                className="ghost-btn gap-2 !border-red-400/25 !text-red-300 hover:!border-red-400/40 hover:!bg-red-400/[0.12]"
-              >
-                <StopCircle size={16} />
-                End Session
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
+
 
       {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -1318,8 +1260,8 @@ export default function Dashboard(props: DashboardProps) {
           onViewRecords={onViewRecords}
           onCloseRecords={onCloseRecords}
         />
-        <div className="scroll-skin min-h-0 overflow-auto pr-1 flex flex-col">
-          <div className="space-y-5 flex-1 flex flex-col">
+        <div className="min-h-0 flex flex-col">
+          <div className="flex-1 flex flex-col">
             <PatientProfile patient={selectedPatient} accessLevel={accessLevel} />
           </div>
         </div>
@@ -1522,40 +1464,94 @@ export default function Dashboard(props: DashboardProps) {
                       <button
                         type="button"
                         onClick={() => onTimelineWarpChange(!timelineWarp)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          timelineWarp ? "bg-neon" : "bg-white/10"
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full border-2 transition-all duration-300 ${
+                          timelineWarp 
+                            ? "bg-neon/20 border-neon shadow-[0_0_12px_rgba(82,255,157,0.3)]" 
+                            : "bg-slate-900 border-white/10"
                         }`}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          className={`inline-block h-4 w-4 transform rounded-full bg-gradient-to-b from-white to-slate-200 shadow-lg transition-transform duration-300 ${
                             timelineWarp ? "translate-x-6" : "translate-x-1"
                           }`}
                         />
                       </button>
                     </div>
                   </div>
+
+                  <div className="rounded-2xl border border-wire/8 bg-slate-950/20 p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-white">
+                          Background Animation
+                        </div>
+                        <div className="mt-1 text-xs text-mist">
+                          Enable global Spacetime Singularity background.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onSingularityEnabledChange(!singularityEnabled)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full border-2 transition-all duration-300 ${
+                          singularityEnabled 
+                            ? "bg-neon/20 border-neon shadow-[0_0_12px_rgba(82,255,157,0.3)]" 
+                            : "bg-slate-900 border-white/10"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-gradient-to-b from-white to-slate-200 shadow-lg transition-transform duration-300 ${
+                            singularityEnabled ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="rounded-2xl border border-wire/8 bg-slate-950/20 p-4 mt-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="font-medium text-white">Cinematic Singularity</div>
-                        <div className="mt-1 text-sm text-mist">
-                          Enable high-fidelity relativistic rendering (Relativistic Beaming & Turbulence).
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-white">
+                          Cinematic Singularity
+                        </div>
+                        <div className="mt-1 text-xs text-mist">
+                          Enable high-fidelity relativistic rendering (Relativistic
+                          Beaming & Turbulence).
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => onSingularityModernChange(!singularityModern)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          singularityModern ? "bg-neon" : "bg-white/10"
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full border-2 transition-all duration-300 ${
+                          singularityModern 
+                            ? "bg-neon/20 border-neon shadow-[0_0_12px_rgba(82,255,157,0.3)]" 
+                            : "bg-slate-900 border-white/10"
                         }`}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          className={`inline-block h-4 w-4 transform rounded-full bg-gradient-to-b from-white to-slate-200 shadow-lg transition-transform duration-300 ${
                             singularityModern ? "translate-x-6" : "translate-x-1"
                           }`}
                         />
                       </button>
                     </div>
+                  </div>
+                  <div className="rounded-2xl border border-wire/8 bg-slate-950/20 p-4 mt-4">
+                    <label className="doctor-theme-slider-row" htmlFor="doctorSingularitySpeed">
+                      <span className="doctor-theme-slider-meta">
+                        <span>Singularity Speed</span>
+                        <strong>{singularitySpeed}x</strong>
+                      </span>
+                      <input
+                        id="doctorSingularitySpeed"
+                        className="doctor-theme-slider"
+                        type="range"
+                        min="0.1"
+                        max="5"
+                        step="0.1"
+                        value={singularitySpeed}
+                        onChange={(event) => onSingularitySpeedChange(Number(event.target.value))}
+                      />
+                    </label>
                   </div>
                 </div>
 
@@ -3212,10 +3208,12 @@ export default function Dashboard(props: DashboardProps) {
     <div
       className={`relative h-screen overflow-hidden ${darkMode ? "bg-ink text-white" : "bg-slate-100 text-slate-950"}`}
     >
-      {/* Global Spacetime Background for Search View */}
-      {nav === "search" && (
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          <SpacetimeSingularity modern={singularityModern} />
+      {/* Global Cinematic Background Layer (Ensures frame-sync continuity) */}
+      {singularityEnabled && (
+        <div className={`absolute inset-0 z-0 pointer-events-none transition-opacity duration-700 ease-in-out ${
+          (nav === "dashboard" || nav === "search") ? "opacity-65" : "opacity-0"
+        }`}>
+          <SpacetimeSingularity modern={singularityModern} speed={singularitySpeed} />
         </div>
       )}
       <div
