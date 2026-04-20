@@ -6,9 +6,10 @@ interface AccessDeniedOverlayProps {
   onClose: () => void;
   onBuildEMR: () => void;
   isClosing?: boolean;
+  singularityModern?: boolean;
 }
 
-export function AccessDeniedOverlay({ patientName, onClose, onBuildEMR, isClosing }: AccessDeniedOverlayProps) {
+export function AccessDeniedOverlay({ patientName, onClose, onBuildEMR, isClosing, singularityModern = false }: AccessDeniedOverlayProps) {
   return (
     <div
       className={`fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm ${
@@ -17,18 +18,18 @@ export function AccessDeniedOverlay({ patientName, onClose, onBuildEMR, isClosin
       onClick={onClose}
     >
       <div
-        className={`absolute rounded-t-[28px] overflow-hidden shadow-[0_-16px_60px_rgba(0,0,0,0.7)] ${
+        className={`absolute overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] ${
           isClosing ? 'records-card-exit' : 'records-card-enter'
         }`}
-        style={{ top: 20, left: 20, right: 20, bottom: 0, background: '#070e1a' }}
+        style={{ inset: 0, background: '#01050e' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Background Animation */}
         <div className="absolute inset-0 z-0 pointer-events-none opacity-80">
           <SpacetimeSingularity
             coreColorHex="#ff4444"
-            edgeColorHex="#1e40af"
-            text="ACCESS DENIED: MEDICAL DATA IS ENCRYPTED AND PATIENT LOCKED."
+            edgeColorHex="#010b18"
+            modern={singularityModern}
           />
         </div>
 
@@ -61,8 +62,11 @@ export function AccessDeniedOverlay({ patientName, onClose, onBuildEMR, isClosin
           </button>
         </div>
 
+        {/* Content Legibility Overlay */}
+        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.7)_0%,transparent_60%)] pointer-events-none" />
+
         {/* Content */}
-        <div className="relative z-10 flex h-full flex-col items-center justify-center gap-6 px-6 text-center">
+        <div className="relative z-20 flex h-full flex-col items-center justify-center gap-6 px-6 text-center">
           {/* Shield icon */}
           <div className="flex h-24 w-24 items-center justify-center rounded-3xl border border-red-400/20 bg-red-400/[0.08] backdrop-blur-md">
             <ShieldOff size={40} className="text-red-400/70" />

@@ -48,6 +48,7 @@ const DOCTOR_PRESCRIPTION_TEMPLATES_KEY = 'meiosis_doctor_prescription_templates
 const DOCTOR_SLOT_DURATION_KEY        = 'meiosis_doctor_slot_duration_v1';
 const DOCTOR_QUEUE_BLOCK_DURATION_KEY = 'meiosis_doctor_queue_block_duration_v1';
 const DOCTOR_FOLLOWUP_GAP_KEY         = 'meiosis_doctor_followup_gap_v1';
+const DOCTOR_SINGULARITY_MODERN_KEY   = 'meiosis_doctor_singularity_modern_v1';
 const TIMELINE_ZOOM_MIN = 0.8;
 const TIMELINE_ZOOM_MAX = 1.4;
 const TIMELINE_ZOOM_STEP = 0.05;
@@ -546,6 +547,17 @@ export default function App() {
   const handleTimelineWarpChange = (value: boolean) => {
     setTimelineWarpState(value);
     try { localStorage.setItem(DOCTOR_TIMELINE_WARP_KEY, String(value)); } catch {}
+  };
+  const [singularityModern, setSingularityModernState] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(DOCTOR_SINGULARITY_MODERN_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const handleSingularityModernChange = (value: boolean) => {
+    setSingularityModernState(value);
+    try { localStorage.setItem(DOCTOR_SINGULARITY_MODERN_KEY, String(value)); } catch {}
   };
   const [emrBuilderLayout, setEmrBuilderLayoutState] = useState<'simple' | 'modern'>(() => {
     try {
@@ -1494,6 +1506,8 @@ export default function App() {
                 customTheme={customTheme}
                 timelineWarp={timelineWarp}
                 onTimelineWarpChange={handleTimelineWarpChange}
+                singularityModern={singularityModern}
+                onSingularityModernChange={handleSingularityModernChange}
                 onThemeModeChange={setThemeMode}
                 onCustomThemeChange={setCustomTheme}
                 onToggleTheme={() => setThemeMode((current) => (current === 'light' ? 'dark' : 'light'))}
@@ -1613,6 +1627,7 @@ export default function App() {
                       darkMode={darkMode}
                       timelineTheme={timelineTheme}
                       timelineWarp={timelineWarp}
+                      singularityModern={singularityModern}
                       timelineLayout={timelineLayout}
                       timelineZoom={timelineZoom}
                       setTimelineZoom={setTimelineZoom}
@@ -1632,6 +1647,7 @@ export default function App() {
                     }
                     onClose={closeViewRecords}
                     onBuildEMR={handleBuildEMRFromRecords}
+                    singularityModern={singularityModern}
                     isClosing={isClosingRecords}
                   />
                 )}

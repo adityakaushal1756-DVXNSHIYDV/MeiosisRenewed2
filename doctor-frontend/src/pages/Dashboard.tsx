@@ -94,6 +94,8 @@ interface DashboardProps {
   customTheme: { hue: number; brightness: number };
   timelineWarp: boolean;
   onTimelineWarpChange: (value: boolean) => void;
+  singularityModern: boolean;
+  onSingularityModernChange: (value: boolean) => void;
   onThemeModeChange: (
     theme:
       | "dark"
@@ -694,6 +696,8 @@ export default function Dashboard(props: DashboardProps) {
     customTheme,
     timelineWarp,
     onTimelineWarpChange,
+    singularityModern,
+    onSingularityModernChange,
     onThemeModeChange,
     onCustomThemeChange,
     onToggleTheme,
@@ -1525,6 +1529,29 @@ export default function Dashboard(props: DashboardProps) {
                         <span
                           className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                             timelineWarp ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-wire/8 bg-slate-950/20 p-4 mt-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="font-medium text-white">Cinematic Singularity</div>
+                        <div className="mt-1 text-sm text-mist">
+                          Enable high-fidelity relativistic rendering (Relativistic Beaming & Turbulence).
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onSingularityModernChange(!singularityModern)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          singularityModern ? "bg-neon" : "bg-white/10"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            singularityModern ? "translate-x-6" : "translate-x-1"
                           }`}
                         />
                       </button>
@@ -3188,7 +3215,7 @@ export default function Dashboard(props: DashboardProps) {
       {/* Global Spacetime Background for Search View */}
       {nav === "search" && (
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          <SpacetimeSingularity />
+          <SpacetimeSingularity modern={singularityModern} />
         </div>
       )}
       <div

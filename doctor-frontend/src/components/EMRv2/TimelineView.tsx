@@ -856,14 +856,12 @@ function AIAnalysisPanel({ data, darkMode, stacked = false, accessLevel, onBack 
   const medicationCount = data.reduce((sum, apt) => sum + apt.medications.length, 0);
 
   const shellBg = darkMode
-    ? 'rgba(3, 21, 37, 0.72)' // Matches the PatientSearch slab color
-    : 'rgba(255, 255, 255, 0.9)';
+    ? 'rgba(3, 21, 37, 0.45)' // Reduced opacity for better flow
+    : 'rgba(255, 255, 255, 0.6)';
   const shellBorder = darkMode
-    ? '1px solid rgba(103, 232, 249, 0.12)'
-    : '1px solid rgba(148, 163, 184, 0.18)';
-  const shellShadow = darkMode
-    ? '0 12px 48px rgba(0,0,0,0.3)'
-    : '0 12px 32px rgba(31,41,55,0.08)';
+    ? '1px solid rgba(255, 255, 255, 0.08)' // Thinner, more neutral border
+    : '1px solid rgba(0, 0, 0, 0.04)';
+  const shellShadow = 'none'; // Removed heavy shadow to eliminate vertical 'show/split' type look
   const titleClr = darkMode ? 'var(--doctor-text)' : '#0f172a';
   const muted = darkMode ? 'var(--doctor-muted)' : '#64748b';
   const latestDate = data[0]?.date ?? '';
@@ -1857,7 +1855,31 @@ function BottomZoomSlider({ value, onChange, chromeDarkMode }: { value: number; 
 }
 
 // -- TimelineView -------------------------------------------------
-export function TimelineView({ patientId, darkMode, timelineTheme = 'default', timelineWarp = false, timelineLayout = 'advanced', timelineZoom = 1, setTimelineZoom, accessLevel, onBack, onBuildEMR }: { patientId?: string | null; darkMode?: boolean; timelineTheme?: TimelineTheme; timelineWarp?: boolean; timelineLayout?: 'simple' | 'advanced'; timelineZoom?: number; setTimelineZoom?: (zoom: number) => void; accessLevel?: 'full' | 'lab' | 'summary' | null; onBack?: () => void; onBuildEMR?: () => void }) {
+export function TimelineView({ 
+  patientId, 
+  darkMode, 
+  timelineTheme = 'default', 
+  timelineWarp = false, 
+  singularityModern = false,
+  timelineLayout = 'advanced', 
+  timelineZoom = 1, 
+  setTimelineZoom, 
+  accessLevel, 
+  onBack, 
+  onBuildEMR 
+}: { 
+  patientId?: string | null; 
+  darkMode?: boolean; 
+  timelineTheme?: TimelineTheme; 
+  timelineWarp?: boolean; 
+  singularityModern?: boolean;
+  timelineLayout?: 'simple' | 'advanced'; 
+  timelineZoom?: number; 
+  setTimelineZoom?: (zoom: number) => void; 
+  accessLevel?: 'full' | 'lab' | 'summary' | null; 
+  onBack?: () => void; 
+  onBuildEMR?: () => void 
+}) {
   const [forcedDarker, setForcedDarker] = useState(false);
   const [listMode, setListMode] = useState(() => timelineLayout === 'simple');
   const effectiveTheme: TimelineTheme = forcedDarker ? 'dashboard-dark' : timelineTheme;
@@ -2152,7 +2174,7 @@ export function TimelineView({ patientId, darkMode, timelineTheme = 'default', t
     >
       {timelineWarp && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden', opacity: 0.8 }}>
-          <SpacetimeSingularity />
+          <SpacetimeSingularity modern={singularityModern} />
         </div>
       )}
       <style>{`

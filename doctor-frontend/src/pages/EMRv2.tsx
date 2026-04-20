@@ -6,6 +6,7 @@ interface EMRv2Props {
   darkMode?: boolean;
   timelineTheme?: 'default' | 'dashboard-dark' | 'beige-light';
   timelineWarp?: boolean;
+  singularityModern?: boolean;
   timelineLayout?: 'simple' | 'advanced';
   timelineZoom?: number;
   setTimelineZoom?: (zoom: number) => void;
@@ -21,6 +22,7 @@ export default function EMRv2({
   darkMode,
   timelineTheme = 'default',
   timelineWarp = false,
+  singularityModern = false,
   timelineLayout = 'advanced',
   timelineZoom = 1,
   setTimelineZoom,
@@ -66,6 +68,7 @@ export default function EMRv2({
         darkMode={darkMode} 
         timelineTheme={timelineTheme} 
         timelineWarp={timelineWarp}
+        singularityModern={singularityModern}
         timelineLayout={timelineLayout} 
         timelineZoom={timelineZoom} 
         setTimelineZoom={setTimelineZoom} 
