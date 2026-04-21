@@ -63,6 +63,7 @@ export interface PatientProfile {
   bloodGroup: string;
   address: string;
   healthScore: number;
+  meiosisId: string;
   universalCode: string;
   insurancePlan?: string;
   appointments: Appointment[];

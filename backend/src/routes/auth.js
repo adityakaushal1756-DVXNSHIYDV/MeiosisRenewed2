@@ -25,8 +25,12 @@ function parseInteger(value, fallback) {
 }
 
 function generateMeiosisId(role, count) {
-  if (role === 'DOCTOR') return `M-${String(count + 1).padStart(3, '0')}`;
-  return `PAT-${String(count + 1).padStart(3, '0')}`;
+  // New plan: Patients use universal code, Doctors use 8-digit random numeric
+  if (role === 'DOCTOR') {
+    return Math.floor(10000000 + Math.random() * 90000000).toString();
+  }
+  // For patients, we sync it with universal code
+  return generateUniversalCode(count);
 }
 
 function generateUniversalCode(count) {

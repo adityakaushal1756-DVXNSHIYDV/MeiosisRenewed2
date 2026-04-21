@@ -1,9 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CURRENT_DOCTOR } from '../config/doctorProfile';
 import { API_BASE_URL, getAuthHeader } from '../lib/api';
 import { Appointment, QueueStatus } from '../types/Appointment';
 import { Patient } from '../types/Patient';
 import { saveToCache, loadFromCache } from '../utils/persistentCache';
+
+// ─── Local storage key for live queue state ───────────────────────────────────
+const QUEUE_LIVE_STATE_KEY = 'meiosis_queue_live_state_v2';
+const QUEUE_SESSION_KEY = 'meiosis_queue_session_v1';
 
 function resequenceQueue(queue: Appointment[]) {
   return queue.map((item, index) => ({ ...item, queueNumber: index + 1 }));
@@ -13,6 +17,31 @@ function withStatus(item: Appointment, status: QueueStatus): Appointment {
   return { ...item, status };
 }
 
+// ─── Persist live queue state to localStorage ─────────────────────────────────
+function saveLiveState(queue: Appointment[]) {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    localStorage.setItem(QUEUE_LIVE_STATE_KEY, JSON.stringify({ date: today, queue }));
+  } catch {
+    // Storage quota exceeded — silently ignore
+  }
+}
+
+// ─── Load live queue state from localStorage ──────────────────────────────────
+function loadLiveState(): Appointment[] | null {
+  try {
+    const raw = localStorage.getItem(QUEUE_LIVE_STATE_KEY);
+    if (!raw) return null;
+    const { date, queue } = JSON.parse(raw);
+    const today = new Date().toISOString().slice(0, 10);
+    if (date !== today) return null; // Stale — different day
+    return Array.isArray(queue) ? queue : null;
+  } catch {
+    return null;
+  }
+}
+
+// ─── Map backend appointment response to frontend Appointment shape ────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapBackendToQueue(apiAppointments: any[]): { queue: Appointment[]; patients: Patient[] } {
   const queue: Appointment[] = [];
@@ -20,7 +49,7 @@ function mapBackendToQueue(apiAppointments: any[]): { queue: Appointment[]; pati
   const seenPatientIds = new Set<string>();
 
   if (!Array.isArray(apiAppointments)) {
-    console.error("[Meiosis] apiAppointments is not an array:", apiAppointments);
+    console.error('[Meiosis] apiAppointments is not an array:', apiAppointments);
     return { queue, patients };
   }
 
@@ -45,11 +74,14 @@ function mapBackendToQueue(apiAppointments: any[]): { queue: Appointment[]; pati
           id: apt.id,
           patientId: apt.patientId,
           queueNumber: apt.queueEntry?.queueNo ?? index + 1,
-          appointmentTime: scheduledAt.toLocaleTimeString('en-IN', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          }),
+          appointmentTime:
+            apt.title === 'Walk-in Consultation'
+              ? 'Walk-in'
+              : scheduledAt.toLocaleTimeString('en-IN', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                }),
           arrivalStatus: 'NOT_ARRIVED',
           status: queueStatus,
           visitReason: apt.purpose || apt.title || 'Consultation',
@@ -79,26 +111,104 @@ function mapBackendToQueue(apiAppointments: any[]): { queue: Appointment[]; pati
           });
         }
       } catch (innerErr) {
-        console.warn("[Meiosis] Failed to map single queue item:", innerErr, apt);
+        console.warn('[Meiosis] Failed to map single queue item:', innerErr, apt);
       }
     });
   } catch (err) {
-    console.error("[Meiosis] Failed to sort queue:", err);
+    console.error('[Meiosis] Failed to sort queue:', err);
   }
 
   return { queue, patients };
 }
 
+/**
+ * Merge DB queue into local live state.
+ * - DB wins for COMPLETED and items not in local state.
+ * - Local wins for IN_SESSION, PAUSED — doctor is mid-consultation.
+ * - New items from DB are appended.
+ */
+function mergeQueues(localQueue: Appointment[], dbQueue: Appointment[]): Appointment[] {
+  const localMap = new Map(localQueue.map(item => [item.id, item]));
+
+  const merged: Appointment[] = dbQueue.map(dbItem => {
+    const local = localMap.get(dbItem.id);
+    if (!local) return dbItem; // New from DB
+
+    // DB always wins for COMPLETED (canonical state)
+    if (dbItem.status === 'COMPLETED') return { ...local, status: 'COMPLETED' };
+
+    // Local wins for in-progress states (mid-consultation)
+    const inProgressLocal = local.status === 'IN_SESSION' || local.status === 'PAUSED';
+    if (inProgressLocal) return local;
+
+    return dbItem;
+  });
+
+  // Append local-only items (walk-ins that are now real DB records will be in DB, so only truly local ones remain — skip)
+  return merged;
+}
+
 function todayDateString() {
-  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  return new Date().toISOString().slice(0, 10);
 }
 
 export function useQueue() {
-  const [queue, setQueue] = useState<Appointment[]>(() => loadFromCache<Appointment[]>('queue') || []);
+  // Initialise from localStorage snapshot for instant display on refresh
+  const [queue, setQueueRaw] = useState<Appointment[]>(() => loadLiveState() || loadFromCache<Appointment[]>('queue') || []);
   const [backendPatients, setBackendPatients] = useState<Patient[]>(() => loadFromCache<Patient[]>('backendPatients') || []);
   const [activeAppointmentId, setActiveAppointmentId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [sessionCode, setSessionCode] = useState<string | null>(() => {
+    try {
+      const raw = localStorage.getItem(QUEUE_SESSION_KEY);
+      if (!raw) return null;
+      const { date, code } = JSON.parse(raw);
+      return date === todayDateString() ? code : null;
+    } catch { return null; }
+  });
 
+  // Dirty tracking — IDs of appointments whose status changed locally since last DB sync
+  const dirtyIds = useRef<Set<string>>(new Set());
+  const queueRef = useRef<Appointment[]>(queue);
+
+  // Wrapper so every state write also persists to localStorage and tracks dirty
+  const setQueue = useCallback((updater: Appointment[] | ((prev: Appointment[]) => Appointment[])) => {
+    setQueueRaw(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      saveLiveState(next);
+      saveToCache('queue', next);
+      queueRef.current = next;
+
+      // Mark changed items dirty
+      const prevMap = new Map(prev.map(i => [i.id, i]));
+      next.forEach(item => {
+        const old = prevMap.get(item.id);
+        if (old && old.status !== item.status) {
+          dirtyIds.current.add(item.id);
+        }
+      });
+
+      return next;
+    });
+  }, []);
+
+  // ─── QueueSession bootstrap ──────────────────────────────────────────────────
+  const fetchOrCreateSession = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/queue/session?doctorId=${encodeURIComponent(CURRENT_DOCTOR.id)}&date=${todayDateString()}`,
+        { headers: getAuthHeader() }
+      );
+      if (!res.ok) return;
+      const session = await res.json();
+      setSessionCode(session.sessionCode);
+      localStorage.setItem(QUEUE_SESSION_KEY, JSON.stringify({ date: todayDateString(), code: session.sessionCode }));
+    } catch (err) {
+      console.warn('[Meiosis] Could not fetch/create queue session:', err);
+    }
+  }, []);
+
+  // ─── Fetch queue from DB ─────────────────────────────────────────────────────
   const fetchQueue = useCallback(async () => {
     const date = todayDateString();
     setIsSyncing(true);
@@ -109,44 +219,109 @@ export function useQueue() {
       );
       if (!res.ok) return;
       const data = await res.json();
-      const { queue: mapped, patients } = mapBackendToQueue(data);
-      setQueue(mapped);
+      const { queue: dbQueue, patients } = mapBackendToQueue(data);
+
+      setQueue(prev => mergeQueues(prev, dbQueue));
       setBackendPatients(patients);
-      
-      // Update cache
-      saveToCache('queue', mapped);
       saveToCache('backendPatients', patients);
     } catch (err) {
-      console.error("[Meiosis] Failed to fetch queue:", err);
+      console.error('[Meiosis] Failed to fetch queue:', err);
     } finally {
       setIsSyncing(false);
     }
-  }, []);
+  }, [setQueue]);
 
+  // ─── Dirty batch sync — push only changed items to DB ───────────────────────
+  const flushDirtyToDb = useCallback(async (queueSnapshot?: Appointment[]) => {
+    const ids = Array.from(dirtyIds.current);
+    if (ids.length === 0) return;
+
+    const current = queueSnapshot || queueRef.current;
+    const sessionCodeNow = sessionCode;
+
+    const updates = ids
+      .map(id => {
+        const item = current.find(i => i.id === id);
+        if (!item) return null;
+        return { appointmentId: id, status: item.status, sessionCode: sessionCodeNow };
+      })
+      .filter(Boolean);
+
+    if (!updates.length) return;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/queue/batch`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+        body: JSON.stringify({ updates })
+      });
+      if (res.ok) {
+        dirtyIds.current.clear();
+      }
+    } catch (err) {
+      console.warn('[Meiosis] Background sync failed — will retry:', err);
+    }
+  }, [sessionCode]);
+
+  // ─── useEffect: initial load + polling ──────────────────────────────────────
   useEffect(() => {
+    fetchOrCreateSession();
     fetchQueue();
 
-    // Poll every 30s; also detect day rollover and reset queue
     let lastDay = todayDateString();
-    const interval = setInterval(() => {
+
+    // 30s poll for queue updates from DB
+    const fetchInterval = setInterval(() => {
       const today = todayDateString();
       if (today !== lastDay) {
-        // New day — clear stale queue then fetch fresh
         lastDay = today;
-        setQueue([]);
+        setQueueRaw([]);
         setBackendPatients([]);
         setActiveAppointmentId(null);
+        dirtyIds.current.clear();
+        saveLiveState([]);
+        fetchOrCreateSession();
       }
       fetchQueue();
     }, 30_000);
 
-    return () => clearInterval(interval);
-  }, [fetchQueue]);
+    // 15-minute dirty sync interval
+    const syncInterval = setInterval(() => {
+      flushDirtyToDb();
+    }, 15 * 60 * 1000);
+
+    // Flush on tab close / navigation away (sendBeacon survives page unload)
+    const handleBeforeUnload = () => {
+      const ids = Array.from(dirtyIds.current);
+      if (!ids.length) return;
+      const current = queueRef.current;
+      const updates = ids
+        .map(id => {
+          const item = current.find(i => i.id === id);
+          if (!item) return null;
+          return { appointmentId: id, status: item.status, sessionCode };
+        })
+        .filter(Boolean);
+      if (!updates.length) return;
+      const blob = new Blob([JSON.stringify({ updates })], { type: 'application/json' });
+      navigator.sendBeacon(`${API_BASE_URL}/queue/batch`, blob);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      clearInterval(fetchInterval);
+      clearInterval(syncInterval);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [fetchQueue, fetchOrCreateSession, flushDirtyToDb, sessionCode]);
 
   const activeAppointment = useMemo(
     () => queue.find((item) => item.id === activeAppointmentId) ?? null,
     [queue, activeAppointmentId]
   );
+
+  // ─── Queue Actions ───────────────────────────────────────────────────────────
 
   const startAppointment = (appointmentId: string) => {
     setQueue((current) =>
@@ -171,10 +346,10 @@ export function useQueue() {
     });
     setActiveAppointmentId(nextActiveId);
 
-    // Persist to backend
+    // Persist COMPLETED to backend immediately (canonical state change)
     fetch(`${API_BASE_URL}/appointments/${appointmentId}`, {
       method: 'PATCH',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         ...getAuthHeader()
       },
@@ -214,23 +389,88 @@ export function useQueue() {
     if (activeAppointmentId === appointmentId) setActiveAppointmentId(null);
   };
 
-  const addWalkInPatient = (patientId: string) => {
-    setQueue((current) =>
-      resequenceQueue([
-        ...current,
-        {
-          id: `walkin-${Date.now()}`,
-          patientId,
-          queueNumber: current.length + 1,
-          appointmentTime: 'Walk-in',
-          arrivalStatus: 'CHECKED_IN',
-          status: 'WAITING',
-          visitReason: 'Walk-in consultation',
-          mode: 'In-person'
-        }
-      ])
-    );
-  };
+  /**
+   * Add walk-in patient via Meiosis ID — creates a real DB appointment.
+   * Returns null on success, error string on failure.
+   */
+  const addWalkInPatient = useCallback(async (meiosisId: string, visitReason?: string): Promise<string | null> => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/queue/walkin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+        body: JSON.stringify({
+          doctorId: CURRENT_DOCTOR.id,
+          meiosisId: meiosisId.trim(),
+          visitReason: visitReason || 'Walk-in consultation',
+          sessionCode
+        })
+      });
+
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({ error: 'Walk-in failed' }));
+        return error || 'Failed to add walk-in patient';
+      }
+
+      const { appointment, patient } = await res.json();
+      const scheduledAt = new Date(appointment.scheduledDate || Date.now());
+
+      // Merge the new walk-in into local queue
+      const newItem: Appointment = {
+        id: appointment.id,
+        patientId: appointment.patientId,
+        queueNumber: 0, // Will be recalculated
+        appointmentTime: 'Walk-in',
+        arrivalStatus: 'CHECKED_IN',
+        status: 'WAITING',
+        visitReason: appointment.purpose || 'Walk-in consultation',
+        mode: 'In-person'
+      };
+
+      setQueue(prev => resequenceQueue([...prev, newItem]));
+
+      // Add patient to backendPatients if not already there
+      if (patient) {
+        setBackendPatients(prev => {
+          if (prev.some(p => p.id === patient.id)) return prev;
+          return [...prev, {
+            id: patient.id,
+            meiosisCode: patient.universalCode || patient.meiosisId || patient.id,
+            name: patient.name || 'Unknown',
+            phone: patient.phone || '',
+            email: patient.email || '',
+            age: patient.age || 0,
+            gender: (patient.gender || 'Other') as 'Male' | 'Female' | 'Other',
+            visitReason: appointment.purpose || 'Walk-in consultation',
+            lastVisitDate: scheduledAt.toISOString().slice(0, 10),
+            allergies: Array.isArray(patient.allergies) ? patient.allergies : [],
+            chronicConditions: Array.isArray(patient.chronicConditions) ? patient.chronicConditions : [],
+            vitals: patient.vitals || { bloodPressure: '', pulse: '', temperature: '', spo2: '', height: '', weight: '' },
+            history: [],
+            pastAppointments: [],
+            prescriptions: [],
+            medicalReports: []
+          }];
+        });
+      }
+
+      return null; // Success
+    } catch (err) {
+      console.error('[Meiosis] Walk-in failed:', err);
+      return 'Network error — please try again';
+    }
+  }, [sessionCode, setQueue]);
+
+  const syncQueueManual = useCallback(async () => {
+    setIsSyncing(true);
+    try {
+      // 1. Push any local changes to DB first
+      await flushDirtyToDb();
+      // 2. Fetch latest state from DB
+      await fetchQueue();
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [flushDirtyToDb, fetchQueue]);
 
   return {
     queue,
@@ -247,6 +487,8 @@ export function useQueue() {
     markNoShow,
     addWalkInPatient,
     isSyncing,
-    refreshQueue: fetchQueue
+    sessionCode,
+    refreshQueue: syncQueueManual,
+    flushDirtyToDb
   };
 }

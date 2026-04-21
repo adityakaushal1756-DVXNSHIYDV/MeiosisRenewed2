@@ -62,6 +62,7 @@ model Doctor {
   prescriptions      Prescription[]
   account            UserAccount?
   patientLinks       PatientDoctor[]
+  queueSessions      QueueSession[]
 }
 
 /// All doctor UI/UX preferences persisted to the DB.
@@ -289,12 +290,33 @@ model AppointmentQueue {
   appointmentTime DateTime
   queueNo         Int             @default(1)
   status          QueueStatus     @default(WAITING)
+  sessionCode     String?         // Links to QueueSession for audit trail
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   appointment     Appointment     @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   appointmentSlot AppointmentSlot @relation(fields: [doctorSlotId], references: [id], onDelete: Cascade)
+  session         QueueSession?   @relation(fields: [sessionCode], references: [sessionCode])
 
   @@index([doctorSlotId, appointmentTime])
+  @@index([sessionCode])
+}
+
+/// Daily clinic queue session — one per doctor per day.
+/// Acts as an audit header: links all AppointmentQueue entries for that session.
+model QueueSession {
+  id          String             @id @default(cuid())
+  sessionCode String             @unique // Format: YYYYMMDD-HHMM-<CLINIC_CODE>
+  doctorId    String
+  clinicName  String             @default("Clinic")
+  date        DateTime           // Midnight of the session day
+  startedAt   DateTime           @default(now())
+  closedAt    DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  doctor      Doctor             @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  entries     AppointmentQueue[]
+
+  @@index([doctorId, date])
 }
 
 model EmrShare {
@@ -367,6 +389,10 @@ enum RefundStatus {
 
 enum QueueStatus {
   WAITING
+  IN_SESSION
+  PAUSED
+  LATE
+  NO_SHOW
   CANCELLED
   COMPLETED
 }

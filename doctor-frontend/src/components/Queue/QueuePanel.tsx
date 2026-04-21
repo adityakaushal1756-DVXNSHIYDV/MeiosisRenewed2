@@ -4,6 +4,7 @@ import { Patient } from '../../types/Patient';
 import { QueueCard } from './QueueCard';
 import { QueueSummary } from './QueueSummary';
 import { QueueToolbar } from './QueueToolbar';
+import { WalkInDialog } from './WalkInDialog';
 
 function parseAppointmentMinutes(value: string) {
   const match = value.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
@@ -63,12 +64,13 @@ interface QueuePanelProps {
   onEnd: (appointmentId: string) => void;
   onSkip: (appointmentId: string) => void;
   onNoShow: (appointmentId: string) => void;
-  onAddWalkIn: () => void;
+  onAddWalkIn: (meiosisId: string, visitReason?: string) => Promise<string | null>;
   onRefresh: () => void;
+  isSyncing?: boolean;
 }
 
 export function QueuePanel(props: QueuePanelProps) {
-  const { queue, patients, activeAppointmentId, queueBlockMinutes, slotDuration, onSelect, onStart, onEnd, onSkip, onNoShow, onAddWalkIn, onRefresh } = props;
+  const { queue, patients, activeAppointmentId, queueBlockMinutes, slotDuration, onSelect, onStart, onEnd, onSkip, onNoShow, onAddWalkIn, onRefresh, isSyncing } = props;
   const waiting = queue.filter((item) => item.status === 'WAITING').length;
   const inSession = queue.filter((item) => item.status === 'IN_SESSION' || item.status === 'PAUSED').length;
   const completed = queue.filter((item) => item.status === 'COMPLETED').length;
@@ -89,23 +91,24 @@ export function QueuePanel(props: QueuePanelProps) {
   }, [queueWindows, activeWindowId]);
 
   const activeWindow = queueWindows.find((window) => window.id === activeWindowId) ?? queueWindows[0] ?? null;
+  const [walkInOpen, setWalkInOpen] = useState(false);
 
   return (
-    <section className="glass-card queue-shell flex h-full min-h-0 flex-col overflow-hidden p-4 md:p-5">
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.26em] text-neon/70">Today's Queue</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="chip border-neon/15 bg-neon/[0.06] text-neon/80">{slotDuration} min / patient</span>
-          <span className="chip border-wire/10 bg-white/[0.04] text-white/75">{queue.length} total</span>
-        </div>
-      </div>
+    <>
+    <section className="flex h-full min-h-0 flex-col p-4 md:p-6 overflow-hidden rounded-[24px] bg-[#011424]/85 backdrop-blur-md border border-white/5 shadow-2xl queue-shell">
+      {/* Header tags removed per request */}
 
-      <QueueToolbar waitingCount={waiting + late} completedCount={completed} queueWindowCount={queueWindows.length} onAddWalkIn={onAddWalkIn} onRefresh={onRefresh} />
+      <QueueToolbar 
+        waitingCount={waiting + late} 
+        completedCount={completed} 
+        queueWindowCount={queueWindows.length} 
+        onAddWalkIn={() => setWalkInOpen(true)} 
+        onRefresh={onRefresh}
+        isSyncing={isSyncing}
+      />
       <QueueSummary waiting={waiting} inSession={inSession} completed={completed} late={late} />
 
-      <div className="queue-workspace mt-5 flex min-h-0 flex-1 flex-col rounded-[30px] border border-wire/10 bg-[linear-gradient(180deg,rgba(9,25,41,0.94),rgba(7,21,35,0.9))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+      <div className="queue-workspace mt-5 flex min-h-0 flex-1 flex-col rounded-[32px] border border-white/5 bg-slate-950/45 p-3 shadow-inner">
         <div className="rounded-[24px] border border-wire/8 bg-slate-950/28 p-3">
           <div className="queue-window-strip flex gap-2 overflow-x-auto pb-1">
             {queueWindows.map((window) => (
@@ -172,5 +175,11 @@ export function QueuePanel(props: QueuePanelProps) {
         </div>
       </div>
     </section>
+    <WalkInDialog
+      open={walkInOpen}
+      onClose={() => setWalkInOpen(false)}
+      onAddWalkIn={onAddWalkIn}
+    />
+    </>
   );
 }

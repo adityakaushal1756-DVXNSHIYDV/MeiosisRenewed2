@@ -1,9 +1,38 @@
-import { User, Bell, Palette, LogOut, KeyRound, Edit3, SmartphoneNfc, Activity } from 'lucide-react';
+import { User, Bell, Palette, LogOut, KeyRound, Edit3, SmartphoneNfc, Activity, Loader2, AlertTriangle } from 'lucide-react';
 import { cn } from '../components/Sidebar';
 import { useAuth } from '../lib/auth';
+import { usePatientProfile } from '../hooks/usePatientProfile';
 
 export function SettingsPage() {
-  const { logout } = useAuth();
+  const { session, logout } = useAuth();
+  const { data: profile, isLoading, error } = usePatientProfile(session?.patientId);
+
+  const renderAccountField = (label: string, value: string | undefined, isCode = false) => {
+    if (isLoading) {
+      return (
+        <li className="flex flex-col sm:flex-row justify-between pb-3 border-b border-wire/10 gap-1 animate-pulse">
+          <span className="text-mist w-32">{label}</span>
+          <div className="h-4 w-32 bg-white/10 rounded" />
+        </li>
+      );
+    }
+    
+    return (
+      <li className="flex flex-col sm:flex-row justify-between pb-3 border-b border-wire/10 gap-1">
+        <span className="text-mist w-32">{label}</span>
+        {isCode ? (
+          <div className="flex items-center gap-2">
+            <span className="text-white font-bold bg-white/5 px-2 py-0.5 rounded border border-wire/10 tracking-widest">{value || 'Not Assigned'}</span>
+            <button className="text-sky hover:text-white transition-colors" title="Edit Universal ID">
+              <Edit3 className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <span className="text-white font-medium">{value || 'Not provided'}</span>
+        )}
+      </li>
+    );
+  };
 
   return (
     <div className="p-6 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-4xl mx-auto h-full flex flex-col">
@@ -12,8 +41,15 @@ export function SettingsPage() {
         <p className="text-mist">Manage profile, security, notifications, and preferences.</p>
       </header>
 
-      <div className="flex-1 overflow-y-auto scroll-skin pb-12 queue-scroll space-y-6">
+      <div className="flex-1 overflow-y-auto scroll-skin no-scrollbar pb-12 queue-scroll space-y-6">
         
+        {error && (
+          <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-200 text-sm">
+            <AlertTriangle className="w-5 h-5 shrink-0" />
+            <p>{error}</p>
+          </div>
+        )}
+
         {/* Account */}
         <div className="glass-card p-6 border border-wire/10">
           <h2 className="section-title flex items-center gap-2 mb-6">
@@ -21,33 +57,19 @@ export function SettingsPage() {
           </h2>
           
           <ul className="space-y-4 text-sm mb-6">
-            <li className="flex flex-col sm:flex-row justify-between pb-3 border-b border-wire/10 gap-1">
-              <span className="text-mist w-32">Name</span>
-              <span className="text-white font-medium">Aditya Kaushal</span>
-            </li>
-            <li className="flex flex-col sm:flex-row justify-between pb-3 border-b border-wire/10 gap-1">
-              <span className="text-mist w-32">Email</span>
-              <span className="text-white font-medium">aditya@example.com</span>
-            </li>
-            <li className="flex flex-col sm:flex-row justify-between pb-3 border-b border-wire/10 gap-1">
-              <span className="text-mist w-32">Phone</span>
-              <span className="text-white font-medium">+91 98765 43210</span>
-            </li>
-            <li className="flex flex-col sm:flex-row justify-between pb-3 border-b border-wire/10 gap-1">
-              <span className="text-mist w-32">MEIOSIS Code</span>
-              <div className="flex items-center gap-2">
-                <span className="text-white font-bold bg-white/5 px-2 py-0.5 rounded border border-wire/10 tracking-widest">M-2024-001</span>
-                <button className="text-sky hover:text-white transition-colors" title="Edit Universal ID">
-                  <Edit3 className="w-4 h-4" />
-                </button>
-              </div>
-            </li>
+            {renderAccountField('Name', profile?.name || session?.name)}
+            {renderAccountField('Email', profile?.email || session?.email)}
+            {renderAccountField('Phone', profile?.phone)}
+            {renderAccountField('MEIOSIS Code', profile?.meiosisId, true)}
+            {profile?.universalCode && profile.universalCode !== profile.meiosisId && (
+              renderAccountField('Universal ID', profile.universalCode)
+            )}
           </ul>
 
           <div className="flex flex-wrap gap-3">
-            <button className="ghost-btn">Edit Profile</button>
-            <button className="ghost-btn group"><KeyRound className="w-4 h-4 mr-2 group-hover:text-neon" /> Change Password</button>
-            <button className="ghost-btn group border-sky/30 text-sky hover:bg-sky/10"><SmartphoneNfc className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" /> Open NFC ID</button>
+            <button className="ghost-btn" disabled={isLoading}>Edit Profile</button>
+            <button className="ghost-btn group" disabled={isLoading}><KeyRound className="w-4 h-4 mr-2 group-hover:text-neon" /> Change Password</button>
+            <button className="ghost-btn group border-sky/30 text-sky hover:bg-sky/10" disabled={isLoading}><SmartphoneNfc className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" /> Open NFC ID</button>
           </div>
         </div>
 
@@ -138,7 +160,6 @@ export function SettingsPage() {
                 onChange={(e) => {
                   localStorage.setItem('meiosis_timeline_v2', e.target.value);
                   window.dispatchEvent(new Event('storage'));
-                  // Force re-render simple way for demo
                   window.location.reload();
                 }}
                 className="w-full bg-white/5 border border-wire/10 rounded-xl px-4 py-3 text-sm text-white focus:border-neon focus:ring-1 focus:ring-neon outline-none appearance-none cursor-pointer"

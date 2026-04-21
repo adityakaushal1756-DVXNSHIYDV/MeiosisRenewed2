@@ -1,4 +1,4 @@
-﻿import { AlertTriangle, CheckCircle2, Clock3, Play, SkipForward, UserCheck, UserMinus } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock3, Play, SkipForward, UserCheck, UserMinus } from 'lucide-react';
 import { Appointment } from '../../types/Appointment';
 import { Patient } from '../../types/Patient';
 
@@ -59,15 +59,7 @@ export function QueueCard({
     >
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="chip border-wire/10 bg-slate-950/40 text-white">{queueLabel || `Queue ${appointment.queueNumber}`}</span>
-            {queueWindowLabel ? <span className="chip border-wire/10 bg-white/[0.02] text-white/70">{queueWindowLabel}</span> : null}
-            <span className={`${statusClass} inline-flex items-center gap-1.5`}>
-              {isInSession && <span className="live-dot" style={{ width: '6px', height: '6px' }} />}
-              {appointment.status.replace('_', ' ')}
-            </span>
-            <span className={appointment.arrivalStatus === 'CHECKED_IN' ? 'chip chip-green' : 'chip chip-amber'}>{arrivalLabel[appointment.arrivalStatus]}</span>
-          </div>
+          {/* Patient slab tags removed per request */}
 
           <button onClick={onOpen} className="mt-3 text-left">
             <h3 className="text-lg font-semibold text-white">{patientName}</h3>

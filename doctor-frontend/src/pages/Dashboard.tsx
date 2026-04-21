@@ -40,6 +40,7 @@ import { CURRENT_DOCTOR } from "../config/doctorProfile";
 const QueuePanel = lazy(() => import("../components/Queue/QueuePanel").then(m => ({ default: m.QueuePanel })));
 const PatientSearch = lazy(() => import("../components/Patient/PatientSearch").then(m => ({ default: m.PatientSearch })));
 import { SpacetimeSingularity } from "../components/Patient/SpacetimeSingularity";
+import { SpaceWarp } from "../components/Patient/SpaceWarp";
 const PatientProfile = lazy(() => import("../components/Patient/PatientProfile").then(m => ({ default: m.PatientProfile })));
 const PatientRecordAccess = lazy(() => import("../components/Patient/PatientRecordAccess").then(m => ({ default: m.PatientRecordAccess })));
 const EMRBuilder = lazy(() => import("../components/EMR/EMRBuilder").then(m => ({ default: m.EMRBuilder })));
@@ -100,6 +101,8 @@ interface DashboardProps {
   onSingularitySpeedChange: (v: number) => void;
   singularityEnabled: boolean;
   onSingularityEnabledChange: (v: boolean) => void;
+  singularityPages: string[];
+  onSingularityPagesChange: (pages: string[]) => void;
   onThemeModeChange: (
     theme:
       | "dark"
@@ -171,7 +174,7 @@ interface DashboardProps {
   onEndQueueAppointment: (appointmentId: string) => void;
   onSkipQueueAppointment: (appointmentId: string) => void;
   onMarkNoShow: (appointmentId: string) => void;
-  onAddWalkIn: () => void;
+  onAddWalkIn: (meiosisId: string, visitReason?: string) => Promise<string | null>;
   onRefreshQueue: () => void;
   onStartConsultation: () => void;
   onEndConsultation: () => void;
@@ -706,6 +709,8 @@ export default function Dashboard(props: DashboardProps) {
     onSingularitySpeedChange,
     singularityEnabled,
     onSingularityEnabledChange,
+    singularityPages,
+    onSingularityPagesChange,
     onThemeModeChange,
     onCustomThemeChange,
     onToggleTheme,
@@ -944,7 +949,7 @@ export default function Dashboard(props: DashboardProps) {
 
 
       {/* Stat cards */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-0.5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-[-2px]">
         <StatCard
           label="Total queue"
           value={queue?.length || 0}
@@ -1241,6 +1246,7 @@ export default function Dashboard(props: DashboardProps) {
         onNoShow={onMarkNoShow}
         onAddWalkIn={onAddWalkIn}
         onRefresh={onRefreshQueue}
+        isSyncing={isSyncingQueue}
       />
     </div>
   );
@@ -1552,6 +1558,48 @@ export default function Dashboard(props: DashboardProps) {
                         onChange={(event) => onSingularitySpeedChange(Number(event.target.value))}
                       />
                     </label>
+                  </div>
+
+                  <div className="rounded-2xl border border-wire/8 bg-slate-950/20 p-4 mt-4">
+                    <div className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                       <Sparkles className="w-4 h-4 text-neon" />
+                       Animation Context
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-2">
+                      {[
+                        { id: 'dashboard', label: 'Dashboard' },
+                        { id: 'queue', label: 'Queue' },
+                        { id: 'search', label: 'Search' },
+                        { id: 'messages', label: 'Messages' },
+                        { id: 'schedule', label: 'Schedule' },
+                        { id: 'calendar', label: 'Calendar' },
+                        { id: 'analytics', label: 'Analytics' },
+                        { id: 'settings', label: 'Settings' },
+                      ].map((page) => (
+                        <label key={page.id} className="flex items-center gap-3 cursor-pointer group">
+                          <div className="relative flex items-center">
+                            <input
+                              type="checkbox"
+                              className="peer h-5 w-5 cursor-pointer appearance-none rounded-lg border-2 border-white/10 bg-slate-900 transition-all checked:border-neon checked:bg-neon/20 hover:border-white/20"
+                              checked={singularityPages.includes(page.id)}
+                              onChange={(e) => {
+                                const newPages = e.target.checked
+                                  ? [...singularityPages, page.id]
+                                  : singularityPages.filter(p => p !== page.id);
+                                onSingularityPagesChange(newPages);
+                              }}
+                            />
+                            <Check className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 scale-0 text-neon transition-transform duration-200 peer-checked:scale-100" />
+                          </div>
+                          <span className="text-xs font-medium text-mist transition-colors group-hover:text-white">
+                            {page.label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="mt-4 p-3 rounded-xl bg-sky-400/5 border border-sky-400/10 text-[10px] text-sky-300 leading-relaxed">
+                      * Highlighted pages show the Singular Singularity. Unchecked pages will default to the Space Warp engine for visual continuity.
+                    </div>
                   </div>
                 </div>
 
@@ -3210,11 +3258,18 @@ export default function Dashboard(props: DashboardProps) {
     >
       {/* Global Cinematic Background Layer (Ensures frame-sync continuity) */}
       {singularityEnabled && (
-        <div className={`absolute inset-0 z-0 pointer-events-none transition-opacity duration-700 ease-in-out ${
-          (nav === "dashboard" || nav === "search") ? "opacity-65" : "opacity-0"
-        }`}>
-          <SpacetimeSingularity modern={singularityModern} speed={singularitySpeed} />
-        </div>
+        <>
+          <div className={`absolute inset-0 z-0 pointer-events-none transition-opacity duration-1000 ease-in-out ${
+            singularityPages.includes(nav) ? "opacity-65" : "opacity-0"
+          }`}>
+            <SpacetimeSingularity modern={singularityModern} speed={singularitySpeed} />
+          </div>
+          <div className={`absolute inset-0 z-0 pointer-events-none transition-opacity duration-1000 ease-in-out ${
+            !singularityPages.includes(nav) ? "opacity-35" : "opacity-0"
+          }`}>
+            <SpaceWarp color={darkMode ? "#38bdf8" : "#0369a1"} speed={singularitySpeed * 0.4} />
+          </div>
+        </>
       )}
       <div
         className="relative mx-auto flex h-full max-w-[1720px] gap-0 px-4 pb-4 pt-20 xl:gap-4 xl:px-6 xl:py-6"
@@ -3232,7 +3287,7 @@ export default function Dashboard(props: DashboardProps) {
 
         <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div
-            className={`scroll-skin relative z-10 flex min-h-0 flex-1 flex-col ${(nav === "calendar" || nav === "search") ? "overflow-hidden" : "overflow-auto"}`}
+            className={`scroll-skin relative z-10 flex min-h-0 flex-1 flex-col ${nav === "settings" ? "no-scrollbar" : ""} ${(nav === "calendar" || nav === "search") ? "overflow-hidden" : "overflow-auto"}`}
             onScroll={(event) => {
               const scrollTop = event.currentTarget.scrollTop;
               if (topbarScrollRaf.current !== null) {
@@ -3263,7 +3318,7 @@ export default function Dashboard(props: DashboardProps) {
                     }
                     onOpenCalendar={() => onNavChange("calendar")}
                     liveCount={inSession}
-                    compact={nav === "search" || topbarCompact}
+                    compact={nav === "search" || nav === "queue" || topbarCompact}
                     isOnline={isOnline}
                     syncStatus={syncStatus}
                     pendingCount={pendingCount}

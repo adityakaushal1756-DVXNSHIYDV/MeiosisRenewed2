@@ -124,7 +124,7 @@ export function PatientSearch({
           <input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder={t('ps.placeholder')}
+            placeholder="Search by Name or numeric Meiosis ID..."
             className="input-shell pl-10 pr-10"
           />
           {hasQuery && (

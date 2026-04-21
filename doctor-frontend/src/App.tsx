@@ -44,6 +44,7 @@ const DOCTOR_TIMELINE_WARP_KEY        = 'meiosis_doctor_timeline_warp_v1';
 const DOCTOR_SINGULARITY_MODERN_KEY = 'meiosis_doctor_singularity_modern_v1';
 const DOCTOR_SINGULARITY_SPEED_KEY = 'meiosis_doctor_singularity_speed_v1';
 const DOCTOR_SINGULARITY_ENABLED_KEY = 'meiosis_doctor_singularity_enabled_v1';
+const DOCTOR_SINGULARITY_PAGES_KEY = 'meiosis_doctor_singularity_pages_v1';
 const DOCTOR_EMR_BUILDER_V2_THEME_KEY = 'meiosis_doctor_emr_builder_v2_theme_v1';
 const DOCTOR_EMR_BUILDER_LAYOUT_KEY   = 'meiosis_doctor_emr_builder_layout_v1';
 const DOCTOR_TIMELINE_LAYOUT_KEY      = 'meiosis_doctor_timeline_layout_v1';
@@ -586,6 +587,18 @@ export default function App() {
   const handleSingularityEnabledChange = (enabled: boolean) => {
     setSingularityEnabledState(enabled);
     try { localStorage.setItem(DOCTOR_SINGULARITY_ENABLED_KEY, String(enabled)); } catch {}
+  };
+  const [singularityPages, setSingularityPagesState] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem(DOCTOR_SINGULARITY_PAGES_KEY);
+      return stored ? JSON.parse(stored) : ['dashboard', 'search'];
+    } catch {
+      return ['dashboard', 'search'];
+    }
+  });
+  const handleSingularityPagesChange = (pages: string[]) => {
+    setSingularityPagesState(pages);
+    try { localStorage.setItem(DOCTOR_SINGULARITY_PAGES_KEY, JSON.stringify(pages)); } catch {}
   };
   const [emrBuilderLayout, setEmrBuilderLayoutState] = useState<'simple' | 'modern'>(() => {
     try {
@@ -1443,11 +1456,10 @@ export default function App() {
     }
   };
 
-  const handleAddWalkIn = () => {
-    const fallbackPatient = selectedPatientId ?? patients[0]?.id;
-    if (!fallbackPatient) return;
-    addWalkInPatient(fallbackPatient);
+  const handleAddWalkIn = (meiosisId: string, visitReason?: string): Promise<string | null> => {
+    const result = addWalkInPatient(meiosisId, visitReason);
     setNav('queue');
+    return result;
   };
 
   const handleToggleDayOpen = (dayLabel: string) => {
@@ -1540,6 +1552,8 @@ export default function App() {
                 onSingularitySpeedChange={handleSingularitySpeedChange}
                 singularityEnabled={singularityEnabled}
                 onSingularityEnabledChange={handleSingularityEnabledChange}
+                singularityPages={singularityPages}
+                onSingularityPagesChange={handleSingularityPagesChange}
                 onThemeModeChange={setThemeMode}
                 onCustomThemeChange={setCustomTheme}
                 onToggleTheme={() => setThemeMode((current) => (current === 'light' ? 'dark' : 'light'))}

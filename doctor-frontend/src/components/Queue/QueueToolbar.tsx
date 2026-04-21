@@ -1,4 +1,4 @@
-﻿import { Plus, RefreshCw, Users } from 'lucide-react';
+import { Plus, RefreshCw, Users } from 'lucide-react';
 
 interface QueueToolbarProps {
   waitingCount: number;
@@ -6,9 +6,10 @@ interface QueueToolbarProps {
   queueWindowCount: number;
   onAddWalkIn: () => void;
   onRefresh: () => void;
+  isSyncing?: boolean;
 }
 
-export function QueueToolbar({ waitingCount, completedCount, queueWindowCount, onAddWalkIn, onRefresh }: QueueToolbarProps) {
+export function QueueToolbar({ waitingCount, completedCount, queueWindowCount, onAddWalkIn, onRefresh, isSyncing }: QueueToolbarProps) {
   return (
     <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div>
@@ -23,9 +24,14 @@ export function QueueToolbar({ waitingCount, completedCount, queueWindowCount, o
           {waitingCount} waiting
         </span>
         <span className="chip border-wire/10 bg-white/[0.03] text-white/80">{completedCount} completed</span>
-        <button onClick={onRefresh} className="action-btn gap-2" title="Sync queue from backend">
-          <RefreshCw size={16} />
-          Sync
+        <button 
+          onClick={onRefresh} 
+          className="action-btn gap-2 disabled:opacity-70" 
+          title="Sync queue from backend"
+          disabled={isSyncing}
+        >
+          <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
+          {isSyncing ? 'Syncing...' : 'Sync'}
         </button>
         <button onClick={onAddWalkIn} className="action-btn gap-2">
           <Plus size={16} />
