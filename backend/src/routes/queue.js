@@ -175,7 +175,7 @@ router.post('/walkin', asyncHandler(async (req, res) => {
         doctorId,
         appointmentSlotId: walkInSlot.id,
         title: 'Walk-in Consultation',
-        purpose: visitReason || 'Walk-in consultation',
+        purpose: visitReason || null, // Allow null if no reason provided
         scheduledDate: now,
         status: 'CONFIRMED',
         mode: 'IN_PERSON',

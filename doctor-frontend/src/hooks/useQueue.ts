@@ -74,14 +74,11 @@ function mapBackendToQueue(apiAppointments: any[]): { queue: Appointment[]; pati
           id: apt.id,
           patientId: apt.patientId,
           queueNumber: apt.queueEntry?.queueNo ?? index + 1,
-          appointmentTime:
-            apt.title === 'Walk-in Consultation'
-              ? 'Walk-in'
-              : scheduledAt.toLocaleTimeString('en-IN', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true
-                }),
+          appointmentTime: scheduledAt.toLocaleTimeString('en-IN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          }),
           arrivalStatus: 'NOT_ARRIVED',
           status: queueStatus,
           visitReason: apt.purpose || apt.title || 'Consultation',
@@ -401,7 +398,7 @@ export function useQueue() {
         body: JSON.stringify({
           doctorId: CURRENT_DOCTOR.id,
           meiosisId: meiosisId.trim(),
-          visitReason: visitReason || 'Walk-in consultation',
+          visitReason: visitReason || null, // Allow null if no reason provided
           sessionCode
         })
       });

@@ -857,12 +857,22 @@ export default function Dashboard(props: DashboardProps) {
   const activePatient = activeAppointment
     ? ((patients || []).find((p) => p?.id === activeAppointment?.patientId) ?? null)
     : null;
-  const nextWaiting =
-    (queue || []).find((item) => item?.status === "WAITING" || item?.status === "LATE") ??
-    null;
+  const waitingQueue = (queue || []).filter(
+    (item) => item?.status === "WAITING" || item?.status === "LATE",
+  );
+  const nextWaiting = waitingQueue[0] ?? null;
+  const upNextQueue = waitingQueue.slice(1, 3);
+
   const nextWaitingPatient = nextWaiting
     ? ((patients || []).find((patient) => patient?.id === nextWaiting?.patientId) ?? null)
     : null;
+
+  const upNextPatients = upNextQueue
+    .map((apt) => ({
+      apt,
+      patient: (patients || []).find((p) => p?.id === apt.patientId),
+    }))
+    .filter((item) => item.patient);
   const scanReadyCount = (patients || []).filter(
     (patient) => patient?.meiosisCode,
   ).length;
@@ -1060,31 +1070,75 @@ export default function Dashboard(props: DashboardProps) {
                       </span>
                     </div>
 
-                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                      <div className="rounded-2xl border border-wire/8 bg-slate-950/25 p-3">
-                        <div className="text-xs uppercase tracking-[0.2em] text-mist">
+                    <div className="mt-4 grid gap-2.5 grid-cols-1 md:grid-cols-3">
+                      <div className="rounded-2xl border border-wire/8 bg-slate-950/25 p-3 min-w-0">
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-mist/60 truncate">
                           Appointment
                         </div>
-                        <div className="mt-2 text-sm font-medium text-white">
+                        <div className="mt-1.5 text-sm font-semibold text-white truncate">
                           {nextWaiting?.appointmentTime || "—"}
                         </div>
                       </div>
-                      <div className="rounded-2xl border border-wire/8 bg-slate-950/25 p-3">
-                        <div className="text-xs uppercase tracking-[0.2em] text-mist">
+                      <div className="rounded-2xl border border-wire/8 bg-slate-950/25 p-3 min-w-0">
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-mist/60 truncate">
                           Visit Reason
                         </div>
-                        <div className="mt-2 text-sm font-medium text-white">
+                        <div className="mt-1.5 text-sm font-semibold text-white truncate">
                           {nextWaiting?.visitReason || "Consultation"}
                         </div>
                       </div>
-                      <div className="rounded-2xl border border-wire/8 bg-slate-950/25 p-3">
-                        <div className="text-xs uppercase tracking-[0.2em] text-mist">
+                      <div className="rounded-2xl border border-wire/8 bg-slate-950/25 p-3 min-w-0">
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-mist/60 truncate">
                           Patient
                         </div>
-                        <div className="mt-2 text-sm font-medium text-white">
-                          {nextWaitingPatient?.age ?? 0} years •{" "}
+                        <div className="mt-1.5 text-sm font-semibold text-white truncate">
+                          {nextWaitingPatient?.age ?? 0}y •{" "}
                           {nextWaitingPatient?.gender || "Other"}
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Up Next Timeline */}
+                    <div className="mt-6 border-t border-wire/10 pt-5">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1 w-1 rounded-full bg-neon shadow-[0_0_8px_rgba(82,255,157,0.8)]" />
+                          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/50">
+                            Next in Queue
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-semibold text-mist/40 uppercase tracking-wider">Preview Mode</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-8 overflow-hidden">
+                        {upNextPatients.length > 0 ? (
+                          upNextPatients.map((item, idx) => (
+                            <div key={item.apt.id} className="flex items-center gap-4 min-w-0">
+                              <div className="relative flex flex-col items-center">
+                                <div className="h-2.5 w-2.5 rounded-full bg-neon shadow-[0_0_10px_rgba(82,255,157,0.4)] ring-2 ring-neon/20" />
+                                {idx < upNextPatients.length - 1 && (
+                                  <div className="h-4 w-px bg-gradient-to-b from-neon/30 to-transparent mt-1" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[13px] font-bold text-white tracking-wide truncate">
+                                  {item.patient?.name}
+                                </p>
+                                <p className="text-[11px] font-medium text-mist/50 mt-0.5 truncate uppercase tracking-tight">
+                                  {item.apt.appointmentTime} <span className="mx-1 opacity-30">•</span> {item.apt.visitReason}
+                                </p>
+                              </div>
+                              {idx === 0 && upNextPatients.length > 1 && (
+                                <div className="h-8 w-px bg-wire/15 mx-2 rotate-[15deg]" />
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex items-center gap-4 bg-white/[0.02] py-2 px-4 rounded-xl border border-dashed border-wire/10">
+                            <div className="h-2 w-2 rounded-full bg-mist/20" />
+                            <p className="text-xs italic text-mist/40 font-medium tracking-wide">No further patients waiting in current flow</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1239,6 +1293,7 @@ export default function Dashboard(props: DashboardProps) {
         activeAppointmentId={activeAppointmentId}
         slotDuration={slotDuration}
         queueBlockMinutes={queueBlockDuration}
+        scheduleDays={scheduleDays}
         onSelect={onSelectQueue}
         onStart={onStartQueueAppointment}
         onEnd={onEndQueueAppointment}
@@ -3287,7 +3342,7 @@ export default function Dashboard(props: DashboardProps) {
 
         <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div
-            className={`scroll-skin relative z-10 flex min-h-0 flex-1 flex-col ${nav === "settings" ? "no-scrollbar" : ""} ${(nav === "calendar" || nav === "search") ? "overflow-hidden" : "overflow-auto"}`}
+            className={`scroll-skin relative z-10 flex min-h-0 flex-1 flex-col ${nav === "settings" ? "no-scrollbar" : ""} ${(nav === "calendar" || nav === "search" || nav === "queue") ? "overflow-hidden" : "overflow-auto"}`}
             onScroll={(event) => {
               const scrollTop = event.currentTarget.scrollTop;
               if (topbarScrollRaf.current !== null) {
@@ -3326,7 +3381,7 @@ export default function Dashboard(props: DashboardProps) {
                 </div>
               )}
 
-            <div className={(nav === "calendar" || nav === "search") ? "flex-1 min-h-0" : "space-y-6"}>
+            <div className={(nav === "calendar" || nav === "search" || nav === "queue") ? "flex-1 min-h-0" : "space-y-6"}>
               <Suspense
                 fallback={
                   <div className="flex h-64 items-center justify-center text-mist/40 text-sm">
@@ -3346,200 +3401,187 @@ export default function Dashboard(props: DashboardProps) {
           <button
             type="button"
             aria-label="Close notifications panel"
-            className="doctor-notification-backdrop fixed inset-0 z-[54]"
+            className="doctor-notification-backdrop fixed inset-0 z-[54] transition-opacity duration-300"
+            style={{ background: "rgba(2, 8, 18, 0.45)", backdropFilter: "blur(4px)" }}
             onClick={() => setNotificationsOpen(false)}
           />
 
           <div className="fixed inset-y-0 right-0 z-[55] flex w-full justify-end">
             <aside
-              className="doctor-notification-sheet relative flex h-full w-full max-w-[min(760px,52vw)] min-w-[420px] flex-col overflow-hidden border-l px-0 max-md:max-w-full max-md:min-w-0"
+              className="doctor-notification-sheet relative flex h-full w-full max-w-[min(640px,48vw)] min-w-[380px] flex-col overflow-hidden border-l px-0 shadow-2xl transition-all duration-300 ease-out max-md:max-w-full max-md:min-w-0"
               style={{
-                borderColor:
-                  "color-mix(in srgb, var(--doctor-accent-secondary) 14%, var(--doctor-border) 86%)",
-                background:
-                  "color-mix(in srgb, var(--doctor-card-tint) 90%, rgba(5,10,18,0.16))",
-                boxShadow:
-                  "-24px 0 80px rgba(2, 8, 18, 0.28), inset 0 1px 0 rgba(255,255,255,0.08)",
+                borderColor: "rgba(255,255,255,0.06)",
+                background: "linear-gradient(165deg, rgba(8, 24, 42, 0.94), rgba(5, 12, 22, 0.98))",
+                backdropFilter: "blur(32px)",
+                boxShadow: "-12px 0 60px rgba(0, 0, 0, 0.5), inset 1px 0 0 rgba(255,255,255,0.05)",
               }}
             >
-              <div className="relative flex items-center justify-between gap-3 border-b border-wire/8 px-7 py-6">
+              {/* Header */}
+              <div className="relative flex items-center justify-between gap-4 border-b border-white/[0.06] px-8 py-7">
                 <div>
-                  <div className="text-sm font-semibold text-white">
-                    Notification Center
-                  </div>
-                  <div className="mt-1 text-xs text-mist">
-                    Latest alerts, reminders, and console activity.
-                  </div>
+                  <h2 className="text-lg font-bold tracking-tight text-white">
+                    Notifications
+                  </h2>
+                  <p className="mt-1 text-xs font-medium text-mist/60 uppercase tracking-wider">
+                    Clinical Activity & Alerts
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setNotificationsOpen(false)}
-                  className="ghost-btn min-w-[78px]"
-                >
-                  Close
-                </button>
+                <div className="flex items-center gap-3">
+                   <button
+                    type="button"
+                    onClick={() => setNotificationsOpen(false)}
+                    className="ghost-btn min-w-[84px] !rounded-xl !py-2 !text-xs"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
-              <div className="scroll-skin flex-1 overflow-auto px-6 py-6">
-                {emrShareRequests.length || latestNotifications.length ? (
-                  <div className="doctor-notification-content space-y-5">
-                    {emrShareRequests.length > 0 && (
-                      <section className="space-y-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-mist">
-                            Pending EMR shares
-                          </div>
-                          <div className="chip border-neon/20 bg-neon/10 text-neon">
-                            {emrShareRequests.length} request
-                            {emrShareRequests.length === 1 ? "" : "s"}
-                          </div>
-                        </div>
-                        {emrShareRequests.map((request) => (
-                          <article
-                            key={request.id}
-                            className="rounded-[28px] border border-neon/18 bg-neon/[0.05] p-5"
-                          >
-                            <div className="flex items-start gap-4">
-                              <div className="mt-0.5 flex h-12 w-12 items-center justify-center rounded-[18px] border border-neon/20 bg-neon/10 text-neon">
-                                <FileText size={18} />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <div className="text-base font-semibold text-white">
-                                    {request.patient.name}
-                                  </div>
-                                  <span className="chip border-neon/20 bg-slate-950/25 text-neon">
-                                    {request.recordCount} record
-                                    {request.recordCount === 1 ? "" : "s"}
-                                  </span>
-                                </div>
-                                <p className="mt-2 text-sm leading-6 text-mist">
-                                  Shared EMR request for{" "}
-                                  {request.scope.replace(/_/g, " ")}.
-                                  Transaction {request.transactionId}.
-                                </p>
-                                <div className="mt-2 text-xs text-mist/80">
-                                  {request.patient.meiosisId ||
-                                    request.patient.universalCode}{" "}
-                                  •{" "}
-                                  {new Date(request.createdAt).toLocaleString(
-                                    "en-IN",
-                                    {
-                                      day: "2-digit",
-                                      month: "short",
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                      hour12: true,
-                                    },
-                                  )}
-                                </div>
-                              </div>
-                            </div>
 
-                            <div className="mt-4 flex gap-3">
-                              <button
-                                type="button"
-                                disabled={respondingShareId === request.id}
-                                onClick={async () => {
-                                  setRespondingShareId(request.id);
-                                  try {
-                                    await onRespondEmrShare(request, true);
-                                  } finally {
-                                    setRespondingShareId((current) =>
-                                      current === request.id ? null : current,
-                                    );
-                                  }
-                                }}
-                                className={`action-btn min-w-[120px] ${respondingShareId === request.id ? "cursor-wait opacity-70" : ""}`}
-                              >
-                                {respondingShareId === request.id
-                                  ? "Saving..."
-                                  : "Accept"}
-                              </button>
-                              <button
-                                type="button"
-                                disabled={respondingShareId === request.id}
-                                onClick={async () => {
-                                  setRespondingShareId(request.id);
-                                  try {
-                                    await onRespondEmrShare(request, false);
-                                  } finally {
-                                    setRespondingShareId((current) =>
-                                      current === request.id ? null : current,
-                                    );
-                                  }
-                                }}
-                                className={`ghost-btn min-w-[120px] ${respondingShareId === request.id ? "cursor-wait opacity-70" : ""}`}
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          </article>
-                        ))}
+              {/* Content */}
+              <div className="scroll-skin flex-1 overflow-auto px-6 py-8">
+                {emrShareRequests.length || latestNotifications.length ? (
+                  <div className="doctor-notification-content space-y-8">
+                    {/* Pending Shares Section */}
+                    {emrShareRequests.length > 0 && (
+                      <section className="space-y-4">
+                        <div className="flex items-center justify-between px-2">
+                          <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-mist/50">
+                            Pending EMR Shares
+                          </h3>
+                          <span className="flex h-5 items-center rounded-full bg-neon/10 px-2 text-[10px] font-bold text-neon border border-neon/20">
+                            {emrShareRequests.length}
+                          </span>
+                        </div>
+                        <div className="space-y-3">
+                          {emrShareRequests.map((request) => (
+                            <article
+                              key={request.id}
+                              className="group relative overflow-hidden rounded-[22px] border border-white/[0.05] bg-white/[0.02] p-5 transition-all hover:bg-white/[0.04] hover:border-white/[0.08]"
+                            >
+                              {/* Status Pip */}
+                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-neon shadow-[0_0_12px_rgba(82,255,157,0.4)]" />
+                              
+                              <div className="flex items-start gap-4">
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-neon/10 text-neon">
+                                  <FileText size={18} />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h4 className="truncate text-base font-semibold text-white">
+                                      {request.patient.name}
+                                    </h4>
+                                    <span className="text-[11px] font-medium text-mist/40">
+                                      {new Date(request.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                  <p className="mt-1.5 text-sm leading-relaxed text-mist/80">
+                                    Requesting access to {request.scope.replace(/_/g, " ")}.
+                                  </p>
+                                  <div className="mt-3 flex items-center gap-2 text-[11px] text-mist/40">
+                                    <span className="font-mono">{request.patient.meiosisId || request.patient.universalCode}</span>
+                                    <span>•</span>
+                                    <span>{request.recordCount} records</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="mt-5 flex gap-2.5">
+                                <button
+                                  type="button"
+                                  disabled={respondingShareId === request.id}
+                                  onClick={async () => {
+                                    setRespondingShareId(request.id);
+                                    try {
+                                      await onRespondEmrShare(request, true);
+                                    } finally {
+                                      setRespondingShareId(null);
+                                    }
+                                  }}
+                                  className={`flex-1 rounded-xl bg-neon px-4 py-2.5 text-xs font-bold text-slate-950 transition-all hover:scale-[1.02] active:scale-[0.98] ${respondingShareId === request.id ? "opacity-50" : ""}`}
+                                >
+                                  {respondingShareId === request.id ? "Processing..." : "Accept Request"}
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={respondingShareId === request.id}
+                                  onClick={async () => {
+                                    setRespondingShareId(request.id);
+                                    try {
+                                      await onRespondEmrShare(request, false);
+                                    } finally {
+                                      setRespondingShareId(null);
+                                    }
+                                  }}
+                                  className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-xs font-bold text-white transition-all hover:bg-white/[0.06] hover:border-white/20 active:scale-[0.98]"
+                                >
+                                  Decline
+                                </button>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
                       </section>
                     )}
 
+                    {/* Console Updates Section */}
                     {latestNotifications.length > 0 && (
-                      <section className="space-y-3">
-                        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-mist">
-                          Console updates
+                      <section className="space-y-4">
+                        <div className="px-2">
+                          <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-mist/50">
+                            Console Updates
+                          </h3>
                         </div>
-                        {latestNotifications.map((notification) => (
-                          <article
-                            key={notification.id}
-                            className={`rounded-[24px] border p-4 ${
-                              notification.tone === "amber"
-                                ? "border-amber-400/20 bg-amber-400/[0.06]"
-                                : notification.tone === "green"
-                                  ? "border-neon/20 bg-neon/[0.06]"
-                                  : "border-sky/20 bg-sky/[0.06]"
-                            }`}
-                          >
-                            <div className="flex items-start gap-3">
-                              <div
-                                className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl border ${
-                                  notification.tone === "amber"
-                                    ? "border-amber-400/20 bg-amber-400/10 text-amber-300"
-                                    : notification.tone === "green"
-                                      ? "border-neon/20 bg-neon/10 text-neon"
-                                      : "border-sky/20 bg-sky/10 text-sky"
-                                }`}
-                              >
-                                <Clock3 size={16} />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="text-sm font-semibold text-white">
-                                  {notification.title}
+                        <div className="space-y-3">
+                          {latestNotifications.map((notification) => (
+                            <article
+                              key={notification.id}
+                              className="group relative rounded-[20px] border border-white/[0.04] bg-white/[0.015] p-4 transition-all hover:bg-white/[0.03]"
+                            >
+                              <div className="flex items-start gap-3.5">
+                                <div
+                                  className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/5 ${
+                                    notification.tone === "amber"
+                                      ? "bg-amber-400/10 text-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.1)]"
+                                      : notification.tone === "green"
+                                        ? "bg-neon/10 text-neon shadow-[0_0_10px_rgba(82,255,157,0.1)]"
+                                        : "bg-sky/10 text-sky shadow-[0_0_10px_rgba(131,212,255,0.1)]"
+                                  }`}
+                                >
+                                  <Clock3 size={15} />
                                 </div>
-                                <p className="mt-1 text-sm leading-6 text-mist">
-                                  {notification.body}
-                                </p>
+                                <div className="min-w-0 flex-1">
+                                  <h4 className="text-sm font-semibold text-white/90">
+                                    {notification.title}
+                                  </h4>
+                                  <p className="mt-1 text-sm leading-relaxed text-mist/60">
+                                    {notification.body}
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                          </article>
-                        ))}
+                              {/* Subtle priority indicator dot */}
+                              <div className={`absolute top-4 right-4 h-1.5 w-1.5 rounded-full ${
+                                notification.tone === "amber" ? "bg-amber-400" : notification.tone === "green" ? "bg-neon" : "bg-sky"
+                              }`} />
+                            </article>
+                          ))}
+                        </div>
                       </section>
                     )}
                   </div>
                 ) : (
-                  <div className="doctor-notification-empty flex min-h-full flex-col items-center justify-center px-10 text-center">
-                    <div
-                      className="flex h-16 w-16 items-center justify-center rounded-[22px] border text-white/80"
-                      style={{
-                        borderColor:
-                          "color-mix(in srgb, var(--doctor-accent-secondary) 18%, var(--doctor-border) 82%)",
-                        background:
-                          "linear-gradient(180deg, color-mix(in srgb, var(--doctor-accent-secondary) 10%, transparent), color-mix(in srgb, var(--doctor-accent) 10%, transparent))",
-                        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
-                      }}
-                    >
-                      <Clock3 size={24} />
+                  /* Empty State */
+                  <div className="flex h-full flex-col items-center justify-center px-10 text-center pb-20">
+                    <div className="relative mb-6">
+                      <div className="absolute inset-0 animate-pulse rounded-full bg-neon/10 blur-2xl" />
+                      <div className="relative flex h-20 w-20 items-center justify-center rounded-[28px] border border-white/10 bg-slate-950/40 text-mist/30">
+                        <BellRing size={32} strokeWidth={1.5} stroke="currentColor" fill="none" />
+                      </div>
                     </div>
-                    <div className="mt-5 text-xl font-semibold text-white">
-                      No notifications yet
-                    </div>
-                    <p className="mt-2 max-w-[260px] text-sm leading-6 text-mist">
-                      New operational updates, reminders, and care alerts will
-                      land here as they arrive.
+                    <h3 className="text-lg font-bold text-white">
+                      All Caught Up
+                    </h3>
+                    <p className="mt-2 max-w-[240px] text-sm leading-relaxed text-mist/50">
+                      New clinical updates, share requests, and system alerts will appear here.
                     </p>
                   </div>
                 )}

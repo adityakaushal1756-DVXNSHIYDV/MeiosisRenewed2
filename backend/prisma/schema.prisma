@@ -111,7 +111,7 @@ model Appointment {
   patientId         String
   doctorId          String
   title             String
-  purpose           String
+  purpose           String?
   scheduledDate     DateTime
   status            AppointmentStatus
   mode              AppointmentMode

@@ -5,19 +5,43 @@ import { QueueCard } from './QueueCard';
 import { QueueSummary } from './QueueSummary';
 import { QueueToolbar } from './QueueToolbar';
 import { WalkInDialog } from './WalkInDialog';
+import { generateTodaySlots } from '../../utils/slotGenerator';
+import { DailySchedule } from '../Schedule/ScheduleDayEditor';
 
-function parseAppointmentMinutes(value: string) {
+function parseAppointmentMinutes(value: string, baseMinutes: number = 0) {
+  let minutes = 0;
   const match = value.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-  if (!match) return Number.MAX_SAFE_INTEGER;
-  let hour = Number(match[1]) % 12;
-  const minute = Number(match[2]);
-  const meridiem = match[3].toUpperCase();
-  if (meridiem === 'PM') hour += 12;
-  return hour * 60 + minute;
+  if (match) {
+    let hour = Number(match[1]) % 12;
+    const min = Number(match[2]);
+    const meridiem = match[3].toUpperCase();
+    if (meridiem === 'PM') hour += 12;
+    minutes = hour * 60 + min;
+  } else {
+    // Fallback for ISO strings or HH:mm format
+    const date = new Date(value);
+    if (!isNaN(date.getTime())) {
+      minutes = date.getHours() * 60 + date.getMinutes();
+    } else {
+      const hhmm = value.match(/^(\d{2}):(\d{2})$/);
+      if (hhmm) {
+        minutes = Number(hhmm[1]) * 60 + Number(hhmm[2]);
+      } else {
+        return Number.MAX_SAFE_INTEGER;
+      }
+    }
+  }
+
+  // If the time is earlier than the clinic base (e.g. 1 AM vs 9 AM start), 
+  // it belongs to the "next day" part of the same shift.
+  if (baseMinutes > 0 && minutes < baseMinutes) {
+    minutes += 1440;
+  }
+  return minutes;
 }
 
 function formatMinutes(totalMinutes: number) {
-  const normalized = ((totalMinutes % (24 * 60)) + (24 * 60)) % (24 * 60);
+  const normalized = totalMinutes % 1440;
   const hour24 = Math.floor(normalized / 60);
   const minute = normalized % 60;
   const suffix = hour24 >= 12 ? 'PM' : 'AM';
@@ -25,30 +49,77 @@ function formatMinutes(totalMinutes: number) {
   return `${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${suffix}`;
 }
 
-function buildQueueWindows(queue: Appointment[], queueBlockMinutes: number) {
-  const sorted = [...queue].sort((a, b) => parseAppointmentMinutes(a.appointmentTime) - parseAppointmentMinutes(b.appointmentTime));
-  const windows = new Map<string, { label: string; appointments: Appointment[] }>();
+function buildQueueWindows(queue: Appointment[], queueBlockMinutes: number, slotDuration: number, scheduleDays: DailySchedule[] = []) {
+  const windows = new Map<number, { label: string; appointments: Appointment[]; endMinutes: number }>();
+  
+  // 1. Identify the base start time for the clinic day (for relative sorting)
+  let baseMinutes = 540; // Default 9:00 AM
+  const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  const today = scheduleDays.find((d) => d.day === todayName);
 
-  sorted.forEach((appointment) => {
-    const minutes = parseAppointmentMinutes(appointment.appointmentTime);
-    const blockStart = Math.floor(minutes / queueBlockMinutes) * queueBlockMinutes;
-    const blockEnd = blockStart + queueBlockMinutes;
-    const key = `${blockStart}`;
-    if (!windows.has(key)) {
-      windows.set(key, {
-        label: `${formatMinutes(blockStart)} - ${formatMinutes(blockEnd)}`,
-        appointments: []
-      });
-    }
-    windows.get(key)?.appointments.push(appointment);
+  if (today && today.open) {
+    const mStart = parseAppointmentMinutes(today.morningStart);
+    const eStart = parseAppointmentMinutes(today.eveningStart);
+    baseMinutes = Math.min(mStart, eStart);
+  }
+
+  // 2. Use the central generator to build the exact same blocks as the Settings preview
+  const { blocks } = generateTodaySlots(scheduleDays, slotDuration, queueBlockMinutes);
+  
+  blocks.forEach(block => {
+    windows.set(block.windowStart, {
+      label: block.label,
+      appointments: [],
+      endMinutes: block.windowStart + block.windowMinutes
+    });
   });
 
-  return Array.from(windows.entries()).map(([key, value], index) => ({
-    id: `queue-window-${key}`,
-    title: `Queue Block ${index + 1}`,
-    label: value.label,
-    appointments: value.appointments
-  }));
+  // 3. Map appointments to blocks (and create dynamic blocks for outliers)
+  const sortedQueue = [...queue].sort((a, b) => 
+    parseAppointmentMinutes(a.appointmentTime, baseMinutes) - parseAppointmentMinutes(b.appointmentTime, baseMinutes)
+  );
+  
+  sortedQueue.forEach((appointment) => {
+    const minutes = parseAppointmentMinutes(appointment.appointmentTime, baseMinutes);
+    
+    // Find if it fits in an existing block
+    let assignedKey: number | null = null;
+    for (const [key, value] of windows.entries()) {
+      if (minutes >= key && minutes < value.endMinutes) {
+        assignedKey = key;
+        break;
+      }
+    }
+
+    if (assignedKey !== null) {
+      windows.get(assignedKey)?.appointments.push(appointment);
+    } else {
+      // Create a dynamic block for this outlier
+      const relativeMinutes = minutes - baseMinutes;
+      const blockStart = baseMinutes + Math.floor(relativeMinutes / queueBlockMinutes) * queueBlockMinutes;
+      const blockEnd = blockStart + queueBlockMinutes;
+      
+      if (!windows.has(blockStart)) {
+        windows.set(blockStart, {
+          label: `${formatMinutes(blockStart)} - ${formatMinutes(blockEnd)}`,
+          appointments: [],
+          endMinutes: blockEnd
+        });
+      }
+      windows.get(blockStart)?.appointments.push(appointment);
+    }
+  });
+
+  // 4. Convert to array and sort by absolute time
+  return Array.from(windows.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([key, value], index) => ({
+      id: `queue-window-${key}`,
+      title: `Queue Block ${index + 1}`,
+      label: value.label,
+      appointments: value.appointments,
+      startTimeMinutes: key
+    }));
 }
 
 interface QueuePanelProps {
@@ -59,6 +130,8 @@ interface QueuePanelProps {
   queueBlockMinutes: number;
   /** Minutes per appointment slot (for display info) */
   slotDuration: number;
+  /** Full schedule to generate blocks matching Settings preview */
+  scheduleDays?: DailySchedule[];
   onSelect: (appointmentId: string) => void;
   onStart: (appointmentId: string) => void;
   onEnd: (appointmentId: string) => void;
@@ -70,12 +143,12 @@ interface QueuePanelProps {
 }
 
 export function QueuePanel(props: QueuePanelProps) {
-  const { queue, patients, activeAppointmentId, queueBlockMinutes, slotDuration, onSelect, onStart, onEnd, onSkip, onNoShow, onAddWalkIn, onRefresh, isSyncing } = props;
+  const { queue, patients, activeAppointmentId, queueBlockMinutes, slotDuration, scheduleDays = [], onSelect, onStart, onEnd, onSkip, onNoShow, onAddWalkIn, onRefresh, isSyncing } = props;
   const waiting = queue.filter((item) => item.status === 'WAITING').length;
   const inSession = queue.filter((item) => item.status === 'IN_SESSION' || item.status === 'PAUSED').length;
   const completed = queue.filter((item) => item.status === 'COMPLETED').length;
   const late = queue.filter((item) => item.status === 'LATE').length;
-  const queueWindows = useMemo(() => buildQueueWindows(queue, queueBlockMinutes), [queue, queueBlockMinutes]);
+  const queueWindows = useMemo(() => buildQueueWindows(queue, queueBlockMinutes, slotDuration, scheduleDays), [queue, queueBlockMinutes, slotDuration, scheduleDays]);
   const patientMap = useMemo(() => new Map(patients.map((patient) => [patient.id, patient])), [patients]);
   const [activeWindowId, setActiveWindowId] = useState<string | null>(queueWindows[0]?.id ?? null);
 

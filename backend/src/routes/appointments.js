@@ -155,7 +155,7 @@ router.post('/', asyncHandler(async (req, res) => {
         appointmentSlotId,
         paymentId: payment.id,
         title: title || 'Consultation',
-        purpose: purpose || 'New consultation',
+        purpose: purpose || null,
         doctorFee: slot.doctor.consultFee,
         slotStartTime: slot.startAt,
         scheduledDate: slot.startAt,
