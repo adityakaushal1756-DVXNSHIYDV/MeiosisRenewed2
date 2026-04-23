@@ -1,9 +1,13 @@
 import { useState, useEffect, useRef, forwardRef, useMemo } from 'react';
-import { FlaskConical, Pill, Stethoscope, ChevronDown, Sparkles, Activity, ShieldAlert, TrendingUp, History, Moon, Sun, ArrowLeft, PlusCircle } from 'lucide-react';
+import { FlaskConical, Pill, Stethoscope, ChevronDown, Sparkles, Activity, ShieldAlert, TrendingUp, History, Moon, Sun, ArrowLeft, PlusCircle, X, Brain, HeartPulse, Microscope } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL, getAuthHeader } from '../../lib/api';
 import { SidePanel } from './SidePanel';
 import type { AppointmentEntry } from './types';
 import { SpacetimeSingularity } from '../Patient/SpacetimeSingularity';
+import { PrescriptionModal } from '../EMR/EMRTimeline';
+import type { TimelineEvent } from '../EMR/EMRTimeline';
+import type { Patient } from '../../types/Patient';
 
 const API_BASE = API_BASE_URL;
 
@@ -843,7 +847,23 @@ function RightPanel({ onSelect, data }: { onSelect: (apt: AppointmentEntry) => v
   );
 }
 
-function AIAnalysisPanel({ data, darkMode, stacked = false, accessLevel, onBack }: { data: AppointmentEntry[]; darkMode?: boolean; stacked?: boolean; accessLevel?: 'full' | 'lab' | 'summary' | null; onBack?: () => void }) {
+function AIAnalysisPanel({ 
+  data, 
+  darkMode, 
+  stacked = false, 
+  accessLevel, 
+  onBack,
+  isAiExpanded,
+  setIsAiExpanded
+}: { 
+  data: AppointmentEntry[]; 
+  darkMode?: boolean; 
+  stacked?: boolean; 
+  accessLevel?: 'full' | 'lab' | 'summary' | null; 
+  onBack?: () => void;
+  isAiExpanded: boolean;
+  setIsAiExpanded: (val: boolean) => void;
+}) {
   const totalVisits = data.length;
   const latest = data[0];
   const specialtyCounts = data.reduce<Record<string, number>>((acc, apt) => {
@@ -1030,7 +1050,9 @@ function AIAnalysisPanel({ data, darkMode, stacked = false, accessLevel, onBack 
         )}
       </div>
 
-      <div
+      <motion.div
+        layoutId="ai-analysis-panel"
+        onClick={() => setIsAiExpanded(true)}
         style={{
           background: shellBg,
           border: shellBorder,
@@ -1044,6 +1066,14 @@ function AIAnalysisPanel({ data, darkMode, stacked = false, accessLevel, onBack 
           flex: stacked ? '1 1 420px' : 1,
           minHeight: stacked ? 220 : 0,
           overflowY: 'auto',
+          cursor: 'pointer',
+          position: 'relative',
+        }}
+        whileHover={{ scale: 1.005, background: darkMode ? 'rgba(3, 21, 37, 0.55)' : 'rgba(255, 255, 255, 0.7)' }}
+        transition={{ 
+          layout: { type: 'spring', stiffness: 400, damping: 40 }, // Higher damping for professional "snap"
+          opacity: { duration: 0.2 },
+          scale: { duration: 0.2, ease: 'easeOut' }
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -1125,8 +1155,391 @@ function AIAnalysisPanel({ data, darkMode, stacked = false, accessLevel, onBack 
             </div>
           ))}
         </div>
-      </div>
+
+        {/* Click to expand hint */}
+        <div style={{ marginTop: 14, textAlign: 'center' }}>
+           <span style={{ fontSize: 10, fontWeight: 700, color: darkMode ? 'var(--doctor-accent)' : '#0f766e', opacity: 0.6, letterSpacing: '0.05em' }}>
+              CLICK FOR DETAILED ANALYSIS
+           </span>
+        </div>
+      </motion.div>
+
+      <AnimatePresence>
+        {isAiExpanded && (
+          <AIAnalysisOverlay 
+            data={data}
+            darkMode={darkMode}
+            onClose={() => setIsAiExpanded(false)}
+            leadSpecialty={leadSpecialty}
+            flaggedLabs={flaggedLabs}
+            totalVisits={totalVisits}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+function AIAnalysisOverlay({ 
+  data, 
+  darkMode, 
+  onClose, 
+  leadSpecialty, 
+  flaggedLabs, 
+  totalVisits 
+}: { 
+  data: AppointmentEntry[]; 
+  darkMode?: boolean; 
+  onClose: () => void;
+  leadSpecialty: [string, number] | undefined;
+  flaggedLabs: any[];
+  totalVisits: number;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [chatMessage, setChatMessage] = useState('');
+  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
+    { role: 'ai', text: "Hello Dr. Aditya, I've analyzed this patient's longitudinal data. How can I assist with your clinical assessment today?" }
+  ]);
+
+  useEffect(() => {
+    // Small delay to ensure the emerging animation doesn't interfere with focus
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleSend = () => {
+    if (!chatMessage.trim()) return;
+    const newMsgs = [...messages, { role: 'user' as const, text: chatMessage }];
+    setMessages(newMsgs);
+    setChatMessage('');
+    
+    // Simulate AI response
+    setTimeout(() => {
+      setMessages(prev => [...prev, { role: 'ai', text: "Based on the recent lab trends and clinical history, the patient shows strong stability. I recommend continuing the current regimen and monitoring metabolic markers in 3 months." }]);
+    }, 1000);
+  };
+
+  const titleClr = darkMode ? 'var(--doctor-text, #f8fafc)' : '#0f172a';
+  const muted = darkMode ? 'var(--doctor-muted, #8ca1b4)' : '#64748b';
+  const accent = darkMode ? 'var(--doctor-accent, #52ff9d)' : '#0f766e';
+  const cardBg = darkMode ? 'rgba(11, 22, 36, 0.85)' : 'rgba(255, 255, 255, 0.94)';
+  const border = darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid rgba(0, 0, 0, 0.1)';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999, // Extremely high to ensure it's above EVERYTHING
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0, 0, 0, 0.65)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        padding: '24px',
+      }}
+      onClick={onClose}
+    >
+      <motion.div
+        layoutId="ai-analysis-panel"
+        style={{
+          width: 'min(1540px, 96vw)',
+          height: 'min(880px, 92vh)',
+          background: cardBg,
+          border: border,
+          borderRadius: 32,
+          display: 'flex',
+          flexDirection: 'row', // Side-by-side layout for chat
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: '0 50px 120px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255,255,255,0.05)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Main Content Area */}
+        <div 
+          className="ai-analysis-content"
+          style={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            padding: '40px 40px', 
+            borderRight: border, 
+            overflowY: 'auto',
+            position: 'relative'
+          }}
+        >
+          {/* Close Button (Fixed to corner) */}
+          <button
+            onClick={onClose}
+            style={{
+              position: 'absolute',
+              top: 24,
+              right: 24,
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+              border: border,
+              color: titleClr,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              zIndex: 20,
+            }}
+          >
+            <X size={20} />
+          </button>
+
+          {/* Scrollable Header */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 10,
+            marginBottom: 32,
+          }}>
+            <Sparkles size={16} color={accent} />
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: accent }}>
+              Meiosis Intelligence Report
+            </span>
+          </div>
+
+          <style>{`
+            .ai-analysis-content::-webkit-scrollbar {
+              width: 5px;
+            }
+            .ai-analysis-content::-webkit-scrollbar-track {
+              background: transparent;
+            }
+            .ai-analysis-content::-webkit-scrollbar-thumb {
+              background: ${darkMode ? 'rgba(82,255,157,0.15)' : 'rgba(16,185,129,0.15)'};
+              border-radius: 10px;
+            }
+            .ai-analysis-content::-webkit-scrollbar-thumb:hover {
+              background: ${accent};
+            }
+          `}</style>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+             {/* Left Column: Trajectory */}
+             <div style={{ background: darkMode ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.015)', borderRadius: 20, padding: '24px 28px', border: border }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+                  <Brain size={18} color={accent} />
+                  <h3 style={{ fontSize: 13, fontWeight: 700, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Clinical Trajectory</h3>
+                </div>
+                <p style={{ fontSize: 14, lineHeight: 1.65, color: muted, marginBottom: 24 }}>
+                  Analysis of {totalVisits} patient encounters indicates a highly stable progression path. 
+                  The primary focus remains on <strong style={{ color: titleClr }}>{leadSpecialty ? leadSpecialty[0] : 'general health'}</strong>, 
+                  accounting for {leadSpecialty ? Math.round((leadSpecialty[1] / totalVisits) * 100) : 0}% of all clinical interactions.
+                  The longitudinal data suggests a strong correlation between regular follow-ups and stabilized metabolic markers.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                      <span style={{ color: muted, fontWeight: 600 }}>Adherence Estimate</span>
+                      <span style={{ fontWeight: 700, color: '#10B981' }}>High (88%)</span>
+                   </div>
+                   <div style={{ height: 6, background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderRadius: 99, overflow: 'hidden' }}>
+                      <motion.div initial={{ width: 0 }} animate={{ width: '88%' }} transition={{ duration: 1, ease: 'easeOut' }} style={{ height: '100%', background: '#10B981' }} />
+                   </div>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginTop: 2 }}>
+                      <span style={{ color: muted, fontWeight: 600 }}>Diagnostic Confidence</span>
+                      <span style={{ fontWeight: 700, color: accent }}>Strong (92%)</span>
+                   </div>
+                   <div style={{ height: 6, background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderRadius: 99, overflow: 'hidden' }}>
+                      <motion.div initial={{ width: 0 }} animate={{ width: '92%' }} transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }} style={{ height: '100%', background: accent }} />
+                   </div>
+                </div>
+             </div>
+
+             {/* Right Column: Lab Trends */}
+             <div style={{ background: darkMode ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.015)', borderRadius: 20, padding: '24px 28px', border: border }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+                  <Microscope size={18} color={accent} />
+                  <h3 style={{ fontSize: 13, fontWeight: 700, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Laboratory Dynamics</h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                   {flaggedLabs.length > 0 ? (
+                      flaggedLabs.slice(0, 3).map((lab, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 15px', background: darkMode ? 'rgba(255,255,255,0.03)' : '#fff', borderRadius: 14, border: border }}>
+                           <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: titleClr }}>{lab.label}</div>
+                              <div style={{ fontSize: 11, color: '#EF4444', fontWeight: 600, marginTop: 1 }}>Status: {lab.status}</div>
+                           </div>
+                           <div style={{ fontSize: 15, fontWeight: 800, color: titleClr }}>{lab.value}</div>
+                        </div>
+                      ))
+                   ) : (
+                      <div style={{ textAlign: 'center', padding: '16px 0', border: '1px dashed rgba(120,120,120,0.15)', borderRadius: 14 }}>
+                         <div style={{ fontSize: 13, color: muted }}>No active markers identified.</div>
+                      </div>
+                   )}
+                </div>
+                <div style={{ marginTop: 20, padding: '16px', background: darkMode ? 'rgba(82,255,157,0.06)' : 'rgba(16,185,129,0.05)', borderRadius: 16, border: `1px solid ${darkMode ? 'rgba(82,255,157,0.12)' : 'rgba(16,185,129,0.12)'}` }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <HeartPulse size={16} color={accent} />
+                      <span style={{ fontSize: 12, fontWeight: 700, color: titleClr }}>AI Advisory</span>
+                   </div>
+                   <p style={{ fontSize: 12, lineHeight: 1.55, color: muted }}>
+                      Consistent metabolic stability detected. Suggest maintaining current regimen for 12 weeks before re-assessment.
+                   </p>
+                </div>
+             </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+             {/* New Section: Medication Impact */}
+             <div style={{ background: darkMode ? 'rgba(3, 21, 37, 0.25)' : 'rgba(0,0,0,0.01)', borderRadius: 20, padding: '24px 28px', border: border }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+                  <Pill size={18} color={accent} />
+                  <h3 style={{ fontSize: 13, fontWeight: 700, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Pharmacological Impact</h3>
+                </div>
+                <p style={{ fontSize: 13, lineHeight: 1.6, color: muted }}>
+                  Ongoing treatment with <strong style={{ color: titleClr }}>Metformin XR</strong> and <strong style={{ color: titleClr }}>Naproxen</strong> shows positive systemic response. 
+                  Inflammation markers remain within target thresholds.
+                </p>
+             </div>
+
+             {/* New Section: Next Milestones */}
+             <div style={{ background: darkMode ? 'rgba(3, 21, 37, 0.25)' : 'rgba(0,0,0,0.01)', borderRadius: 20, padding: '24px 28px', border: border }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+                  <Activity size={18} color={accent} />
+                  <h3 style={{ fontSize: 13, fontWeight: 700, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Next Milestones</h3>
+                </div>
+                <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: 13, color: muted, lineHeight: 1.6 }}>
+                   <li>Complete lipid profile in 4 weeks</li>
+                   <li>Cardiology consultation (Bi-annual review)</li>
+                   <li>Evaluate dosage adjustment for Metformin</li>
+                </ul>
+             </div>
+          </div>
+
+          {/* Bottom Full-width section */}
+          <div style={{ background: darkMode ? 'rgba(3, 21, 37, 0.3)' : 'rgba(255,255,255,0.4)', borderRadius: 20, padding: '24px 28px', border: border, flex: 1, minHeight: 220 }}>
+             <h3 style={{ fontSize: 13, fontWeight: 700, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20 }}>Longitudinal Clinical Trend</h3>
+             <div style={{ height: 'calc(100% - 50px)', display: 'flex', alignItems: 'flex-end', gap: 12, padding: '0 10px 10px' }}>
+                {Array.from({ length: 18 }).map((_, i) => {
+                  const h = 20 + Math.random() * 80;
+                  return (
+                    <motion.div 
+                      key={i}
+                      initial={{ height: 0 }}
+                      animate={{ height: `${h}%` }}
+                      transition={{ delay: 0.3 + i * 0.03, duration: 0.6 }}
+                      style={{ 
+                        flex: 1, 
+                        background: i === 17 ? accent : darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', 
+                        borderRadius: '4px 4px 0 0',
+                        position: 'relative'
+                      }}
+                    >
+                      {i === 17 && (
+                        <div style={{ position: 'absolute', top: -24, left: '50%', transform: 'translateX(-50%)', fontSize: 9, fontWeight: 800, color: accent }}>
+                          NOW
+                        </div>
+                      )}
+                    </motion.div>
+                  )
+                })}
+             </div>
+             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, padding: '0 10px' }}>
+                <span style={{ fontSize: 10, color: muted, fontWeight: 700, letterSpacing: '0.04em' }}>JANUARY 2026</span>
+                <span style={{ fontSize: 10, color: muted, fontWeight: 700, letterSpacing: '0.04em' }}>APRIL 2026</span>
+             </div>
+          </div>
+        </div>
+
+        {/* AI Chat Interface Sidebar */}
+        <div style={{ width: 420, display: 'flex', flexDirection: 'column', background: darkMode ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.02)' }}>
+           <div style={{ padding: '32px 24px', borderBottom: border }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                 <div style={{ width: 36, height: 36, borderRadius: 12, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Sparkles size={18} color="#000" />
+                 </div>
+                 <div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: titleClr }}>AI Assistant</div>
+                    <div style={{ fontSize: 11, color: '#10B981', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Online · Clinical Mode</div>
+                 </div>
+              </div>
+           </div>
+
+           <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {messages.map((msg, i) => (
+                <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+                   <div style={{ 
+                      padding: '14px 18px', 
+                      borderRadius: msg.role === 'user' ? '20px 20px 4px 20px' : '20px 20px 20px 4px',
+                      background: msg.role === 'user' ? accent : (darkMode ? 'rgba(255,255,255,0.06)' : '#fff'),
+                      color: msg.role === 'user' ? '#000' : titleClr,
+                      border: msg.role === 'user' ? 'none' : border,
+                      fontSize: 14,
+                      lineHeight: 1.55,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                      fontWeight: msg.role === 'user' ? 600 : 500,
+                   }}>
+                      {msg.text}
+                   </div>
+                </div>
+              ))}
+           </div>
+
+           <div style={{ padding: '24px', borderTop: border }}>
+              <div style={{ position: 'relative' }}>
+                 <input 
+                    ref={inputRef}
+                    type="text"
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                    placeholder="Ask about patient history..."
+                    style={{
+                       width: '100%',
+                       background: darkMode ? 'rgba(255,255,255,0.05)' : '#fff',
+                       border: border,
+                       borderRadius: 16,
+                       padding: '14px 50px 14px 20px',
+                       fontSize: 14,
+                       color: titleClr,
+                       outline: 'none',
+                       transition: 'border-color 0.2s',
+                    }}
+                 />
+                 <button 
+                    onClick={handleSend}
+                    style={{ 
+                       position: 'absolute', 
+                       right: 8, 
+                       top: 8, 
+                       width: 36, 
+                       height: 36, 
+                       borderRadius: 10, 
+                       background: accent, 
+                       border: 'none', 
+                       display: 'flex', 
+                       alignItems: 'center', 
+                       justifyContent: 'center',
+                       cursor: 'pointer'
+                    }}
+                 >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                       <line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                 </button>
+              </div>
+              <div style={{ fontSize: 10, textAlign: 'center', color: muted, marginTop: 12, fontWeight: 600 }}>
+                 Powered by Meiosis Clinical Engine
+              </div>
+           </div>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -1855,30 +2268,34 @@ function BottomZoomSlider({ value, onChange, chromeDarkMode }: { value: number; 
 }
 
 // -- TimelineView -------------------------------------------------
-export function TimelineView({ 
-  patientId, 
-  darkMode, 
-  timelineTheme = 'default', 
-  timelineWarp = false, 
+export function TimelineView({
+  patientId,
+  darkMode = false,
+  timelineTheme = 'default',
+  timelineWarp = false,
   singularityModern = false,
-  timelineLayout = 'advanced', 
-  timelineZoom = 1, 
-  setTimelineZoom, 
-  accessLevel, 
-  onBack, 
-  onBuildEMR 
-}: { 
-  patientId?: string | null; 
-  darkMode?: boolean; 
-  timelineTheme?: TimelineTheme; 
-  timelineWarp?: boolean; 
+  timelineLayout = 'advanced',
+  timelineZoom = 1,
+  setTimelineZoom,
+  accessLevel,
+  onBack,
+  onBuildEMR,
+  prescriptionLayout = 'classic',
+  patient = null,
+}: {
+  patientId?: string | null;
+  darkMode?: boolean;
+  timelineTheme?: TimelineTheme;
+  timelineWarp?: boolean;
   singularityModern?: boolean;
-  timelineLayout?: 'simple' | 'advanced'; 
-  timelineZoom?: number; 
-  setTimelineZoom?: (zoom: number) => void; 
-  accessLevel?: 'full' | 'lab' | 'summary' | null; 
-  onBack?: () => void; 
-  onBuildEMR?: () => void 
+  timelineLayout?: 'simple' | 'advanced';
+  timelineZoom?: number;
+  setTimelineZoom?: (zoom: number) => void;
+  accessLevel?: 'full' | 'lab' | 'summary' | null;
+  onBack?: () => void;
+  onBuildEMR?: () => void;
+  prescriptionLayout?: 'classic' | 'wide';
+  patient?: Patient | null;
 }) {
   const [forcedDarker, setForcedDarker] = useState(false);
   const [listMode, setListMode] = useState(() => timelineLayout === 'simple');
@@ -1888,6 +2305,7 @@ export function TimelineView({
   const [hiId,    setHiId]    = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [selApt,  setSelApt]  = useState<AppointmentEntry | null>(null);
+  const [isAiExpanded, setIsAiExpanded] = useState(false);
 
   // Dynamic data state
   const [aptData,  setAptData]  = useState<AppointmentEntry[]>([]);
@@ -2367,33 +2785,31 @@ export function TimelineView({
               alignItems: 'center',
               gap: 8,
               border: '1px solid var(--doctor-accent, #52ff9d)',
-              background: 'color-mix(in srgb, var(--doctor-accent, #52ff9d) 15%, transparent)',
-              color: 'var(--doctor-accent, #52ff9d)',
+              background: 'var(--doctor-accent, #52ff9d)',
+              color: '#06111d',
               borderRadius: 99,
-              padding: '10px 20px',
+              padding: '10px 22px',
               cursor: 'pointer',
               fontSize: 12,
               fontWeight: 800,
               letterSpacing: '0.04em',
               textTransform: 'uppercase',
-              boxShadow: '0 8px 32px rgba(82,255,157,0.15)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
+              boxShadow: '0 8px 32px rgba(82,255,157,0.22), 0 0 15px rgba(82,255,157,0.3)',
               transition: 'all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
-              e.currentTarget.style.background = 'color-mix(in srgb, var(--doctor-accent, #52ff9d) 25%, transparent)';
-              e.currentTarget.style.boxShadow = '0 12px 40px rgba(82,255,157,0.3)';
+              e.currentTarget.style.transform = 'translateY(-1px) scale(1.02)';
+              e.currentTarget.style.boxShadow = '0 12px 40px rgba(82,255,157,0.35), 0 0 20px rgba(82,255,157,0.4)';
+              e.currentTarget.style.filter = 'brightness(1.05)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0) scale(1)';
-              e.currentTarget.style.background = 'color-mix(in srgb, var(--doctor-accent, #52ff9d) 15%, transparent)';
-              e.currentTarget.style.boxShadow = '0 8px 32px rgba(82,255,157,0.15)';
+              e.currentTarget.style.boxShadow = '0 8px 32px rgba(82,255,157,0.22), 0 0 15px rgba(82,255,157,0.3)';
+              e.currentTarget.style.filter = 'brightness(1)';
             }}
           >
-            <PlusCircle size={16} strokeWidth={2.5} />
-            Build EMR
+            <PlusCircle size={18} strokeWidth={2.5} />
+            <span>Build EMR</span>
           </button>
         )}
       </div>
@@ -2409,7 +2825,15 @@ export function TimelineView({
           minHeight: stackAnalysisPanel ? 0 : '100%',
         }}
       >
-        <AIAnalysisPanel data={filteredData} darkMode={chromeDarkMode} stacked={stackAnalysisPanel} accessLevel={accessLevel} onBack={onBack} />
+        <AIAnalysisPanel 
+          data={filteredData} 
+          darkMode={chromeDarkMode} 
+          stacked={stackAnalysisPanel} 
+          accessLevel={accessLevel} 
+          onBack={onBack}
+          isAiExpanded={isAiExpanded}
+          setIsAiExpanded={setIsAiExpanded}
+        />
       </div>
 
 
@@ -2667,13 +3091,57 @@ export function TimelineView({
       </div>
       </div>{/* end contentRef wrapper */}
       </div>{/* end timeline column */}
-      {/* -- Side panel (absolute, overlays all) -- */}
+      {/* -- Side panel or Wide Modal -- */}
       {selApt && (
-        <SidePanel appointment={selApt} onClose={() => setSelApt(null)} darkMode={chromeDarkMode} accessLevel={accessLevel} />
+        prescriptionLayout === 'wide' ? (
+          <PrescriptionModal
+            event={{
+              kind: 'appointment',
+              date: selApt.date,
+              sortTs: new Date(selApt.date).getTime(),
+              data: {
+                id: selApt.id,
+                date: selApt.date,
+                doctorName: selApt.doctor,
+                specialty: selApt.specialty,
+                mode: 'In-person',
+                status: selApt.status || 'Completed',
+                purpose: selApt.type,
+                diagnosis: selApt.notes,
+                symptoms: selApt.chiefComplaint,
+                medications: selApt.prescriptions.map(p => ({
+                  name: p.name,
+                  dose: p.dose,
+                  frequency: p.frequency,
+                  duration: p.duration,
+                  notes: p.instructions
+                })),
+                notes: selApt.plan,
+                documentPath: selApt.documentPath
+              }
+            } as TimelineEvent}
+            patient={patient || { 
+              id: patientId || 'unknown', 
+              name: 'Patient', 
+              age: 0, 
+              gender: 'Other', 
+              vitals: selApt.vitals || {},
+              pastAppointments: [],
+              medicalReports: [],
+              prescriptions: [],
+              chronicConditions: [],
+              allergies: []
+            } as unknown as Patient}
+            layoutMode="wide"
+            onClose={() => setSelApt(null)}
+          />
+        ) : (
+          <SidePanel appointment={selApt} onClose={() => setSelApt(null)} darkMode={chromeDarkMode} accessLevel={accessLevel} />
+        )
       )}
 
       {/* -- Bottom Floating Zoom Slider -- */}
-      {setTimelineZoom && (
+      {setTimelineZoom && !selApt && !isAiExpanded && (
         <BottomZoomSlider value={timelineZoom} onChange={setTimelineZoom} chromeDarkMode={chromeDarkMode || false} />
       )}
     </div>

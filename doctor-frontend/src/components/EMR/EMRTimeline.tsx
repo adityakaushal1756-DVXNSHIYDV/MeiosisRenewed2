@@ -69,9 +69,10 @@ interface EMRTimelineProps {
   patient: Patient | null;
   onBuildEMR: () => void;
   accessLevel: 'full' | 'lab' | 'summary' | null;
+  prescriptionLayout?: 'classic' | 'wide';
 }
 
-export function EMRTimeline({ patient, onBuildEMR, accessLevel }: EMRTimelineProps) {
+export function EMRTimeline({ patient, onBuildEMR, accessLevel, prescriptionLayout = 'classic' }: EMRTimelineProps) {
   const [activeIndex,   setActiveIndex]   = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
   const [showOverview,  setShowOverview]  = useState(false);
@@ -380,13 +381,14 @@ export function EMRTimeline({ patient, onBuildEMR, accessLevel }: EMRTimelinePro
     </div>
 
     {/* ── Prescription detail modal ── */}
-    {selectedEvent && (
-      <PrescriptionModal
-        event={selectedEvent}
-        patient={patient}
-        onClose={backToTimeline}
-      />
-    )}
+      {selectedEvent && (
+        <PrescriptionModal
+          event={selectedEvent}
+          patient={patient!}
+          layoutMode={prescriptionLayout}
+          onClose={() => setSelectedEvent(null)}
+        />
+      )}
     </>
   );
 }
@@ -476,7 +478,7 @@ function OverviewPage({
             </div>
           </div>
 
-          {/* ── Stats + Vitals row ── */}
+          {/* Stat Row */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-[1fr_2fr]">
             {/* Stats */}
             <div className="grid grid-cols-2 gap-2 content-start">
@@ -681,14 +683,16 @@ function OverviewPage({
 /*  Prescription / detail modal                                */
 /* ─────────────────────────────────────────────────────────── */
 
-function PrescriptionModal({
+export function PrescriptionModal({
   event,
   patient,
   onClose,
+  layoutMode = 'classic',
 }: {
   event: TimelineEvent;
   patient: Patient;
   onClose: () => void;
+  layoutMode?: 'classic' | 'wide';
 }) {
   /* Notes hidden by default — expanded on click (matches EMR_v2 SidePanel) */
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
@@ -722,216 +726,384 @@ function PrescriptionModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[700px] overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0d1520] shadow-[0_32px_100px_rgba(0,0,0,0.75)]"
+        className={`w-full ${layoutMode === 'wide' ? 'max-w-[1100px]' : 'max-w-[700px]'} overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0d1520] shadow-[0_32px_100px_rgba(0,0,0,0.75)]`}
         onClick={(e) => e.stopPropagation()}
       >
 
         {/* ── Hero ── */}
-        <div className="border-b border-white/[0.07] px-6 pb-5 pt-6">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-neon/70">
-            MEIOSIS PRESCRIPTION
-          </p>
-          <h3 className="mt-1.5 text-[18px] font-bold leading-snug text-white">{title}</h3>
-          <div className="mt-3 flex flex-wrap items-center gap-2.5">
-            <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
-              isCompleted ? 'bg-white/[0.07] text-white/55' : 'bg-neon/[0.13] text-neon'
-            }`}>
-              {statusLabel}
-            </span>
-            <span className="text-[12px] text-mist/65">
-              {label.top}{label.bottom ? ` · ${label.bottom}` : ''}
-            </span>
+        <div className="relative border-b border-white/[0.07] px-6 pb-5 pt-6">
+          <div className="flex items-start justify-between gap-6">
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-neon/70">
+                MEIOSIS PRESCRIPTION
+              </p>
+              <h3 className="mt-1.5 text-[18px] font-bold leading-snug text-white">{title}</h3>
+              <div className="mt-3 flex flex-wrap items-center gap-2.5">
+                <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
+                  isCompleted ? 'bg-white/[0.07] text-white/55' : 'bg-neon/[0.13] text-neon'
+                }`}>
+                  {statusLabel}
+                </span>
+                <span className="text-[12px] text-mist/65">
+                  {label.top}{label.bottom ? ` · ${label.bottom}` : ''}
+                </span>
+              </div>
+            </div>
+
+            {/* Top Right Actions */}
+            <div className="flex items-center gap-2 shrink-0">
+              {docPath && (
+                <a
+                  href={assetUrl(docPath)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="action-btn flex items-center justify-center gap-2 !px-4 !py-2 text-xs"
+                >
+                  <Download size={13} /> Download PDF
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={onClose}
+                className="ghost-btn !px-4 !py-2 text-xs flex items-center gap-2"
+              >
+                <X size={13} /> Close
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* ── Meta tiles (4-up) ── */}
-        {appt && (
-          <div className="grid grid-cols-4 border-b border-white/[0.07]">
-            {[
-              { label: 'DOCTOR',       value: appt.doctorName },
-              { label: 'SPECIALTY',    value: appt.specialty  },
-              { label: 'FOLLOW-UP',    value: appt.followUp ?? '—' },
-              { label: 'MODE',         value: appt.mode       },
-            ].map(({ label: l, value }, i) => (
-              <div key={l} className={`bg-white/[0.02] px-4 py-3 ${i > 0 ? 'border-l border-white/[0.07]' : ''}`}>
-                <p className="text-[9px] font-medium uppercase tracking-[0.16em] text-mist/55">{l}</p>
-                <p className="mt-1 text-[13px] font-semibold text-white">{value || '—'}</p>
-              </div>
-            ))}
-          </div>
-        )}
+        {layoutMode === 'wide' ? (
+          <div className="flex divide-x divide-white/[0.07]">
+            {/* ── Left Column: Metrics & Vitals ── */}
+            <div className="w-[300px] flex-shrink-0 bg-white/[0.01]">
+              {/* Meta Tiles (Vertical) */}
+              {appt && (
+                <div className="border-b border-white/[0.07] py-2">
+                  {[
+                    { label: 'DOCTOR',       value: appt.doctorName },
+                    { label: 'SPECIALTY',    value: appt.specialty  },
+                    { label: 'FOLLOW-UP',    value: appt.followUp ?? '—' },
+                    { label: 'MODE',         value: appt.mode       },
+                  ].map(({ label: l, value }) => (
+                    <div key={l} className="px-5 py-3">
+                      <p className="text-[9px] font-medium uppercase tracking-[0.16em] text-mist/55">{l}</p>
+                      <p className="mt-1 text-[13px] font-semibold text-white">{value || '—'}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-        {/* ── Medications table ── */}
-        {appt && (
-          <div className="border-b border-white/[0.07] px-5 py-4">
-            <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80">
-              💊 Medications
-            </p>
-            {meds.length === 0 ? (
-              <p className="text-[13px] italic text-mist/50">No medicines prescribed.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-[12px]">
-                  <thead>
-                    <tr>
-                      {['MEDICINE', 'DOSE', 'TIMING CODE', 'DURATION', ''].map((h) => (
-                        <th
-                          key={h}
-                          className="pb-2 pr-3 text-left text-[9px] font-semibold uppercase tracking-[0.14em] text-mist/55 last:w-7 last:pr-0"
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {meds.map((med, i) => {
-                      const noteKey = String(i);
-                      return (
-                        <Fragment key={noteKey}>
-                          <tr className="border-t border-white/[0.05]">
-                            <td className="py-2 pr-3 font-semibold text-neon">{med.name}</td>
-                            <td className="py-2 pr-3 text-white/75">{med.dose || '—'}</td>
-                            <td className="py-2 pr-3 text-white/75">
-                              {/^[01]{4}$/.test(med.frequency ?? '') ? (
-                                <span>
-                                  <span className="mr-1 font-mono text-[10px] text-white/35">{med.frequency}</span>
-                                  {emrPatternLabel(med.frequency)}
-                                </span>
-                              ) : (med.frequency || '—')}
-                            </td>
-                            <td className="py-2 pr-3 text-white/75">{med.duration || '—'}</td>
-                            <td className="py-2 text-right">
-                              {med.notes && (
-                                <button
-                                  type="button"
-                                  onClick={() => toggleNote(noteKey)}
-                                  title={expandedNotes.has(noteKey) ? 'Hide note' : 'Show note'}
-                                  aria-expanded={expandedNotes.has(noteKey)}
-                                  className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/[0.15] text-[13px] font-bold leading-none text-mist/50 transition-colors hover:border-neon/40 hover:text-neon"
-                                >
-                                  {expandedNotes.has(noteKey) ? '−' : '+'}
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                          {expandedNotes.has(noteKey) && med.notes && (
-                            <tr>
-                              <td colSpan={5} className="pb-3 pt-0">
-                                <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2">
-                                  <p className="text-[11px] leading-5 text-mist/70">{med.notes}</p>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Vitals ── */}
-        <div className="border-b border-white/[0.07] px-5 py-4">
-          <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80">
-            🩺 Vitals
-          </p>
-          <div className="grid grid-cols-3 gap-2.5">
-            {([
-              { label: 'BLOOD PRESSURE', value: vitals.bloodPressure },
-              { label: 'HEART RATE',     value: vitals.pulse         },
-              { label: 'TEMPERATURE',    value: vitals.temperature   },
-              { label: 'SPO2',           value: vitals.spo2          },
-              { label: 'HEIGHT',         value: vitals.height        },
-              { label: 'WEIGHT',         value: vitals.weight        },
-            ] as const).map(({ label: vl, value }) => (
-              <div key={vl} className="rounded-2xl border border-white/[0.07] bg-white/[0.025] px-4 py-3">
-                <p className="text-[9px] font-medium uppercase tracking-[0.16em] text-mist/55">{vl}</p>
-                <p className={`mt-1 text-[13px] font-semibold ${value ? 'text-white' : 'text-mist/35'}`}>
-                  {value || 'N/A'}
+              {/* Vitals (2-col grid) */}
+              <div className="px-5 py-5">
+                <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/50">
+                  🩺 Vitals Telemetry
                 </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {([
+                    { label: 'BP',   value: vitals.bloodPressure },
+                    { label: 'HR',   value: vitals.pulse         },
+                    { label: 'TEMP', value: vitals.temperature   },
+                    { label: 'SPO2', value: vitals.spo2          },
+                    { label: 'HT',   value: vitals.height        },
+                    { label: 'WT',   value: vitals.weight        },
+                  ] as const).map(({ label: vl, value }) => (
+                    <div key={vl} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                      <p className="text-[8px] font-bold uppercase tracking-widest text-mist/40">{vl}</p>
+                      <p className={`mt-1 text-[12px] font-bold ${value ? 'text-white' : 'text-mist/20'}`}>
+                        {value || '--'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        {/* ── Clinical Notes ── */}
-        {hasNotes && (
-          <div className="border-b border-white/[0.07] px-5 py-4">
-            <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80">
-              📋 Clinical Notes
-            </p>
-            <div className="space-y-3">
-              {appt!.symptoms && (
-                <div className="flex gap-3">
-                  <span className="w-[160px] flex-shrink-0 pt-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-mist/55">Chief Complaint</span>
-                  <p className="flex-1 text-[13px] leading-6 text-white/80">{appt!.symptoms}</p>
+            {/* ── Right Column: Clinical Content ── */}
+            <div className="flex-1 min-w-0">
+              {/* Main Diagnosis / Complaint at Top */}
+              {appt && (
+                <div className="border-b border-white/[0.07] bg-white/[0.01] px-6 py-5">
+                   <div className="flex flex-col gap-4">
+                      {appt.symptoms && (
+                        <div>
+                          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-neon/60 mb-1.5">Chief Complaint</p>
+                          <p className="text-[14px] font-medium leading-relaxed text-white/90">{appt.symptoms}</p>
+                        </div>
+                      )}
+                      {appt.diagnosis && (
+                        <div>
+                          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-neon/60 mb-1.5">Diagnosis / Assessment</p>
+                          <p className="text-[14px] font-bold leading-relaxed text-white">{appt.diagnosis}</p>
+                        </div>
+                      )}
+                   </div>
                 </div>
               )}
-              {appt!.diagnosis && (
-                <div className="flex gap-3">
-                  <span className="w-[160px] flex-shrink-0 pt-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-mist/55">Diagnosis / Assessment</span>
-                  <p className="flex-1 text-[13px] leading-6 text-white/80">{appt!.diagnosis}</p>
+
+              {/* Medications in the middle */}
+              {appt && (
+                <div className="border-b border-white/[0.07] px-6 py-5">
+                  <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.15em] text-white/70">
+                    💊 Prescribed Regimen
+                  </p>
+                  {meds.length === 0 ? (
+                    <p className="text-[13px] italic text-mist/40">No medications in this record.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {meds.map((med, i) => {
+                        const noteKey = `wide-${i}`;
+                        return (
+                          <div key={noteKey} className="rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden">
+                             <div className="px-4 py-3 flex items-center justify-between gap-4">
+                                <div className="flex-1 min-w-0">
+                                   <div className="flex items-center gap-2">
+                                      <span className="text-[13px] font-bold text-neon">{med.name}</span>
+                                      <span className="h-1 w-1 rounded-full bg-white/20" />
+                                      <span className="text-[12px] text-white/70">{med.dose || '—'}</span>
+                                   </div>
+                                   <div className="mt-1 text-[11px] text-mist/60 flex items-center gap-3">
+                                      <span className="font-mono">{med.frequency || '—'}</span>
+                                      {med.duration && <span>· {med.duration}</span>}
+                                   </div>
+                                </div>
+                                {med.notes && (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleNote(noteKey)}
+                                    className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-all ${
+                                      expandedNotes.has(noteKey) 
+                                        ? 'border-neon/40 bg-neon/10 text-neon' 
+                                        : 'border-white/10 bg-white/5 text-mist/40 hover:text-mist'
+                                    }`}
+                                  >
+                                    <StickyNote size={14} />
+                                  </button>
+                                )}
+                             </div>
+                             {expandedNotes.has(noteKey) && med.notes && (
+                               <div className="px-4 pb-3 pt-0 border-t border-white/[0.04] bg-black/20">
+                                  <p className="text-[11px] leading-5 text-mist/70 pt-2 italic">{med.notes}</p>
+                                </div>
+                             )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
-              {appt!.notes && (
-                <div className="flex gap-3">
-                  <span className="w-[160px] flex-shrink-0 pt-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-mist/55">Treatment Plan</span>
-                  <p className="flex-1 text-[13px] leading-6 text-white/80">{appt!.notes}</p>
+
+              {/* Lab / Notes at bottom */}
+              {(appt?.notes || lab) && (
+                <div className="px-6 py-5">
+                  {lab && (
+                    <div className="space-y-4">
+                       <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/70">🔬 Diagnostic Findings</p>
+                       <div className="grid grid-cols-2 gap-3">
+                         {[
+                           { label: 'CATEGORY', value: lab.category   },
+                           { label: 'FILE',     value: lab.fileLabel  },
+                         ].map(({ label: l, value }) => (
+                           <div key={l} className="rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 py-3">
+                             <p className="text-[8px] font-medium uppercase tracking-[0.16em] text-mist/55">{l}</p>
+                             <p className="mt-1 text-[12px] font-semibold text-white">{value || '—'}</p>
+                           </div>
+                         ))}
+                       </div>
+                       {lab.summary && (
+                         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 mt-3">
+                           <p className="text-[13px] leading-relaxed text-white/80">{lab.summary}</p>
+                         </div>
+                       )}
+                    </div>
+                  )}
+                  {appt?.notes && (
+                    <div className="mt-2">
+                       <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/70 mb-3">📋 Treatment Plan</p>
+                       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.01] px-4 py-4">
+                          <p className="text-[13px] leading-relaxed text-white/80">{appt.notes}</p>
+                       </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
-        )}
-
-        {/* ── Lab report (when event is a lab) ── */}
-        {lab && (
-          <div className="border-b border-white/[0.07] px-5 py-4 space-y-3">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80">🔬 Lab Report</p>
-            <div className="grid grid-cols-3 gap-2.5">
-              {[
-                { label: 'CATEGORY', value: lab.category   },
-                { label: 'DOCTOR',   value: lab.doctorName },
-                { label: 'FILE',     value: lab.fileLabel  },
-              ].map(({ label: l, value }) => (
-                <div key={l} className="rounded-2xl border border-white/[0.07] bg-white/[0.025] px-4 py-3">
-                  <p className="text-[9px] font-medium uppercase tracking-[0.16em] text-mist/55">{l}</p>
-                  <p className="mt-1 text-[13px] font-semibold text-white">{value || '—'}</p>
-                </div>
-              ))}
-            </div>
-            {lab.summary && (
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-mist/50">Summary</p>
-                <p className="text-[13px] leading-[1.65] text-white/80">{lab.summary}</p>
+        ) : (
+          <>
+            {/* ── Meta tiles (4-up) ── */}
+            {appt && (
+              <div className="grid grid-cols-4 border-b border-white/[0.07]">
+                {[
+                  { label: 'DOCTOR',       value: appt.doctorName },
+                  { label: 'SPECIALTY',    value: appt.specialty  },
+                  { label: 'FOLLOW-UP',    value: appt.followUp ?? '—' },
+                  { label: 'MODE',         value: appt.mode       },
+                ].map(({ label: l, value }, i) => (
+                  <div key={l} className={`bg-white/[0.02] px-4 py-3 ${i > 0 ? 'border-l border-white/[0.07]' : ''}`}>
+                    <p className="text-[9px] font-medium uppercase tracking-[0.16em] text-mist/55">{l}</p>
+                    <p className="mt-1 text-[13px] font-semibold text-white">{value || '—'}</p>
+                  </div>
+                ))}
               </div>
             )}
-          </div>
+
+            {/* ── Medications table ── */}
+            {appt && (
+              <div className="border-b border-white/[0.07] px-5 py-4">
+                <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80">
+                  💊 Medications
+                </p>
+                {meds.length === 0 ? (
+                  <p className="text-[13px] italic text-mist/50">No medicines prescribed.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[12px]">
+                      <thead>
+                        <tr>
+                          {['MEDICINE', 'DOSE', 'TIMING CODE', 'DURATION', ''].map((h) => (
+                            <th
+                              key={h}
+                              className="pb-2 pr-3 text-left text-[9px] font-semibold uppercase tracking-[0.14em] text-mist/55 last:w-7 last:pr-0"
+                            >
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {meds.map((med, i) => {
+                          const noteKey = String(i);
+                          return (
+                            <Fragment key={noteKey}>
+                              <tr className="border-t border-white/[0.05]">
+                                <td className="py-2 pr-3 font-semibold text-neon">{med.name}</td>
+                                <td className="py-2 pr-3 text-white/75">{med.dose || '—'}</td>
+                                <td className="py-2 pr-3 text-white/75">
+                                  {/^[01]{4}$/.test(med.frequency ?? '') ? (
+                                    <span>
+                                      <span className="mr-1 font-mono text-[10px] text-white/35">{med.frequency}</span>
+                                      {emrPatternLabel(med.frequency)}
+                                    </span>
+                                  ) : (med.frequency || '—')}
+                                </td>
+                                <td className="py-2 pr-3 text-white/75">{med.duration || '—'}</td>
+                                <td className="py-2 text-right">
+                                  {med.notes && (
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleNote(noteKey)}
+                                      title={expandedNotes.has(noteKey) ? 'Hide note' : 'Show note'}
+                                      aria-expanded={expandedNotes.has(noteKey)}
+                                      className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/[0.15] text-[13px] font-bold leading-none text-mist/50 transition-colors hover:border-neon/40 hover:text-neon"
+                                    >
+                                      {expandedNotes.has(noteKey) ? '−' : '+'}
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                              {expandedNotes.has(noteKey) && med.notes && (
+                                <tr>
+                                  <td colSpan={5} className="pb-3 pt-0">
+                                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2">
+                                      <p className="text-[11px] leading-5 text-mist/70">{med.notes}</p>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Vitals ── */}
+            <div className="border-b border-white/[0.07] px-5 py-4">
+              <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80">
+                🩺 Vitals
+              </p>
+              <div className="grid grid-cols-3 gap-2.5">
+                {([
+                  { label: 'BLOOD PRESSURE', value: vitals.bloodPressure },
+                  { label: 'HEART RATE',     value: vitals.pulse         },
+                  { label: 'TEMPERATURE',    value: vitals.temperature   },
+                  { label: 'SPO2',           value: vitals.spo2          },
+                  { label: 'HEIGHT',         value: vitals.height        },
+                  { label: 'WEIGHT',         value: vitals.weight        },
+                ] as const).map(({ label: vl, value }) => (
+                  <div key={vl} className="rounded-2xl border border-white/[0.07] bg-white/[0.025] px-4 py-3">
+                    <p className="text-[9px] font-medium uppercase tracking-[0.16em] text-mist/55">{vl}</p>
+                    <p className={`mt-1 text-[13px] font-semibold ${value ? 'text-white' : 'text-mist/35'}`}>
+                      {value || 'N/A'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Clinical Notes ── */}
+            {hasNotes && (
+              <div className="border-b border-white/[0.07] px-5 py-4">
+                <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80">
+                  📋 Clinical Notes
+                </p>
+                <div className="space-y-3">
+                  {appt!.symptoms && (
+                    <div className="flex gap-3">
+                      <span className="w-[160px] flex-shrink-0 pt-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-mist/55">Chief Complaint</span>
+                      <p className="flex-1 text-[13px] leading-6 text-white/80">{appt!.symptoms}</p>
+                    </div>
+                  )}
+                  {appt!.diagnosis && (
+                    <div className="flex gap-3">
+                      <span className="w-[160px] flex-shrink-0 pt-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-mist/55">Diagnosis / Assessment</span>
+                      <p className="flex-1 text-[13px] leading-6 text-white/80">{appt!.diagnosis}</p>
+                    </div>
+                  )}
+                  {appt!.notes && (
+                    <div className="flex gap-3">
+                      <span className="w-[160px] flex-shrink-0 pt-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-mist/55">Treatment Plan</span>
+                      <p className="flex-1 text-[13px] leading-6 text-white/80">{appt!.notes}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── Lab report (when event is a lab) ── */}
+            {lab && (
+              <div className="border-b border-white/[0.07] px-5 py-4 space-y-3">
+                <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80">🔬 Lab Report</p>
+                <div className="grid grid-cols-3 gap-2.5">
+                  {[
+                    { label: 'CATEGORY', value: lab.category   },
+                    { label: 'DOCTOR',   value: lab.doctorName },
+                    { label: 'FILE',     value: lab.fileLabel  },
+                  ].map(({ label: l, value }) => (
+                    <div key={l} className="rounded-2xl border border-white/[0.07] bg-white/[0.025] px-4 py-3">
+                      <p className="text-[9px] font-medium uppercase tracking-[0.16em] text-mist/55">{l}</p>
+                      <p className="mt-1 text-[13px] font-semibold text-white">{value || '—'}</p>
+                    </div>
+                  ))}
+                </div>
+                {lab.summary && (
+                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-mist/50">Summary</p>
+                    <p className="text-[13px] leading-[1.65] text-white/80">{lab.summary}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
 
-        {/* ── Actions ── */}
-        <div className="flex gap-3 px-5 py-5">
-          {docPath && (
-            <a
-              href={assetUrl(docPath)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="action-btn flex flex-1 items-center justify-center gap-2 py-3 text-sm"
-            >
-              <Download size={14} /> Download PDF
-            </a>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            className={`ghost-btn py-3 text-sm ${docPath ? 'flex-1' : 'w-full'}`}
-          >
-            Close
-          </button>
-        </div>
+        {/* Footer spacer if needed, or remove bottom actions entirely */}
+        <div className="h-4" />
 
       </div>
     </div>

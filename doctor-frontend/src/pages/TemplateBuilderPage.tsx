@@ -180,10 +180,11 @@ function generateHtmlFromBlocks(blocks: TemplateBlock[], templateName: string): 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, 'Segoe UI', Arial, sans-serif; color: #0f1e17; background: #f0f6f2; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    @page { size: A4; margin: 18mm 12mm; }
+    @page { size: A4; margin: 15mm 12mm; }
     .watermark { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 0; overflow: hidden; }
     .watermark-text { font-size: 96px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(10,80,50,0.045); transform: rotate(-32deg); white-space: nowrap; }
-    .page { position: relative; z-index: 1; padding: 30px 34px 36px; max-width: 820px; margin: 0 auto; }
+    .page { position: relative; z-index: 1; padding: 10px 0; max-width: 820px; margin: 0 auto; }
+    .page > div { break-inside: avoid; page-break-inside: avoid; }
     table { width: 100%; border-collapse: collapse; }
     th { text-align: left; padding: 8px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #5a7d6c; border-bottom: 2px solid #e2f0e8; font-weight: 600; }
     td { padding: 10px 10px; font-size: 13px; border-bottom: 1px solid #f0f6f2; vertical-align: top; color: #1a2e22; }

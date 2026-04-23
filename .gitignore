@@ -18,6 +18,10 @@
 !.vscode/recommendations.json
 .idea/
 
+# Dependencies
+node_modules/
+**/node_modules/
+
 # Build outputs
 dist/
 build/

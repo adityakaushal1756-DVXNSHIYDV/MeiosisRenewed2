@@ -155,7 +155,7 @@ router.post('/', asyncHandler(async (req, res) => {
   // On Vercel, we MUST await this to ensure the function doesn't exit before the
   // PDF is written to storage/DB is updated.
   try {
-    const { publicPath } = await createPrescriptionPdf(saved.prescription);
+    const { publicPath } = await createPrescriptionPdf(saved.prescription, req.body.pdfTemplateHtml);
     saved.prescription = await prisma.prescription.update({
       where: { id: saved.prescription.id },
       data: { documentPath: publicPath },

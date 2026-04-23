@@ -219,6 +219,8 @@ interface DashboardProps {
   syncStatus?: import("../hooks/useOfflineSync").SyncStatus;
   pendingCount?: number;
   accessLevel: "full" | "lab" | "summary" | null;
+  prescriptionLayout: 'classic' | 'wide';
+  onPrescriptionLayoutChange: (mode: 'classic' | 'wide') => void;
 }
 
 /* ── Shared primitives ───────────────────────────────────── */
@@ -799,6 +801,8 @@ export default function Dashboard(props: DashboardProps) {
     isSyncingPatients = false,
     isSyncingAnalytics = false,
     accessLevel = "full",
+    prescriptionLayout,
+    onPrescriptionLayoutChange,
   } = props;
 
   const isSyncingAny = isSyncingQueue || isSyncingPatients || isSyncingAnalytics;
@@ -2455,6 +2459,72 @@ export default function Dashboard(props: DashboardProps) {
                       </div>
                     </button>
 
+                  </div>
+                </div>
+
+                {/* Prescription Layout — mode picker */}
+                <div className="rounded-2xl border border-wire/8 bg-slate-950/20 p-4">
+                  <div className="font-medium text-white">Prescription Layout</div>
+                  <div className="mt-1 mb-4 text-sm text-mist">
+                    Toggle between the legacy centered view and the optimized wide-format layout for prescriptions.
+                  </div>
+                  <div className="flex gap-5">
+                    {/* Classic Layout */}
+                    <button
+                      type="button"
+                      onClick={() => onPrescriptionLayoutChange("classic")}
+                      className={[
+                        "group flex flex-col items-center gap-2.5 rounded-2xl border-2 p-2 transition-all duration-200 focus:outline-none",
+                        prescriptionLayout === "classic"
+                          ? "border-neon/55 shadow-[0_0_18px_rgba(82,255,157,0.12)]"
+                          : "border-wire/12 hover:border-neon/20",
+                      ].join(" ")}
+                    >
+                      <div className="w-[152px] h-[96px] rounded-xl overflow-hidden border border-wire/15 bg-[#0d1520] relative flex items-center justify-center">
+                         <div className="w-[60px] h-[80px] rounded-lg border border-white/10 bg-white/5 flex flex-col p-1 gap-1">
+                            <div className="h-1.5 w-full bg-white/20 rounded-full" />
+                            <div className="h-4 w-full bg-white/10 rounded-md" />
+                            <div className="h-8 w-full bg-white/5 rounded-md" />
+                         </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className={["flex h-4 w-4 items-center justify-center rounded-full border transition-all", prescriptionLayout === "classic" ? "border-neon bg-neon" : "border-wire/30 bg-transparent"].join(" ")}>
+                          {prescriptionLayout === "classic" && <Check size={10} className="text-black" strokeWidth={3} />}
+                        </div>
+                        <span className={`text-xs font-medium ${prescriptionLayout === "classic" ? "text-neon" : "text-mist group-hover:text-white/70"}`}>Classic</span>
+                      </div>
+                    </button>
+
+                    {/* Wide Layout */}
+                    <button
+                      type="button"
+                      onClick={() => onPrescriptionLayoutChange("wide")}
+                      className={[
+                        "group flex flex-col items-center gap-2.5 rounded-2xl border-2 p-2 transition-all duration-200 focus:outline-none",
+                        prescriptionLayout === "wide"
+                          ? "border-neon/55 shadow-[0_0_18px_rgba(82,255,157,0.12)]"
+                          : "border-wire/12 hover:border-neon/20",
+                      ].join(" ")}
+                    >
+                      <div className="w-[152px] h-[96px] rounded-xl overflow-hidden border border-wire/15 bg-[#0d1520] relative flex items-center justify-center">
+                         <div className="w-[120px] h-[70px] rounded-lg border border-white/10 bg-white/5 flex gap-2 p-2">
+                            <div className="flex-1 flex flex-col gap-1.5">
+                               <div className="h-1.5 w-full bg-white/20 rounded-full" />
+                               <div className="h-4 w-full bg-white/10 rounded-md" />
+                            </div>
+                            <div className="flex-1 flex flex-col gap-1.5">
+                               <div className="h-1.5 w-full bg-white/20 rounded-full" />
+                               <div className="h-8 w-full bg-white/5 rounded-md" />
+                            </div>
+                         </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className={["flex h-4 w-4 items-center justify-center rounded-full border transition-all", prescriptionLayout === "wide" ? "border-neon bg-neon" : "border-wire/30 bg-transparent"].join(" ")}>
+                          {prescriptionLayout === "wide" && <Check size={10} className="text-black" strokeWidth={3} />}
+                        </div>
+                        <span className={`text-xs font-medium ${prescriptionLayout === "wide" ? "text-neon" : "text-mist group-hover:text-white/70"}`}>Wide</span>
+                      </div>
+                    </button>
                   </div>
                 </div>
 

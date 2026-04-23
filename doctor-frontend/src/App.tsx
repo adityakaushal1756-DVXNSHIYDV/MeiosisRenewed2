@@ -52,6 +52,7 @@ const DOCTOR_PRESCRIPTION_TEMPLATES_KEY = 'meiosis_doctor_prescription_templates
 const DOCTOR_SLOT_DURATION_KEY        = 'meiosis_doctor_slot_duration_v1';
 const DOCTOR_QUEUE_BLOCK_DURATION_KEY = 'meiosis_doctor_queue_block_duration_v1';
 const DOCTOR_FOLLOWUP_GAP_KEY         = 'meiosis_doctor_followup_gap_v1';
+const DOCTOR_PRESCRIPTION_LAYOUT_MODE_KEY = 'meiosis_doctor_prescription_layout_mode_v1';
 const TIMELINE_ZOOM_MIN = 0.8;
 const TIMELINE_ZOOM_MAX = 1.4;
 const TIMELINE_ZOOM_STEP = 0.05;
@@ -749,6 +750,21 @@ export default function App() {
   const [lateStartDate, setLateStartDate] = useState('2026-03-21');
   const [lateStartTime, setLateStartTime] = useState('11:30');
   const [emrComposerOpen, setEmrComposerOpen] = useState(false);
+  const [prescriptionLayout, setPrescriptionLayoutState] = useState<'classic' | 'wide'>(() => {
+    try {
+      const stored = localStorage.getItem(DOCTOR_PRESCRIPTION_LAYOUT_MODE_KEY);
+      return stored === 'wide' ? 'wide' : 'classic';
+    } catch {
+      return 'classic';
+    }
+  });
+
+  const setPrescriptionLayout = (mode: 'classic' | 'wide') => {
+    setPrescriptionLayoutState(mode);
+    try {
+      localStorage.setItem(DOCTOR_PRESCRIPTION_LAYOUT_MODE_KEY, mode);
+    } catch {}
+  };
   const [emrOpenedFromRecords, setEmrOpenedFromRecords] = useState(false);
   const [emr, setEmr] = useState<EMRState>(() => createInitialEmr(null));
   const [emrSaving, setEmrSaving] = useState(false);
@@ -1400,6 +1416,7 @@ export default function App() {
       prescriptionRows: savedEmr.prescriptionRows,
       labTests: savedEmr.labTests,
       followUpDate: savedEmr.followUpDate,
+      pdfTemplateHtml: pdfTemplates.find(t => t.isActive)?.htmlTemplate || null,
     };
 
     if (!navigator.onLine) {
@@ -1645,6 +1662,8 @@ export default function App() {
                 syncStatus={syncStatus}
                 pendingCount={pendingCount}
                 accessLevel={accessLevel}
+                prescriptionLayout={prescriptionLayout}
+                onPrescriptionLayoutChange={setPrescriptionLayout}
               />
 
               {nav === 'template-builder' && (
@@ -1669,6 +1688,7 @@ export default function App() {
                 <div className="fixed inset-0 z-[60] bg-ink/95 backdrop-blur-xl">
                   <Suspense fallback={<LoadingFallback />}>
                     <EMRv2
+                      patient={effectivePatient}
                       patientId={viewRecordsPatientId}
                       darkMode={darkMode}
                       timelineTheme={timelineTheme}
@@ -1678,13 +1698,13 @@ export default function App() {
                       timelineZoom={timelineZoom}
                       setTimelineZoom={setTimelineZoom}
                       accessLevel={accessLevel}
+                      prescriptionLayout={prescriptionLayout}
                       onBack={handleBackToPatientSearch}
                       onBuildEMR={handleBuildEMRFromRecords}
                     />
                   </Suspense>
                 </div>
               )}
-
               {accessDeniedPatientId && (
                   <AccessDeniedOverlay
                     patientName={

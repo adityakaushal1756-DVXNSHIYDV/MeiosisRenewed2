@@ -44,11 +44,49 @@ async function renderPdfToFile(html, absolutePath) {
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'load', timeout: 30000 });
+
+    // Dynamic scaling logic to fit onto 1-2 pages
+    const height = await page.evaluate(() => {
+      const pageEl = document.querySelector('.page');
+      return pageEl ? pageEl.offsetHeight : document.documentElement.offsetHeight;
+    });
+    
+    // A4 at 96 DPI is 1122px high. 
+    // Content area with 15mm margins top/bottom is approx 1000px.
+    const onePageMaxHeight = 1008; 
+    let scale = 1.0;
+
+    if (height > onePageMaxHeight) {
+      // Goal: Fit on 1 page if possible (down to 0.7 scale)
+      const neededForOne = onePageMaxHeight / height;
+      
+      if (neededForOne >= 0.70) {
+        scale = neededForOne;
+      } else {
+        // It's too long for 1 page. Let's aim for 2 pages max.
+        const twoPageMaxHeight = onePageMaxHeight * 2;
+        const neededForTwo = twoPageMaxHeight / height;
+        
+        // We'll scale it to fit on 2 pages if it's longer than 2 pages,
+        // OR if it's close to 1.5 pages, we might just let it be.
+        // But the user said "maximum 2", so if > 2 pages, we MUST scale.
+        if (height > twoPageMaxHeight) {
+          scale = Math.max(0.65, neededForTwo);
+        } else {
+          // If it's between 1 and 2 pages, we use scale 1.0 to keep it readable,
+          // UNLESS it's very close to 1 page (e.g. 1.1 pages), then we scale to 1 page.
+          // (Already handled by neededForOne >= 0.70)
+          scale = 1.0;
+        }
+      }
+    }
+
     await page.pdf({
       path: absolutePath,
       format: 'A4',
       printBackground: true,
-      margin: { top: '18mm', right: '12mm', bottom: '22mm', left: '12mm' },
+      margin: { top: '15mm', right: '12mm', bottom: '15mm', left: '12mm' },
+      scale: parseFloat(scale.toFixed(2)),
       timeout: 30000,
     });
   } finally {
@@ -382,7 +420,7 @@ function parseVitalsFromNote(note) {
   return _VITAL_DEFS.map(def => ({ ...def, value: found[def.key] || null }));
 }
 
-async function createPrescriptionPdf(prescription) {
+async function createPrescriptionPdf(prescription, customHtmlTemplate = null) {
   const patient   = prescription.patient || {};
   const doctor    = prescription.doctor  || {};
   const items     = prescription.items   || [];
@@ -499,7 +537,43 @@ async function createPrescriptionPdf(prescription) {
     </div>
   `);
 
-  await renderPdfToFile(html, absolutePath);
+  let finalHtml = html;
+
+  if (customHtmlTemplate) {
+    const tokens = {
+      '{{doctor_hospital}}':   escapeHtml(doctor.hospital || 'MEIOSIS CLINIC'),
+      '{{doctor_name}}':       escapeHtml(doctor.name || 'N/A'),
+      '{{doctor_specialty}}':  escapeHtml(doctor.specialty || 'General Medicine'),
+      '{{prescription_date}}': formatDate(new Date()),
+      '{{prescription_id}}':   escapeHtml(prescription.id.slice(0, 8).toUpperCase()),
+      '{{patient_name}}':      escapeHtml(patient.name || 'N/A'),
+      '{{patient_id}}':        escapeHtml(patient.meiosisId || patient.universalCode || 'N/A'),
+      '{{follow_up_date}}':    formatDate(prescription.endDate),
+      '{{medication_table}}':  `
+        <table>
+          <thead><tr><th>Medicine</th><th>Dose</th><th>Frequency</th><th>Duration</th></tr></thead>
+          <tbody>${itemRows}</tbody>
+        </table>`,
+      '{{medication_name}}': items[0] ? escapeHtml(items[0].medicine || 'N/A') : 'N/A',
+      '{{dose}}':            items[0] ? escapeHtml(items[0].dose || 'N/A') : 'N/A',
+      '{{frequency}}':       items[0] ? escapeHtml(pdfPatternLabel(items[0].frequency)) : 'N/A',
+      '{{duration}}':        items[0] ? escapeHtml(items[0].timing || 'N/A') : 'N/A',
+      '{{vitals}}': vitals.filter(v => v.value).map(v => `${v.label}: ${v.value} ${v.unit}`).join(' | ') || 'N/A',
+      '{{diagnosis}}': escapeHtml(prescription.title || 'N/A'),
+      '{{advice}}':    escapeHtml(prescription.doctorNote.split('\n').find(l => l.startsWith('Plan: '))?.slice(6) || 'N/A'),
+      '{{doctor_note}}': escapeHtml(prescription.doctorNote),
+      '{{lab_orders}}': labOrders.length ? labOrders.map(l => `${l.testName} (${l.status})`).join(', ') : 'None',
+      '{{adherence}}': String(prescription.adherenceScore || 0) + '%'
+    };
+
+    let processed = customHtmlTemplate;
+    for (const [token, value] of Object.entries(tokens)) {
+      processed = processed.split(token).join(value);
+    }
+    finalHtml = processed;
+  }
+
+  await renderPdfToFile(finalHtml, absolutePath);
   return { absolutePath, publicPath };
 }
 
