@@ -1215,9 +1215,6 @@ function IntelligenceOverlay({
 }) {
   const [mode, setMode] = useState<'overview' | 'ai'>(initialMode);
   const inputRef = useRef<HTMLInputElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const overviewSectionRef = useRef<HTMLDivElement>(null);
-  const aiSectionRef = useRef<HTMLDivElement>(null);
   
   const [chatMessage, setChatMessage] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
@@ -1225,28 +1222,17 @@ function IntelligenceOverlay({
   ]);
 
   useEffect(() => {
-    // Small delay to ensure the emerging animation doesn't interfere with focus
     const timer = setTimeout(() => {
       inputRef.current?.focus();
     }, 500);
     return () => clearTimeout(timer);
   }, []);
 
-  // Sync scroll position with mode
-  useEffect(() => {
-    if (mode === 'overview') {
-      overviewSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      aiSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [mode]);
-
   // Handle keyboard shortcuts within the overlay
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
 
-      // Mode switching (o and i) - switch modes instead of closing
       if (e.key.toLowerCase() === 'o' && !isInput) {
         setMode('overview');
         e.preventDefault();
@@ -1255,7 +1241,6 @@ function IntelligenceOverlay({
         e.preventDefault();
       }
 
-      // Arrow navigation
       if (!isInput) {
         if (e.key === 'ArrowDown' && mode === 'overview') {
           setMode('ai');
@@ -1266,14 +1251,12 @@ function IntelligenceOverlay({
         }
       }
 
-      // Space bar closing
       if (e.key === ' ') {
         if (isInput) {
           if (!chatMessage.trim()) {
             onClose();
             e.preventDefault();
           }
-          // if chatMessage has text, allow space normally (typing)
         } else {
           onClose();
           e.preventDefault();
@@ -1291,7 +1274,6 @@ function IntelligenceOverlay({
     setMessages(newMsgs);
     setChatMessage('');
     
-    // Simulate AI response
     setTimeout(() => {
       setMessages(prev => [...prev, { role: 'ai', text: "Based on the recent lab trends and clinical history, the patient shows strong stability. I recommend continuing the current regimen and monitoring metabolic markers in 3 months." }]);
     }, 1000);
@@ -1300,10 +1282,9 @@ function IntelligenceOverlay({
   const titleClr = darkMode ? 'var(--doctor-text, #f8fafc)' : '#0f172a';
   const muted = darkMode ? 'var(--doctor-muted, #8ca1b4)' : '#64748b';
   const accent = darkMode ? 'var(--doctor-accent, #52ff9d)' : '#0f766e';
-  const cardBg = darkMode ? 'rgba(11, 22, 36, 0.96)' : 'rgba(255, 255, 255, 0.98)';
+  const cardBg = darkMode ? 'rgba(11, 22, 36, 0.98)' : 'rgba(255, 255, 255, 0.99)';
   const border = darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid rgba(0, 0, 0, 0.1)';
 
-  // Data for Overview mode
   const specialtyCounts = data.reduce<Record<string, number>>((acc, apt) => {
     acc[apt.specialty] = (acc[apt.specialty] ?? 0) + 1;
     return acc;
@@ -1325,9 +1306,9 @@ function IntelligenceOverlay({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0, 0, 0, 0.65)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
+        background: 'rgba(0, 0, 0, 0.7)',
+        backdropFilter: 'blur(32px)',
+        WebkitBackdropFilter: 'blur(32px)',
         padding: '24px',
       }}
       onClick={onClose}
@@ -1344,60 +1325,22 @@ function IntelligenceOverlay({
           flexDirection: 'row',
           position: 'relative',
           overflow: 'hidden',
-          boxShadow: '0 50px 120px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255,255,255,0.05)',
+          boxShadow: '0 60px 150px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255,255,255,0.08)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Main Content Area */}
-        <div 
-          className="intelligence-content scroll-skin"
-          ref={scrollRef}
-          style={{ 
-            flex: 1, 
-            display: 'flex', 
-            flexDirection: 'column', 
-            padding: '0 40px', 
-            borderRight: border, 
-            overflowY: 'auto',
-            position: 'relative',
-            scrollBehavior: 'smooth'
-          }}
-        >
-          {/* Close Button (Fixed to corner) */}
-          <button
-            onClick={onClose}
-            style={{
-              position: 'absolute',
-              top: 24,
-              right: 24,
-              width: 38,
-              height: 38,
-              borderRadius: 12,
-              background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-              border: border,
-              color: titleClr,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              zIndex: 20,
-            }}
-          >
-            <X size={20} />
-          </button>
-
-          {/* Sticky Nav Header */}
+        {/* Main Content Area (SLIDING SLIDES) */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: border, position: 'relative', overflow: 'hidden' }}>
+          
+          {/* Static Header */}
           <div style={{ 
-            position: 'sticky', 
-            top: 0, 
-            background: cardBg, 
-            zIndex: 15, 
-            padding: '32px 0 24px',
+            padding: '32px 40px 24px',
             display: 'flex',
             alignItems: 'center',
             gap: 24,
-            borderBottom: '1px solid rgba(255,255,255,0.05)'
+            borderBottom: '1px solid rgba(255,255,255,0.05)',
+            zIndex: 30,
+            background: cardBg
           }}>
             <div 
               onClick={() => setMode('overview')}
@@ -1432,14 +1375,13 @@ function IntelligenceOverlay({
               </span>
             </div>
             
-            {/* Indicator underline */}
             <motion.div 
               animate={{ x: mode === 'overview' ? 0 : 165 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               style={{ 
                 position: 'absolute', 
                 bottom: 0, 
-                left: 0, 
+                left: 40, 
                 width: 135, 
                 height: 2, 
                 background: accent 
@@ -1447,259 +1389,242 @@ function IntelligenceOverlay({
             />
           </div>
 
-          <style>{`
-            .intelligence-content::-webkit-scrollbar {
-              width: 5px;
-            }
-            .intelligence-content::-webkit-scrollbar-track {
-              background: transparent;
-            }
-            .intelligence-content::-webkit-scrollbar-thumb {
-              background: ${darkMode ? 'rgba(82,255,157,0.15)' : 'rgba(16,185,129,0.15)'};
-              border-radius: 10px;
-            }
-            .intelligence-content::-webkit-scrollbar-thumb:hover {
-              background: ${accent};
-            }
-          `}</style>
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            style={{
+              position: 'absolute',
+              top: 24,
+              right: 24,
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+              border: border,
+              color: titleClr,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              zIndex: 40,
+            }}
+          >
+            <X size={20} />
+          </button>
 
-          {/* OVERVIEW SECTION */}
-          <div ref={overviewSectionRef} style={{ padding: '32px 0 60px' }}>
-             <h2 style={{ fontSize: 28, fontWeight: 800, color: titleClr, marginBottom: 32 }}>Patient Health Matrix</h2>
-             
-             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: 40 }}>
-                {[
-                  { label: 'Total Visits', value: totalVisits, icon: <History size={20} /> },
-                  { label: 'Specialties', value: sortedSpecialties.length, icon: <Stethoscope size={20} /> },
-                  { label: 'Flagged Labs', value: flaggedLabs.length, icon: <ShieldAlert size={20} /> },
-                  { label: 'Prescriptions', value: prescriptionCount + medicationCount, icon: <Pill size={20} /> },
-                ].map(stat => (
-                  <div key={stat.label} style={{ background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderRadius: 24, padding: '24px', border: border }}>
-                    <div style={{ color: accent, marginBottom: 16 }}>{stat.icon}</div>
-                    <div style={{ fontSize: 32, fontWeight: 800, color: titleClr }}>{stat.value}</div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 4 }}>{stat.label}</div>
-                  </div>
-                ))}
-             </div>
-
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 40 }}>
-                {/* Specialty Distribution */}
-                <div style={{ background: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', borderRadius: 24, padding: '28px', border: border }}>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-                      <Activity size={18} color={accent} />
-                      <h3 style={{ fontSize: 14, fontWeight: 700, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Care Distribution</h3>
-                   </div>
-                   <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                      {sortedSpecialties.slice(0, 5).map(([spec, count]) => (
-                        <div key={spec}>
-                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 8 }}>
-                              <span style={{ color: titleClr, fontWeight: 600 }}>{spec}</span>
-                              <span style={{ color: muted }}>{count} visits ({Math.round((count/totalVisits)*100)}%)</span>
-                           </div>
-                           <div style={{ height: 6, background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderRadius: 99, overflow: 'hidden' }}>
-                              <motion.div initial={{ width: 0 }} animate={{ width: `${(count/totalVisits)*100}%` }} transition={{ duration: 1, ease: 'easeOut' }} style={{ height: '100%', background: getAccent(spec) }} />
-                           </div>
+          {/* Sliding Container */}
+          <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+             <motion.div
+                animate={{ y: mode === 'overview' ? '0%' : '-100%' }}
+                transition={{ type: 'spring', stiffness: 120, damping: 22 }}
+                style={{ height: '100%', width: '100%' }}
+             >
+                {/* SLIDE 1: OVERVIEW */}
+                <div className="intelligence-slide scroll-skin" style={{ height: '100%', width: '100%', overflowY: 'auto', padding: '40px' }}>
+                   <h2 style={{ fontSize: 32, fontWeight: 800, color: titleClr, marginBottom: 40, letterSpacing: '-0.02em' }}>Patient Health Matrix</h2>
+                   
+                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 48 }}>
+                      {[
+                        { label: 'Total Visits', value: totalVisits, icon: <History size={22} /> },
+                        { label: 'Specialties', value: sortedSpecialties.length, icon: <Stethoscope size={22} /> },
+                        { label: 'Flagged Labs', value: flaggedLabs.length, icon: <ShieldAlert size={22} /> },
+                        { label: 'Prescriptions', value: prescriptionCount + medicationCount, icon: <Pill size={22} /> },
+                      ].map(stat => (
+                        <div key={stat.label} style={{ background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderRadius: 28, padding: '32px 24px', border: border, transition: 'transform 0.2s' }}>
+                          <div style={{ color: accent, marginBottom: 20 }}>{stat.icon}</div>
+                          <div style={{ fontSize: 40, fontWeight: 800, color: titleClr, lineHeight: 1 }}>{stat.value}</div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 10 }}>{stat.label}</div>
                         </div>
                       ))}
                    </div>
-                </div>
 
-                {/* Lab Markers Summary */}
-                <div style={{ background: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', borderRadius: 24, padding: '28px', border: border }}>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-                      <Microscope size={18} color={accent} />
-                      <h3 style={{ fontSize: 14, fontWeight: 700, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Laboratory Summary</h3>
-                   </div>
-                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                         <div style={{ padding: '16px', background: darkMode ? 'rgba(255,255,255,0.03)' : '#fff', borderRadius: 18, border: border }}>
-                            <div style={{ fontSize: 24, fontWeight: 800, color: titleClr }}>{totalLabs}</div>
-                            <div style={{ fontSize: 11, color: muted, fontWeight: 600 }}>TOTAL TESTS</div>
+                   <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 32 }}>
+                      <div style={{ background: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', borderRadius: 32, padding: '32px', border: border }}>
+                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+                            <Activity size={20} color={accent} />
+                            <h3 style={{ fontSize: 15, fontWeight: 800, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Care Distribution</h3>
                          </div>
-                         <div style={{ padding: '16px', background: darkMode ? 'rgba(239,68,68,0.06)' : 'rgba(239,68,68,0.04)', borderRadius: 18, border: '1px solid rgba(239,68,68,0.1)' }}>
-                            <div style={{ fontSize: 24, fontWeight: 800, color: '#EF4444' }}>{flaggedLabs.length}</div>
-                            <div style={{ fontSize: 11, color: '#EF4444', fontWeight: 600 }}>ABNORMAL FLAGS</div>
+                         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                            {sortedSpecialties.slice(0, 5).map(([spec, count]) => (
+                              <div key={spec}>
+                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 10 }}>
+                                    <span style={{ color: titleClr, fontWeight: 700 }}>{spec}</span>
+                                    <span style={{ color: muted, fontWeight: 600 }}>{count} visits · {Math.round((count/totalVisits)*100)}%</span>
+                                 </div>
+                                 <div style={{ height: 8, background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderRadius: 99, overflow: 'hidden' }}>
+                                    <motion.div initial={{ width: 0 }} animate={{ width: `${(count/totalVisits)*100}%` }} transition={{ duration: 1.2, ease: 'easeOut' }} style={{ height: '100%', background: getAccent(spec) }} />
+                                 </div>
+                              </div>
+                            ))}
                          </div>
                       </div>
-                      <div style={{ marginTop: 8 }}>
-                         <p style={{ fontSize: 13, lineHeight: 1.6, color: muted }}>
-                            The patient has undergone {totalLabs} diagnostic tests across the timeline. 
-                            {flaggedLabs.length > 0 ? ` A focused review of ${flaggedLabs.length} abnormal markers is recommended to ensure clinical stability.` : ' All recorded markers are within normal clinical thresholds.'}
-                         </p>
-                      </div>
-                   </div>
-                </div>
-             </div>
-          </div>
 
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 -40px' }} />
-
-          {/* AI ANALYSIS SECTION */}
-          <div ref={aiSectionRef} style={{ padding: '60px 0 100px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-              <Sparkles size={20} color={accent} />
-              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: accent }}>
-                Meiosis Intelligence Report
-              </span>
-            </div>
-            <h2 style={{ fontSize: 28, fontWeight: 800, color: titleClr, marginBottom: 32 }}>Deep Clinical Analysis</h2>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
-              {/* Left Column: Trajectory */}
-              <div style={{ background: darkMode ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.015)', borderRadius: 20, padding: '24px 28px', border: border }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-                    <Brain size={18} color={accent} />
-                    <h3 style={{ fontSize: 13, fontWeight: 700, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Clinical Trajectory</h3>
-                  </div>
-                  <p style={{ fontSize: 14, lineHeight: 1.65, color: muted, marginBottom: 24 }}>
-                    Analysis of {totalVisits} patient encounters indicates a highly stable progression path. 
-                    The primary focus remains on <strong style={{ color: titleClr }}>{leadSpecialty ? leadSpecialty[0] : 'general health'}</strong>, 
-                    accounting for {leadSpecialty ? Math.round((leadSpecialty[1] / totalVisits) * 100) : 0}% of all clinical interactions.
-                    The longitudinal data suggests a strong correlation between regular follow-ups and stabilized metabolic markers.
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                        <span style={{ color: muted, fontWeight: 600 }}>Adherence Estimate</span>
-                        <span style={{ fontWeight: 700, color: '#10B981' }}>High (88%)</span>
-                    </div>
-                    <div style={{ height: 6, background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderRadius: 99, overflow: 'hidden' }}>
-                        <motion.div initial={{ width: 0 }} animate={{ width: '88%' }} transition={{ duration: 1, ease: 'easeOut' }} style={{ height: '100%', background: '#10B981' }} />
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginTop: 2 }}>
-                        <span style={{ color: muted, fontWeight: 600 }}>Diagnostic Confidence</span>
-                        <span style={{ fontWeight: 700, color: accent }}>Strong (92%)</span>
-                    </div>
-                    <div style={{ height: 6, background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderRadius: 99, overflow: 'hidden' }}>
-                        <motion.div initial={{ width: 0 }} animate={{ width: '92%' }} transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }} style={{ height: '100%', background: accent }} />
-                    </div>
-                  </div>
-              </div>
-
-              {/* Right Column: Lab Trends */}
-              <div style={{ background: darkMode ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.015)', borderRadius: 20, padding: '24px 28px', border: border }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-                    <Microscope size={18} color={accent} />
-                    <h3 style={{ fontSize: 13, fontWeight: 700, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Laboratory Dynamics</h3>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {flaggedLabs.length > 0 ? (
-                        flaggedLabs.slice(0, 3).map((lab, i) => (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 15px', background: darkMode ? 'rgba(255,255,255,0.03)' : '#fff', borderRadius: 14, border: border }}>
-                            <div>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: titleClr }}>{lab.label}</div>
-                                <div style={{ fontSize: 11, color: '#EF4444', fontWeight: 600, marginTop: 1 }}>Status: {lab.status}</div>
+                      <div style={{ background: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', borderRadius: 32, padding: '32px', border: border }}>
+                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+                            <Microscope size={20} color={accent} />
+                            <h3 style={{ fontSize: 15, fontWeight: 800, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Laboratory Dynamics</h3>
+                         </div>
+                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                               <div style={{ padding: '24px', background: darkMode ? 'rgba(255,255,255,0.03)' : '#fff', borderRadius: 24, border: border }}>
+                                  <div style={{ fontSize: 32, fontWeight: 800, color: titleClr }}>{totalLabs}</div>
+                                  <div style={{ fontSize: 12, color: muted, fontWeight: 700, textTransform: 'uppercase' }}>Total Diagnostics</div>
+                               </div>
+                               <div style={{ padding: '24px', background: darkMode ? 'rgba(239,68,68,0.06)' : 'rgba(239,68,68,0.04)', borderRadius: 24, border: '1px solid rgba(239,68,68,0.15)' }}>
+                                  <div style={{ fontSize: 32, fontWeight: 800, color: '#EF4444' }}>{flaggedLabs.length}</div>
+                                  <div style={{ fontSize: 12, color: '#EF4444', fontWeight: 700, textTransform: 'uppercase' }}>Clinical Flags</div>
+                               </div>
                             </div>
-                            <div style={{ fontSize: 15, fontWeight: 800, color: titleClr }}>{lab.value}</div>
+                            <div style={{ marginTop: 12, padding: '20px', background: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', borderRadius: 20 }}>
+                               <p style={{ fontSize: 14, lineHeight: 1.7, color: muted, margin: 0 }}>
+                                  Longitudinal review of {totalLabs} markers shows {flaggedLabs.length > 0 ? `active instability in ${flaggedLabs.length} areas.` : 'optimal systemic performance across all measured categories.'}
+                               </p>
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
+                {/* SLIDE 2: AI ANALYSIS */}
+                <div className="intelligence-slide scroll-skin" style={{ height: '100%', width: '100%', overflowY: 'auto', padding: '40px' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                      <Sparkles size={20} color={accent} />
+                      <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: accent }}>
+                        Meiosis Intelligence Report
+                      </span>
+                   </div>
+                   <h2 style={{ fontSize: 32, fontWeight: 800, color: titleClr, marginBottom: 40, letterSpacing: '-0.02em' }}>Deep Clinical Insights</h2>
+
+                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
+                      <div style={{ background: darkMode ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.015)', borderRadius: 32, padding: '32px', border: border }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+                            <Brain size={20} color={accent} />
+                            <h3 style={{ fontSize: 15, fontWeight: 800, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Clinical Trajectory</h3>
                           </div>
-                        ))
-                    ) : (
-                        <div style={{ textAlign: 'center', padding: '16px 0', border: '1px dashed rgba(120,120,120,0.15)', borderRadius: 14 }}>
-                          <div style={{ fontSize: 13, color: muted }}>No active markers identified.</div>
-                        </div>
-                    )}
-                  </div>
-                  <div style={{ marginTop: 20, padding: '16px', background: darkMode ? 'rgba(82,255,157,0.06)' : 'rgba(16,185,129,0.05)', borderRadius: 16, border: `1px solid ${darkMode ? 'rgba(82,255,157,0.12)' : 'rgba(16,185,129,0.12)'}` }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                        <HeartPulse size={16} color={accent} />
-                        <span style={{ fontSize: 12, fontWeight: 700, color: titleClr }}>AI Advisory</span>
-                    </div>
-                    <p style={{ fontSize: 12, lineHeight: 1.55, color: muted }}>
-                        Consistent metabolic stability detected. Suggest maintaining current regimen for 12 weeks before re-assessment.
-                    </p>
-                  </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
-              {/* Medication Impact */}
-              <div style={{ background: darkMode ? 'rgba(3, 21, 37, 0.25)' : 'rgba(0,0,0,0.01)', borderRadius: 20, padding: '24px 28px', border: border }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-                    <Pill size={18} color={accent} />
-                    <h3 style={{ fontSize: 13, fontWeight: 700, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Pharmacological Impact</h3>
-                  </div>
-                  <p style={{ fontSize: 13, lineHeight: 1.6, color: muted }}>
-                    Ongoing treatment with <strong style={{ color: titleClr }}>Metformin XR</strong> and <strong style={{ color: titleClr }}>Naproxen</strong> shows positive systemic response. 
-                    Inflammation markers remain within target thresholds.
-                  </p>
-              </div>
-
-              {/* Next Milestones */}
-              <div style={{ background: darkMode ? 'rgba(3, 21, 37, 0.25)' : 'rgba(0,0,0,0.01)', borderRadius: 20, padding: '24px 28px', border: border }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-                    <Activity size={18} color={accent} />
-                    <h3 style={{ fontSize: 13, fontWeight: 700, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Next Milestones</h3>
-                  </div>
-                  <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: 13, color: muted, lineHeight: 1.6 }}>
-                    <li>Complete lipid profile in 4 weeks</li>
-                    <li>Cardiology consultation (Bi-annual review)</li>
-                    <li>Evaluate dosage adjustment for Metformin</li>
-                  </ul>
-              </div>
-            </div>
-
-            {/* Bottom Full-width section */}
-            <div style={{ background: darkMode ? 'rgba(3, 21, 37, 0.3)' : 'rgba(255,255,255,0.4)', borderRadius: 20, padding: '24px 28px', border: border, minHeight: 220 }}>
-              <h3 style={{ fontSize: 13, fontWeight: 700, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20 }}>Longitudinal Clinical Trend</h3>
-              <div style={{ height: 160, display: 'flex', alignItems: 'flex-end', gap: 12, padding: '0 10px 10px' }}>
-                  {Array.from({ length: 18 }).map((_, i) => {
-                    const h = 20 + Math.random() * 80;
-                    return (
-                      <motion.div 
-                        key={i}
-                        initial={{ height: 0 }}
-                        animate={{ height: `${h}%` }}
-                        transition={{ delay: 0.3 + i * 0.03, duration: 0.6 }}
-                        style={{ 
-                          flex: 1, 
-                          background: i === 17 ? accent : darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', 
-                          borderRadius: '4px 4px 0 0',
-                          position: 'relative'
-                        }}
-                      >
-                        {i === 17 && (
-                          <div style={{ position: 'absolute', top: -24, left: '50%', transform: 'translateX(-50%)', fontSize: 9, fontWeight: 800, color: accent }}>
-                            NOW
+                          <p style={{ fontSize: 15, lineHeight: 1.75, color: muted, marginBottom: 32 }}>
+                            Primary focus on <strong style={{ color: titleClr }}>{leadSpecialty ? leadSpecialty[0] : 'general health'}</strong> ({leadSpecialty ? Math.round((leadSpecialty[1] / totalVisits) * 100) : 0}%).
+                            The data suggests a strong correlation between therapeutic adherence and long-term stabilization of primary metabolic indicators.
+                          </p>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                                <span style={{ color: muted, fontWeight: 700 }}>Diagnostic Certainty</span>
+                                <span style={{ fontWeight: 800, color: accent }}>92%</span>
+                            </div>
+                            <div style={{ height: 8, background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderRadius: 99, overflow: 'hidden' }}>
+                                <motion.div initial={{ width: 0 }} animate={{ width: '92%' }} transition={{ duration: 1.5, ease: 'easeOut' }} style={{ height: '100%', background: accent }} />
+                            </div>
                           </div>
-                        )}
-                      </motion.div>
-                    )
-                  })}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, padding: '0 10px' }}>
-                  <span style={{ fontSize: 10, color: muted, fontWeight: 700, letterSpacing: '0.04em' }}>JANUARY 2026</span>
-                  <span style={{ fontSize: 10, color: muted, fontWeight: 700, letterSpacing: '0.04em' }}>APRIL 2026</span>
-              </div>
-            </div>
+                      </div>
+
+                      <div style={{ background: darkMode ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.015)', borderRadius: 32, padding: '32px', border: border }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+                            <Microscope size={20} color={accent} />
+                            <h3 style={{ fontSize: 15, fontWeight: 800, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Focused Lab Trends</h3>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                            {flaggedLabs.length > 0 ? (
+                                flaggedLabs.slice(0, 3).map((lab, i) => (
+                                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: darkMode ? 'rgba(255,255,255,0.04)' : '#fff', borderRadius: 18, border: border }}>
+                                    <div>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: titleClr }}>{lab.label}</div>
+                                        <div style={{ fontSize: 11, color: '#EF4444', fontWeight: 700, marginTop: 2 }}>{lab.status} · RED FLAG</div>
+                                    </div>
+                                    <div style={{ fontSize: 18, fontWeight: 800, color: titleClr }}>{lab.value}</div>
+                                  </div>
+                                ))
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '32px 0', border: '1px dashed rgba(120,120,120,0.2)', borderRadius: 20 }}>
+                                  <div style={{ fontSize: 14, color: muted }}>All markers within target range.</div>
+                                </div>
+                            )}
+                          </div>
+                      </div>
+                   </div>
+
+                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
+                      <div style={{ background: darkMode ? 'rgba(3, 21, 37, 0.4)' : 'rgba(0,0,0,0.02)', borderRadius: 32, padding: '32px', border: border }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                            <Pill size={20} color={accent} />
+                            <h3 style={{ fontSize: 15, fontWeight: 800, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Pharmacological Impact</h3>
+                          </div>
+                          <p style={{ fontSize: 14, lineHeight: 1.7, color: muted, margin: 0 }}>
+                            Ongoing regimen with <strong style={{ color: titleClr }}>Metformin XR</strong> continues to drive positive systemic responses. Recommended to maintain current titration.
+                          </p>
+                      </div>
+
+                      <div style={{ background: darkMode ? 'rgba(3, 21, 37, 0.4)' : 'rgba(0,0,0,0.02)', borderRadius: 32, padding: '32px', border: border }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                            <Activity size={20} color={accent} />
+                            <h3 style={{ fontSize: 15, fontWeight: 800, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Next Milestones</h3>
+                          </div>
+                          <ul style={{ margin: 0, padding: '0 0 0 18px', fontSize: 14, color: muted, lineHeight: 1.8 }}>
+                            <li>Metabolic panel follow-up (4 weeks)</li>
+                            <li>Specialist review for cardiovascular stability</li>
+                          </ul>
+                      </div>
+                   </div>
+
+                   <div style={{ background: darkMode ? 'rgba(3, 21, 37, 0.5)' : 'rgba(255,255,255,0.6)', borderRadius: 32, padding: '32px', border: border, minHeight: 240 }}>
+                      <h3 style={{ fontSize: 15, fontWeight: 800, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 24 }}>Longitudinal Trend Analysis</h3>
+                      <div style={{ height: 180, display: 'flex', alignItems: 'flex-end', gap: 14, padding: '0 10px 10px' }}>
+                          {Array.from({ length: 20 }).map((_, i) => {
+                            const h = 20 + Math.random() * 80;
+                            return (
+                              <motion.div 
+                                key={i}
+                                initial={{ height: 0 }}
+                                animate={{ height: `${h}%` }}
+                                transition={{ delay: 0.2 + i * 0.04, duration: 0.8 }}
+                                style={{ 
+                                  flex: 1, 
+                                  background: i === 19 ? accent : darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', 
+                                  borderRadius: '6px 6px 0 0',
+                                  position: 'relative'
+                                }}
+                              >
+                                {i === 19 && (
+                                  <div style={{ position: 'absolute', top: -28, left: '50%', transform: 'translateX(-50%)', fontSize: 10, fontWeight: 900, color: accent }}>
+                                    REAL-TIME
+                                  </div>
+                                )}
+                              </motion.div>
+                            )
+                          })}
+                      </div>
+                   </div>
+                </div>
+             </motion.div>
           </div>
         </div>
 
-        {/* AI Chat Interface Sidebar */}
-        <div style={{ width: 420, display: 'flex', flexDirection: 'column', background: darkMode ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.02)' }}>
-           <div style={{ padding: '32px 24px', borderBottom: border }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                 <div style={{ width: 36, height: 36, borderRadius: 12, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Sparkles size={18} color="#000" />
+        {/* AI Chat Sidebar (Remains Static) */}
+        <div style={{ width: 440, display: 'flex', flexDirection: 'column', background: darkMode ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)', borderLeft: border }}>
+           <div style={{ padding: '32px', borderBottom: border }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                 <div style={{ width: 44, height: 44, borderRadius: 14, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 20px ${accent}44` }}>
+                    <Sparkles size={22} color="#000" />
                  </div>
                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: titleClr }}>AI Assistant</div>
-                    <div style={{ fontSize: 11, color: '#10B981', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Online · Clinical Mode</div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: titleClr, letterSpacing: '-0.01em' }}>AI Clinical Assistant</div>
+                    <div style={{ fontSize: 11, color: '#10B981', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>Secure Clinical Context · Active</div>
                  </div>
               </div>
            </div>
 
-           <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+           <div className="scroll-skin" style={{ flex: 1, overflowY: 'auto', padding: '32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
               {messages.map((msg, i) => (
-                <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+                <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%' }}>
                    <div style={{ 
-                      padding: '14px 18px', 
-                      borderRadius: msg.role === 'user' ? '20px 20px 4px 20px' : '20px 20px 20px 4px',
-                      background: msg.role === 'user' ? accent : (darkMode ? 'rgba(255,255,255,0.06)' : '#fff'),
+                      padding: '16px 22px', 
+                      borderRadius: msg.role === 'user' ? '24px 24px 4px 24px' : '24px 24px 24px 4px',
+                      background: msg.role === 'user' ? accent : (darkMode ? 'rgba(255,255,255,0.08)' : '#fff'),
                       color: msg.role === 'user' ? '#000' : titleClr,
                       border: msg.role === 'user' ? 'none' : border,
-                      fontSize: 14,
-                      lineHeight: 1.55,
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                      fontWeight: msg.role === 'user' ? 600 : 500,
+                      fontSize: 15,
+                      lineHeight: 1.6,
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+                      fontWeight: msg.role === 'user' ? 700 : 500,
                    }}>
                       {msg.text}
                    </div>
@@ -1707,7 +1632,7 @@ function IntelligenceOverlay({
               ))}
            </div>
 
-           <div style={{ padding: '24px', borderTop: border }}>
+           <div style={{ padding: '32px', borderTop: border, background: darkMode ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)' }}>
               <div style={{ position: 'relative' }}>
                  <input 
                     ref={inputRef}
@@ -1718,43 +1643,64 @@ function IntelligenceOverlay({
                     placeholder="Ask about patient history..."
                     style={{
                        width: '100%',
-                       background: darkMode ? 'rgba(255,255,255,0.05)' : '#fff',
+                       background: darkMode ? 'rgba(255,255,255,0.06)' : '#fff',
                        border: border,
-                       borderRadius: 16,
-                       padding: '14px 50px 14px 20px',
-                       fontSize: 14,
+                       borderRadius: 20,
+                       padding: '18px 60px 18px 24px',
+                       fontSize: 15,
                        color: titleClr,
                        outline: 'none',
-                       transition: 'border-color 0.2s',
+                       boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
                     }}
                  />
                  <button 
                     onClick={handleSend}
                     style={{ 
                        position: 'absolute', 
-                       right: 8, 
-                       top: 8, 
-                       width: 36, 
-                       height: 36, 
-                       borderRadius: 10, 
+                       right: 10, 
+                       top: 10, 
+                       width: 44, 
+                       height: 44, 
+                       borderRadius: 14, 
                        background: accent, 
                        border: 'none', 
                        display: 'flex', 
                        alignItems: 'center', 
                        justifyContent: 'center',
-                       cursor: 'pointer'
+                       cursor: 'pointer',
+                       boxShadow: `0 4px 12px ${accent}44`
                     }}
                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                        <line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/>
                     </svg>
                  </button>
               </div>
-              <div style={{ fontSize: 10, textAlign: 'center', color: muted, marginTop: 12, fontWeight: 600 }}>
+              <div style={{ fontSize: 11, textAlign: 'center', color: muted, marginTop: 16, fontWeight: 700, letterSpacing: '0.04em' }}>
                  Powered by Meiosis Clinical Engine
               </div>
            </div>
         </div>
+
+        <style>{`
+          .scroll-skin::-webkit-scrollbar {
+            width: 6px;
+          }
+          .scroll-skin::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .scroll-skin::-webkit-scrollbar-thumb {
+            background: ${darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'};
+            border-radius: 10px;
+          }
+          .scroll-skin::-webkit-scrollbar-thumb:hover {
+            background: ${accent};
+          }
+          .intelligence-slide {
+            flex-shrink: 0;
+            scrollbar-gutter: stable;
+          }
+        `}</style>
       </motion.div>
     </motion.div>
   );
