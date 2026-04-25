@@ -1344,7 +1344,7 @@ function IntelligenceOverlay({
           style={{
             position: 'absolute',
             top: 5,
-            right: 5,
+            left: 5,
             width: 36,
             height: 36,
             borderRadius: '50%',
@@ -1367,7 +1367,7 @@ function IntelligenceOverlay({
           
           {/* Static Header */}
           <div style={{ 
-            padding: '32px 40px 24px',
+            padding: '32px 40px 24px 60px',
             display: 'flex',
             alignItems: 'center',
             gap: 24,
@@ -1414,7 +1414,7 @@ function IntelligenceOverlay({
               style={{ 
                 position: 'absolute', 
                 bottom: 0, 
-                left: 40, 
+                left: 60, 
                 width: 135, 
                 height: 2, 
                 background: accent 
