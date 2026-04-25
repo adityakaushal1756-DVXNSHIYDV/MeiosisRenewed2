@@ -167,14 +167,23 @@ function buildTimelineData(data: any): AppointmentEntry[] {
         unit:   undefined,
         status: undefined,
       })),
-      prescriptions: (rx.items ?? []).map((item: any) => ({
-        id:        item.id,
-        name:      item.medicine || 'Medicine',
-        dose:      item.dose      || '—',
-        frequency: item.frequency || undefined,
-        duration:  item.timing    || undefined,
-        instructions: item.reason || undefined,
-      })),
+      prescriptions: (rx.items ?? []).map((item: any) => {
+        const duration = item.durationDays ?? rx.durationDays ?? 2;
+        const startDate = rx.startDate ? new Date(rx.startDate) : new Date();
+        // Set expiry date to start of day, or just compare exact times. Let's do exact times.
+        const expiryDate = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
+        const isActive = new Date() <= expiryDate;
+
+        return {
+          id:        item.id,
+          name:      item.medicine || 'Medicine',
+          dose:      item.dose      || '—',
+          frequency: item.frequency || undefined,
+          duration:  item.timing    || undefined,
+          instructions: item.reason || undefined,
+          isActive:  isActive,
+        };
+      }),
       medications: [],
       documentPath: rx.documentPath || undefined,
     };
@@ -247,13 +256,13 @@ function buildTimelineData(data: any): AppointmentEntry[] {
 // -- Secondary item union -----------------------------------------
 type SItem =
   | { kind: 'lab';  id: string; label: string; value: string; unit?: string; status?: string }
-  | { kind: 'rx';   id: string; label: string; value: string; sub?: string }
+  | { kind: 'rx';   id: string; label: string; value: string; sub?: string; isActive?: boolean }
   | { kind: 'med';  id: string; label: string; value: string; sub?: string };
 
 function flatten(apt: AppointmentEntry): SItem[] {
   return [
     ...apt.labs.map(l         => ({ kind: 'lab' as const, id: l.id, label: l.label, value: l.value, unit: l.unit,  status: l.status })),
-    ...apt.prescriptions.map(p => ({ kind: 'rx'  as const, id: p.id, label: p.name,  value: p.dose,  sub: p.frequency })),
+    ...apt.prescriptions.map(p => ({ kind: 'rx'  as const, id: p.id, label: p.name,  value: p.dose,  sub: p.frequency, isActive: p.isActive })),
     ...apt.medications.map(m   => ({ kind: 'med' as const, id: m.id, label: m.name,  value: m.dose,  sub: m.ongoing ? 'Ongoing' : undefined })),
   ];
 }
@@ -403,7 +412,8 @@ interface PCardProps {
 
 const PCard = forwardRef<HTMLDivElement, PCardProps>(
   ({ apt, accent, hi, delay, side, width, scale, timelineTheme = 'default', setHiId, setFocusId, onSel, accessLevel }, ref) => (
-    <div
+    <motion.div
+      layoutId={`emr-card-${apt.id}`}
       ref={ref}
         onClick={() => onSel(apt)}
         onMouseEnter={() => { setHiId(apt.id); setFocusId(null); }}
@@ -457,12 +467,21 @@ const PCard = forwardRef<HTMLDivElement, PCardProps>(
         />
 
         <div style={{ position: 'relative', zIndex: 1, display: 'inline-flex', alignItems: 'center', gap: Math.max(4, Math.round(4 * scale)), background: timelineTheme === 'beige-light' ? 'rgba(255,255,255,0.26)' : 'color-mix(in srgb, rgba(255,255,255,0.12) 72%, transparent)', border: timelineTheme === 'beige-light' ? '1px solid rgba(116,92,68,0.10)' : '1px solid rgba(255,255,255,0.09)', borderRadius: 999, padding: `${Math.max(3, Math.round(3 * scale))}px ${Math.max(8, Math.round(9 * scale))}px`, marginBottom: Math.max(10, Math.round(12 * scale)), boxShadow: timelineTheme === 'beige-light' ? 'inset 0 1px 0 rgba(255,255,255,0.22)' : 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
-          <span style={{ width: 4, height: 4, borderRadius: '50%', background: accent }} />
-          <span style={{ fontSize: Math.max(9, 9 * scale), fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: accent }}>
-            {apt.specialty}
-          </span>
+          {(() => {
+            const hasMeds = (apt.prescriptions?.length ?? 0) > 0 && accessLevel === 'full';
+            const hasActiveMed = hasMeds && apt.prescriptions!.some(p => p.isActive);
+            const pillColor = hasMeds ? (hasActiveMed ? accent : '#f97316') : accent;
+            const pillText = hasMeds ? (hasActiveMed ? 'Active Prescription' : 'Expired') : apt.specialty;
+            return (
+              <>
+                <span style={{ width: 4, height: 4, borderRadius: '50%', background: pillColor }} />
+                <span style={{ fontSize: Math.max(9, 9 * scale), fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: pillColor }}>
+                  {pillText}
+                </span>
+              </>
+            );
+          })()}
         </div>
-  
         <div style={{ position: 'relative', zIndex: 1, fontSize: Math.max(15, 16 * scale), fontWeight: 800, color: timelineTheme === 'beige-light' ? '#2e2418' : '#FFFFFF', lineHeight: 1.3, marginBottom: 5, textShadow: timelineTheme === 'beige-light' ? '0 1px 0 rgba(255,255,255,0.18)' : '0 1px 0 rgba(0,0,0,0.16)' }}>
           Consultation, {apt.date}
         </div>
@@ -484,7 +503,7 @@ const PCard = forwardRef<HTMLDivElement, PCardProps>(
         <div style={{ position: 'relative', zIndex: 1, fontSize: Math.max(9, 9.5 * scale), color: timelineTheme === 'beige-light' ? 'rgba(84,66,46,0.62)' : 'rgba(236,245,255,0.48)', marginTop: Math.max(8, Math.round(10 * scale)), textAlign: side === 'left' ? 'left' : 'right', fontWeight: 600 }}>
           {side === 'left' ? '↗ Details' : 'Details ↘'}
         </div>
-      </div>
+      </motion.div>
   )
 );
 
@@ -1218,6 +1237,18 @@ function IntelligenceOverlay({
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
     { role: 'ai', text: "Hello Dr. Aditya, I've analyzed this patient's longitudinal data. How can I assist with your clinical assessment today?" }
   ]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [hoveredEMR, setHoveredEMR] = useState<any | null>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleChatScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    setShowScrollToBottom(scrollHeight - scrollTop - clientHeight > 100);
+  };
 
   useEffect(() => {
     if (mode === 'ai') {
@@ -1276,13 +1307,46 @@ function IntelligenceOverlay({
 
   const handleSend = () => {
     if (!chatMessage.trim()) return;
-    const newMsgs = [...messages, { role: 'user' as const, text: chatMessage }];
+    const userMsg = chatMessage.trim();
+    const newMsgs = [...messages, { role: 'user' as const, text: userMsg }];
     setMessages(newMsgs);
     setChatMessage('');
     
+    // Simulate thinking state
     setTimeout(() => {
-      setMessages(prev => [...prev, { role: 'ai', text: "Based on the recent lab trends and clinical history, the patient shows strong stability. I recommend continuing the current regimen and monitoring metabolic markers in 3 months." }]);
-    }, 1000);
+      setMessages(prev => [...prev, { role: 'ai', text: '...' }]);
+      
+      // Generate dynamic response based on EMR data
+      setTimeout(() => {
+        let response = "";
+        const lower = userMsg.toLowerCase();
+        
+        if (lower.includes('med') || lower.includes('drug') || lower.includes('prescription') || lower.includes('rx')) {
+          const activeMeds = Array.from(new Set(data.flatMap(d => d.prescriptions?.filter(p => p.isActive).map(p => p.name)).filter(Boolean)));
+          response = activeMeds.length > 0 
+            ? `The patient's current regimen consists of ${activeMeds.length} active prescriptions, including ${activeMeds.slice(0, 3).join(', ')}. No contraindications detected in recent systemic markers.`
+            : `I've analyzed the longitudinal data and found no active pharmacological prescriptions currently on file for this patient.`;
+        } else if (lower.includes('lab') || lower.includes('test') || lower.includes('flag') || lower.includes('result')) {
+          response = flaggedLabs.length > 0
+            ? `Diagnostic review indicates ${flaggedLabs.length} clinical flags. The most critical is ${flaggedLabs[0].label} (${flaggedLabs[0].value}), which remains ${flaggedLabs[0].status.toLowerCase()} as of the last visit.`
+            : `Clinical diagnostics are clear. All recent laboratory markers are within their respective target therapeutic windows.`;
+        } else if (lower.includes('visit') || lower.includes('history') || lower.includes('appointment')) {
+          response = `Patient longitudinal history spans ${totalVisits} clinical encounters, with a primary diagnostic focus on ${leadSpecialty?.[0] || 'General Practice'}. History shows a ${flaggedLabs.length > 0 ? 'complex' : 'stable'} clinical trajectory.`;
+        } else if (lower.includes('name')) {
+          response = `I am the Meiosis Clinical Assistant, your secure interface for real-time patient data synthesis and longitudinal analysis.`;
+        } else if (lower.includes('hello') || lower.includes('hi')) {
+          response = `Hello Dr. Aditya. Systemic context for this patient is loaded. How can I assist with your clinical assessment today?`;
+        } else {
+          response = `Based on current systemic synthesis, the patient is maintaining a ${flaggedLabs.length > 0 ? 'guarded' : 'stable'} baseline. Would you like a detailed breakdown of their active medications or recent diagnostic flags?`;
+        }
+
+        setMessages(prev => {
+          const copy = [...prev];
+          copy[copy.length - 1] = { role: 'ai', text: response };
+          return copy;
+        });
+      }, 1200);
+    }, 100);
   };
 
   const titleClr = darkMode ? 'var(--doctor-text, #f8fafc)' : '#0f172a';
@@ -1299,6 +1363,99 @@ function IntelligenceOverlay({
   const prescriptionCount = data.reduce((sum, apt) => sum + apt.prescriptions.length, 0);
   const medicationCount = data.reduce((sum, apt) => sum + apt.medications.length, 0);
   const totalLabs = data.reduce((sum, apt) => sum + apt.labs.length, 0);
+
+  // Simulated AI Engine for Insights (Dynamic Narrative)
+  const aiInsights = useMemo(() => {
+    // 1. Past Severe Reports
+    const severeReports = data.filter(d => 
+      d.severity === 'high' || 
+      d.severity === 'critical' || 
+      (d.type && d.type.toLowerCase().includes('emergency')) ||
+      (d.notes && d.notes.toLowerCase().includes('severe'))
+    );
+    
+    // 2. Active Medications
+    const allMeds = data.flatMap(d => d.prescriptions || []);
+    // Ensure we only count unique active meds by ID or name to prevent duplicates if data is messy
+    const uniqueActiveMedsMap = new Map();
+    allMeds.filter(p => p.isActive).forEach(p => {
+        if (!uniqueActiveMedsMap.has(p.name)) {
+            uniqueActiveMedsMap.set(p.name, p);
+        }
+    });
+    const activeMeds = Array.from(uniqueActiveMedsMap.values());
+
+    // 3. Labs
+    const allLabs = data.flatMap(d => d.labs || []);
+    const latestLabs = allLabs.slice(0, 3);
+    const oldLabs = allLabs.slice(3, 8);
+
+    // 4. Clinical Context
+    const clinicalContext = data.slice(0, 5).map(d => ({
+      date: d.date,
+      type: d.type,
+      specialty: d.specialty
+    }));
+
+    // 5. Generate story text
+    let story = "";
+    if (activeMeds.length > 0) {
+      story += `The patient is currently maintained on an ongoing pharmacological regimen with ${activeMeds.length} active medication${activeMeds.length > 1 ? 's' : ''}, ensuring therapeutic continuity. `;
+    } else {
+      story += `Clinical review shows no pharmacological regimens currently active or ongoing for this patient. `;
+    }
+
+    if (severeReports.length > 0) {
+      story += `Crucially, there is a history of severe clinical events, with the most recent occurring on ${severeReports[0].date}. This warrants elevated monitoring. `;
+    } else {
+      story += `The clinical history appears stable with no recent severe exacerbations recorded. `;
+    }
+
+    if (latestLabs.length > 0) {
+      story += `Recent diagnostics show ${latestLabs[0].label} is currently ${latestLabs[0].value}, providing key context for their current baseline. `;
+    }
+
+    story += `Overall, the trajectory is ${severeReports.length > 0 ? 'complex' : 'stable'} with primary care concentrated in ${leadSpecialty ? leadSpecialty[0] : 'General Practice'}.`;
+
+    // 6. Real Chronological Timeline Data
+    const sortedTimeline = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const minTime = sortedTimeline.length > 0 ? new Date(sortedTimeline[0].date).getTime() : 0;
+    const maxTime = sortedTimeline.length > 0 ? new Date(sortedTimeline[sortedTimeline.length - 1].date).getTime() : 1;
+    const range = maxTime - minTime || 1;
+
+    const timelinePoints = sortedTimeline.map((d, i) => {
+      const x = ((new Date(d.date).getTime() - minTime) / range) * 100;
+      // Organic Y-axis based on clinical intensity (meds + labs + severity)
+      const intensity = (d.prescriptions?.length || 0) + (d.labs?.length || 0) + (d.severity === 'high' ? 5 : d.severity === 'critical' ? 8 : 2);
+      const y = 85 - Math.min(70, intensity * 5); 
+      
+      return { x, y, data: d };
+    });
+
+    return {
+      severeReports,
+      activeMeds,
+      latestLabs,
+      oldLabs,
+      clinicalContext,
+      story,
+      timelinePoints
+    };
+  }, [data, leadSpecialty]);
+
+  const graphPath = useMemo(() => {
+    if (!aiInsights.timelinePoints || aiInsights.timelinePoints.length < 2) return "";
+    const pts = aiInsights.timelinePoints;
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    
+    for (let i = 0; i < pts.length - 1; i++) {
+      const curr = pts[i];
+      const next = pts[i+1];
+      const cx = (curr.x + next.x) / 2;
+      d += ` C ${cx} ${curr.y}, ${cx} ${next.y}, ${next.x} ${next.y}`;
+    }
+    return d;
+  }, [aiInsights.timelinePoints]);
 
   return (
     <motion.div
@@ -1343,8 +1500,8 @@ function IntelligenceOverlay({
           onClick={onClose}
           style={{
             position: 'absolute',
-            top: 5,
-            left: 5,
+            top: 8,
+            left: 8,
             width: 36,
             height: 36,
             borderRadius: '50%',
@@ -1441,8 +1598,7 @@ function IntelligenceOverlay({
           </div>
         </div>
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: mode === 'ai' ? border : 'none', position: 'relative', overflow: 'hidden' }}>
-
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
           {/* Removed local close button - now using global floating close */}
 
           {/* Sliding Container */}
@@ -1450,11 +1606,10 @@ function IntelligenceOverlay({
              <motion.div
                 animate={{ y: mode === 'overview' ? '0%' : '-100%' }}
                 transition={{ type: 'spring', stiffness: 120, damping: 22 }}
-                style={{ height: '100%', width: '100%' }}
+                style={{ height: '100%', width: '100%', overflow: 'visible' }}
              >
                 {/* SLIDE 1: OVERVIEW */}
-                <div className="intelligence-slide scroll-skin" style={{ height: '100%', width: '100%', overflowY: 'auto', padding: '96px 40px 40px' }}>
-                   <h2 style={{ fontSize: 32, fontWeight: 800, color: titleClr, marginBottom: 40, letterSpacing: '-0.02em' }}>Patient Health Matrix</h2>
+                <div className="intelligence-slide scroll-skin" style={{ height: '100%', width: '100%', overflowY: 'auto', padding: '48px 40px 120px' }}>
                    
                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 48 }}>
                       {[
@@ -1471,7 +1626,7 @@ function IntelligenceOverlay({
                       ))}
                    </div>
 
-                   <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 32 }}>
+                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24 }}>
                       <div style={{ background: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', borderRadius: 32, padding: '32px', border: border }}>
                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
                             <Activity size={20} color={accent} />
@@ -1515,115 +1670,340 @@ function IntelligenceOverlay({
                             </div>
                          </div>
                       </div>
+
+                      {/* NEW: Systemic Footprint (Ring Graph) */}
+                      <div style={{ background: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', borderRadius: 32, padding: '32px', border: border, display: 'flex', flexDirection: 'column' }}>
+                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+                            <HeartPulse size={20} color={accent} />
+                            <h3 style={{ fontSize: 15, fontWeight: 800, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Systemic Footprint</h3>
+                         </div>
+                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                            {(() => {
+                               const total = totalVisits + totalLabs + prescriptionCount + medicationCount;
+                               if (total === 0) return <div style={{ color: muted }}>No Data</div>;
+                               
+                               const visitPct = (totalVisits / total) * 100;
+                               const labPct = (totalLabs / total) * 100;
+                               const rxPct = ((prescriptionCount + medicationCount) / total) * 100;
+
+                               const radius = 60;
+                               const circumference = 2 * Math.PI * radius;
+                               const visitDash = (visitPct / 100) * circumference;
+                               const labDash = (labPct / 100) * circumference;
+                               const rxDash = (rxPct / 100) * circumference;
+
+                               return (
+                                 <div style={{ position: 'relative', width: 160, height: 160 }}>
+                                   <svg width="160" height="160" viewBox="-80 -80 160 160" style={{ transform: 'rotate(-90deg)' }}>
+                                      <circle r={radius} cx="0" cy="0" fill="transparent" stroke={darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} strokeWidth="16" />
+                                      {/* Visits (Accent) */}
+                                      <motion.circle r={radius} cx="0" cy="0" fill="transparent" stroke={accent} strokeWidth="16" strokeDasharray={`${visitDash} ${circumference}`} strokeLinecap="round" initial={{ strokeDashoffset: circumference }} animate={{ strokeDashoffset: 0 }} transition={{ duration: 1, delay: 0.2 }} />
+                                      {/* Labs (Purple) */}
+                                      <motion.circle r={radius} cx="0" cy="0" fill="transparent" stroke="#A855F7" strokeWidth="16" strokeDasharray={`${labDash} ${circumference}`} strokeDashoffset={-visitDash} strokeLinecap="round" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.8 }} />
+                                      {/* Prescriptions (Orange) */}
+                                      <motion.circle r={radius} cx="0" cy="0" fill="transparent" stroke="#F97316" strokeWidth="16" strokeDasharray={`${rxDash} ${circumference}`} strokeDashoffset={-(visitDash + labDash)} strokeLinecap="round" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 1.4 }} />
+                                   </svg>
+                                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                      <span style={{ fontSize: 32, fontWeight: 900, color: titleClr }}>{total}</span>
+                                      <span style={{ fontSize: 10, fontWeight: 800, color: muted, letterSpacing: '0.1em' }}>TOTAL</span>
+                                   </div>
+                                 </div>
+                               );
+                            })()}
+                         </div>
+                         <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 24 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                               <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent }} />
+                               <span style={{ fontSize: 11, color: muted, fontWeight: 700 }}>VISITS</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                               <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#A855F7' }} />
+                               <span style={{ fontSize: 11, color: muted, fontWeight: 700 }}>LABS</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                               <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#F97316' }} />
+                               <span style={{ fontSize: 11, color: muted, fontWeight: 700 }}>MEDS</span>
+                            </div>
+                         </div>
+                      </div>
                    </div>
+                    {/* Section 4: Health Graph - INTERACTIVE TIMELINE */}
+                    {aiInsights.timelinePoints && aiInsights.timelinePoints.length > 0 && (
+                      <div style={{ marginTop: 32, background: darkMode ? 'rgba(3, 21, 37, 0.5)' : 'rgba(255,255,255,0.6)', borderRadius: 32, padding: '24px', border: border, position: 'relative' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div style={{ width: 40, height: 40, borderRadius: 12, background: `${accent}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: accent }}>
+                                   <Activity size={20} />
+                                </div>
+                                <div>
+                                   <h3 style={{ fontSize: 16, fontWeight: 900, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Longitudinal Patient Trajectory</h3>
+                                   <div style={{ fontSize: 12, color: muted, fontWeight: 700, marginTop: 2 }}>REAL-TIME CHRONOLOGICAL EMR MAPPING</div>
+                                </div>
+                             </div>
+                             <div style={{ display: 'flex', gap: 16 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent, boxShadow: `0 0 10px ${accent}` }} />
+                                   <span style={{ fontSize: 11, color: muted, fontWeight: 800 }}>SYSTEMIC INTENSITY</span>
+                                </div>
+                             </div>
+                          </div>
+
+                          <div style={{ height: 220, position: 'relative', width: '100%', padding: '0 20px' }}>
+                              <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+                                  <defs>
+                                      <linearGradient id="lineGradient2" x1="0" y1="0" x2="0" y2="1">
+                                          <stop offset="0%" stopColor={accent} stopOpacity="0.2" />
+                                          <stop offset="100%" stopColor={accent} stopOpacity="0" />
+                                      </linearGradient>
+                                  </defs>
+                                  
+                                  {/* Grid Lines */}
+                                  {[0, 25, 50, 75, 100].map(v => (
+                                    <line key={v} x1="0" y1={v} x2="100" y2={v} stroke={darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'} strokeWidth="0.5" />
+                                  ))}
+
+                                  {/* Area Fill */}
+                                  <motion.path
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ duration: 1.5 }}
+                                    d={`${graphPath} L 100 100 L 0 100 Z`}
+                                    fill="url(#lineGradient2)"
+                                  />
+
+                                  {/* Main Line */}
+                                  <motion.path
+                                    initial={{ pathLength: 0 }}
+                                    animate={{ pathLength: 1 }}
+                                    transition={{ duration: 2.5, ease: "easeInOut" }}
+                                    d={graphPath}
+                                    fill="none"
+                                    stroke={accent}
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    style={{ filter: `drop-shadow(0 0 8px ${accent}44)` }}
+                                  />
+
+                                  {/* Data Points extracted to HTML for perfect circles */}
+                              </svg>
+
+                              {aiInsights.timelinePoints.map((pt, i) => (
+                                <div key={i} style={{ position: 'absolute', left: `${pt.x}%`, top: `${pt.y}%`, transform: 'translate(-50%, -50%)', zIndex: 10 }}>
+                                  <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: hoveredEMR === pt.data ? 1.5 : 1 }}
+                                    style={{
+                                      width: 10,
+                                      height: 10,
+                                      borderRadius: '50%',
+                                      background: hoveredEMR === pt.data ? accent : cardBg,
+                                      border: `2px solid ${accent}`,
+                                      cursor: 'pointer',
+                                      boxShadow: hoveredEMR === pt.data ? `0 0 12px ${accent}` : 'none'
+                                    }}
+                                    onMouseEnter={() => setHoveredEMR(pt.data)}
+                                    onMouseLeave={() => setHoveredEMR(null)}
+                                  />
+                                  {hoveredEMR === pt.data && (
+                                    <motion.div
+                                      initial={{ scale: 1, opacity: 0.5 }}
+                                      animate={{ scale: 2.5, opacity: 0 }}
+                                      transition={{ repeat: Infinity, duration: 1.5 }}
+                                      style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        borderRadius: '50%',
+                                        background: accent,
+                                        pointerEvents: 'none'
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                              ))}
+
+                              {/* Interactive Tooltip */}
+                              <AnimatePresence>
+                                {hoveredEMR && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                                    style={{
+                                      position: 'absolute',
+                                      left: '50%',
+                                      top: -60,
+                                      transform: 'translateX(-50%)',
+                                      background: darkMode ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                                      backdropFilter: 'blur(12px)',
+                                      padding: '12px 20px',
+                                      borderRadius: 16,
+                                      border: `1px solid ${accent}44`,
+                                      boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                                      zIndex: 100,
+                                      minWidth: 240,
+                                      pointerEvents: 'none'
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                      <span style={{ fontSize: 13, fontWeight: 900, color: accent, textTransform: 'uppercase' }}>{hoveredEMR.type || 'Clinical Visit'}</span>
+                                      <span style={{ fontSize: 11, fontWeight: 700, color: muted }}>{hoveredEMR.date}</span>
+                                    </div>
+                                    <div style={{ fontSize: 15, fontWeight: 800, color: titleClr, marginBottom: 4 }}>{hoveredEMR.specialty}</div>
+                                    <div style={{ display: 'flex', gap: 12, marginTop: 8, paddingTop: 8, borderTop: darkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.05)' }}>
+                                      <div style={{ fontSize: 11, fontWeight: 700, color: muted }}>
+                                        <span style={{ color: titleClr }}>{hoveredEMR.prescriptions?.length || 0}</span> MEDS
+                                      </div>
+                                      <div style={{ fontSize: 11, fontWeight: 700, color: muted }}>
+                                        <span style={{ color: titleClr }}>{hoveredEMR.labs?.length || 0}</span> LABS
+                                      </div>
+                                      <div style={{ fontSize: 11, fontWeight: 700, color: muted }}>
+                                        SEVERITY: <span style={{ color: hoveredEMR.severity === 'normal' ? accent : '#EF4444' }}>{hoveredEMR.severity?.toUpperCase()}</span>
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                          </div>
+                      </div>
+                    )}
+                   {/* Bottom Spacer for breathing room */}
+                   <div style={{ height: 40 }} />
                 </div>
 
                 {/* SLIDE 2: AI ANALYSIS */}
-                <div className="intelligence-slide scroll-skin" style={{ height: '100%', width: '100%', overflowY: 'auto', padding: '96px 40px 40px' }}>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                      <Sparkles size={20} color={accent} />
-                      <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: accent }}>
-                        Meiosis Intelligence Report
-                      </span>
-                   </div>
-                   <h2 style={{ fontSize: 32, fontWeight: 800, color: titleClr, marginBottom: 40, letterSpacing: '-0.02em' }}>Deep Clinical Insights</h2>
+                <div className="intelligence-slide scroll-skin" style={{ height: '100%', width: '100%', overflowY: 'auto', padding: '48px 40px 120px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 40 }}>
+                       <Sparkles size={20} color={accent} style={{ filter: `drop-shadow(0 0 8px ${accent}66)` }} />
+                       <span style={{ fontSize: 13, fontWeight: 900, letterSpacing: '0.15em', textTransform: 'uppercase', color: accent }}>
+                         Meiosis Intelligence Report
+                       </span>
+                    </div>
 
-                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
-                      <div style={{ background: darkMode ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.015)', borderRadius: 32, padding: '32px', border: border }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                            <Brain size={20} color={accent} />
-                            <h3 style={{ fontSize: 15, fontWeight: 800, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Clinical Trajectory</h3>
-                          </div>
-                          <p style={{ fontSize: 15, lineHeight: 1.75, color: muted, marginBottom: 32 }}>
-                            Primary focus on <strong style={{ color: titleClr }}>{leadSpecialty ? leadSpecialty[0] : 'general health'}</strong> ({leadSpecialty ? Math.round((leadSpecialty[1] / totalVisits) * 100) : 0}%).
-                            The data suggests a strong correlation between therapeutic adherence and long-term stabilization of primary metabolic indicators.
-                          </p>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                                <span style={{ color: muted, fontWeight: 700 }}>Diagnostic Certainty</span>
-                                <span style={{ fontWeight: 800, color: accent }}>92%</span>
-                            </div>
-                            <div style={{ height: 8, background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderRadius: 99, overflow: 'hidden' }}>
-                                <motion.div initial={{ width: 0 }} animate={{ width: '92%' }} transition={{ duration: 1.5, ease: 'easeOut' }} style={{ height: '100%', background: accent }} />
-                            </div>
-                          </div>
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 60 }}>
+                      {/* Section 1: Severe Reports */}
+                      {aiInsights.severeReports.length > 0 && (
+                        <div style={{ background: darkMode ? 'rgba(239, 68, 68, 0.05)' : 'rgba(239, 68, 68, 0.03)', borderRadius: 32, padding: '24px', border: `1px solid rgba(239, 68, 68, ${darkMode ? 0.2 : 0.15})` }}>
+                           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                              <ShieldAlert size={20} color="#EF4444" />
+                              <h3 style={{ fontSize: 15, fontWeight: 800, color: '#EF4444', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Critical Clinical Alerts</h3>
+                           </div>
+                           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                             {aiInsights.severeReports.map((report, idx) => (
+                               <div key={idx} style={{ padding: '16px 20px', background: darkMode ? 'rgba(0,0,0,0.2)' : '#fff', borderRadius: 16, border: `1px solid rgba(239,68,68,0.1)` }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                    <span style={{ fontSize: 14, fontWeight: 800, color: titleClr }}>{report.type}</span>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: muted }}>{report.date}</span>
+                                  </div>
+                                  <p style={{ margin: 0, fontSize: 13, color: muted, lineHeight: 1.5 }}>{report.notes || 'No detailed notes provided for this severe event.'}</p>
+                               </div>
+                             ))}
+                           </div>
+                        </div>
+                      )}
+
+                      {/* Section 2: Active Regimen */}
+                      {aiInsights.activeMeds.length > 0 && (
+                        <div style={{ background: darkMode ? 'rgba(16, 185, 129, 0.04)' : 'rgba(16, 185, 129, 0.02)', borderRadius: 32, padding: '24px', border: `1px solid rgba(16, 185, 129, ${darkMode ? 0.15 : 0.1})` }}>
+                           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                              <Pill size={20} color="#10B981" />
+                              <h3 style={{ fontSize: 15, fontWeight: 800, color: '#10B981', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Active Pharmacological Regimen</h3>
+                           </div>
+                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+                             {aiInsights.activeMeds.map((med, idx) => (
+                               <div key={idx} style={{ padding: '16px 20px', background: darkMode ? 'rgba(0,0,0,0.2)' : '#fff', borderRadius: 16, border: `1px solid rgba(16,185,129,0.1)` }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px #10B981' }} />
+                                    <span style={{ fontSize: 14, fontWeight: 800, color: titleClr }}>{med.name}</span>
+                                  </div>
+                                  <div style={{ fontSize: 12, color: muted, fontWeight: 600 }}>{med.dose} · {med.frequency}</div>
+                               </div>
+                             ))}
+                           </div>
+                        </div>
+                      )}
+
+                      {/* Section 6: AI Synthesis Story - MOVED UP */}
+                      <div style={{ background: darkMode ? 'rgba(3, 21, 37, 0.7)' : 'rgba(240, 249, 255, 0.8)', borderRadius: 32, padding: '24px', border: `1px solid ${accent}40`, boxShadow: `0 20px 40px ${accent}15` }}>
+                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                            <Sparkles size={24} color={accent} style={{ filter: `drop-shadow(0 0 10px ${accent})` }} />
+                            <h3 style={{ fontSize: 18, fontWeight: 900, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em' }}>AI Clinical Synthesis</h3>
+                         </div>
+                         <p style={{ fontSize: 16, lineHeight: 1.8, color: titleClr, margin: 0, fontWeight: 500 }}>
+                            {aiInsights.story}
+                         </p>
                       </div>
 
-                      <div style={{ background: darkMode ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.015)', borderRadius: 32, padding: '32px', border: border }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                            <Microscope size={20} color={accent} />
-                            <h3 style={{ fontSize: 15, fontWeight: 800, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Focused Lab Trends</h3>
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                            {flaggedLabs.length > 0 ? (
-                                flaggedLabs.slice(0, 3).map((lab, i) => (
-                                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: darkMode ? 'rgba(255,255,255,0.04)' : '#fff', borderRadius: 18, border: border }}>
-                                    <div>
-                                        <div style={{ fontSize: 14, fontWeight: 700, color: titleClr }}>{lab.label}</div>
-                                        <div style={{ fontSize: 11, color: '#EF4444', fontWeight: 700, marginTop: 2 }}>{lab.status} · RED FLAG</div>
-                                    </div>
-                                    <div style={{ fontSize: 18, fontWeight: 800, color: titleClr }}>{lab.value}</div>
+                      {/* Section 3: Diagnostics */}
+                      {(aiInsights.latestLabs.length > 0 || aiInsights.oldLabs.length > 0) && (
+                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                            {aiInsights.latestLabs.length > 0 && (
+                              <div style={{ background: darkMode ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.015)', borderRadius: 32, padding: '24px', border: border }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                                    <Microscope size={20} color={accent} />
+                                    <h3 style={{ fontSize: 15, fontWeight: 800, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Latest Diagnostics</h3>
                                   </div>
-                                ))
-                            ) : (
-                                <div style={{ textAlign: 'center', padding: '32px 0', border: '1px dashed rgba(120,120,120,0.2)', borderRadius: 20 }}>
-                                  <div style={{ fontSize: 14, color: muted }}>All markers within target range.</div>
-                                </div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                    {aiInsights.latestLabs.map((lab, i) => (
+                                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: darkMode ? 'rgba(255,255,255,0.04)' : '#fff', borderRadius: 18, border: border }}>
+                                        <div>
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: titleClr }}>{lab.label}</div>
+                                            <div style={{ fontSize: 11, color: lab.status === 'PENDING' ? '#F59E0B' : muted, fontWeight: 700, marginTop: 2 }}>{lab.status}</div>
+                                        </div>
+                                        <div style={{ fontSize: 18, fontWeight: 800, color: titleClr }}>{lab.value}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                              </div>
                             )}
-                          </div>
-                      </div>
-                   </div>
 
-                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
-                      <div style={{ background: darkMode ? 'rgba(3, 21, 37, 0.4)' : 'rgba(0,0,0,0.02)', borderRadius: 32, padding: '32px', border: border }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                            <Pill size={20} color={accent} />
-                            <h3 style={{ fontSize: 15, fontWeight: 800, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Pharmacological Impact</h3>
-                          </div>
-                          <p style={{ fontSize: 14, lineHeight: 1.7, color: muted, margin: 0 }}>
-                            Ongoing regimen with <strong style={{ color: titleClr }}>Metformin XR</strong> continues to drive positive systemic responses. Recommended to maintain current titration.
-                          </p>
-                      </div>
-
-                      <div style={{ background: darkMode ? 'rgba(3, 21, 37, 0.4)' : 'rgba(0,0,0,0.02)', borderRadius: 32, padding: '32px', border: border }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                            <Activity size={20} color={accent} />
-                            <h3 style={{ fontSize: 15, fontWeight: 800, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Next Milestones</h3>
-                          </div>
-                          <ul style={{ margin: 0, padding: '0 0 0 18px', fontSize: 14, color: muted, lineHeight: 1.8 }}>
-                            <li>Metabolic panel follow-up (4 weeks)</li>
-                            <li>Specialist review for cardiovascular stability</li>
-                          </ul>
-                      </div>
-                   </div>
-
-                   <div style={{ background: darkMode ? 'rgba(3, 21, 37, 0.5)' : 'rgba(255,255,255,0.6)', borderRadius: 32, padding: '32px', border: border, minHeight: 240 }}>
-                      <h3 style={{ fontSize: 15, fontWeight: 800, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 24 }}>Longitudinal Trend Analysis</h3>
-                      <div style={{ height: 180, display: 'flex', alignItems: 'flex-end', gap: 14, padding: '0 10px 10px' }}>
-                          {Array.from({ length: 20 }).map((_, i) => {
-                            const h = 20 + Math.random() * 80;
-                            return (
-                              <motion.div 
-                                key={i}
-                                initial={{ height: 0 }}
-                                animate={{ height: `${h}%` }}
-                                transition={{ delay: 0.2 + i * 0.04, duration: 0.8 }}
-                                style={{ 
-                                  flex: 1, 
-                                  background: i === 19 ? accent : darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', 
-                                  borderRadius: '6px 6px 0 0',
-                                  position: 'relative'
-                                }}
-                              >
-                                {i === 19 && (
-                                  <div style={{ position: 'absolute', top: -28, left: '50%', transform: 'translateX(-50%)', fontSize: 10, fontWeight: 900, color: accent }}>
-                                    REAL-TIME
+                            {aiInsights.oldLabs.length > 0 && (
+                              <div style={{ background: darkMode ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.015)', borderRadius: 32, padding: '24px', border: border }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                                    <History size={20} color={accent} />
+                                    <h3 style={{ fontSize: 15, fontWeight: 800, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Historical Labs</h3>
                                   </div>
-                                )}
-                              </motion.div>
-                            )
-                          })}
-                      </div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                    {aiInsights.oldLabs.slice(0, 3).map((lab, i) => (
+                                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', borderRadius: 18, border: border }}>
+                                        <div>
+                                            <div style={{ fontSize: 14, fontWeight: 600, color: muted }}>{lab.label}</div>
+                                        </div>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: muted }}>{lab.value}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                              </div>
+                            )}
+                         </div>
+                )}
+
+                      {/* Section 5: Clinical Context */}
+                      {aiInsights.clinicalContext.length > 0 && (
+                        <div style={{ background: darkMode ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.015)', borderRadius: 32, padding: '24px', border: border }}>
+                           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                              <Brain size={20} color={accent} />
+                              <h3 style={{ fontSize: 15, fontWeight: 800, color: titleClr, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Clinical Context Overview</h3>
+                           </div>
+                           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                             {aiInsights.clinicalContext.map((ctx, idx) => (
+                               <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                  <div style={{ width: 12, height: 12, borderRadius: '50%', border: `3px solid ${accent}` }} />
+                                  <div style={{ flex: 1, paddingBottom: idx !== aiInsights.clinicalContext.length - 1 ? 16 : 0, borderBottom: idx !== aiInsights.clinicalContext.length - 1 ? border : 'none' }}>
+                                    <div style={{ fontSize: 15, fontWeight: 800, color: titleClr }}>{ctx.type}</div>
+                                    <div style={{ fontSize: 13, color: muted, marginTop: 4 }}>{ctx.date} · {ctx.specialty}</div>
+                                  </div>
+                               </div>
+                             ))}
+                           </div>
+                        </div>
+                      )}
+
+                       {/* End of Insights */}
+
                    </div>
                 </div>
              </motion.div>
@@ -1633,27 +2013,41 @@ function IntelligenceOverlay({
         {/* AI Chat Sidebar (Conditionally Rendered) */}
         <AnimatePresence>
           {mode === 'ai' && (
-            <motion.div 
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 440, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 25 }}
-              style={{ display: 'flex', flexDirection: 'column', background: darkMode ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)', borderLeft: border, overflow: 'hidden' }}
-            >
-               <div style={{ width: 440, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ padding: '32px', borderBottom: border }}>
+             <motion.div 
+               initial={{ width: 0, opacity: 0 }}
+               animate={{ width: 480, opacity: 1 }}
+               exit={{ width: 0, opacity: 0 }}
+               transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+               style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+             >
+                <div style={{ 
+                  margin: '24px 24px 24px 12px',
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                  border: border,
+                  borderRadius: 32,
+                  overflow: 'hidden',
+                  boxShadow: '0 20px 50px rgba(0,0,0,0.2)',
+                }}>
+                   <div style={{ position: 'relative', width: 444, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ margin: '24px 24px 0 24px', padding: '16px 24px', borderRadius: 99, background: darkMode ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.7)', border: border, backdropFilter: 'blur(10px)', boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{ width: 44, height: 44, borderRadius: 14, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 20px ${accent}44` }}>
-                          <Sparkles size={22} color="#000" />
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Sparkles size={22} color={accent} style={{ filter: `drop-shadow(0 0 8px ${accent}66)` }} />
                         </div>
-                        <div>
-                          <div style={{ fontSize: 18, fontWeight: 900, color: titleClr, letterSpacing: '-0.01em' }}>AI Clinical Assistant</div>
-                          <div style={{ fontSize: 11, color: '#10B981', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>Secure Clinical Context · Active</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 16, fontWeight: 900, color: titleClr, letterSpacing: '-0.01em' }}>AI Clinical Assistant</div>
+                          <div style={{ fontSize: 10, color: '#10B981', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Secure Clinical Context · Active</div>
                         </div>
                     </div>
-                  </div>
-
-                  <div className="scroll-skin" style={{ flex: 1, overflowY: 'auto', padding: '32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+</div>
+                        <div 
+                    className="scroll-skin" 
+                    onScroll={handleChatScroll}
+                    style={{ flex: 1, overflowY: 'auto', padding: '24px 32px 140px 32px', display: 'flex', flexDirection: 'column', gap: 24, position: 'relative' }}
+                  >
                     {messages.map((msg, i) => (
                       <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%' }}>
                         <div style={{ 
@@ -1671,9 +2065,39 @@ function IntelligenceOverlay({
                         </div>
                       </div>
                     ))}
+                    <div ref={chatEndRef} style={{ float: 'left', clear: 'both' }} />
                   </div>
 
-                  <div style={{ padding: '32px', borderTop: border, background: darkMode ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)' }}>
+                  <AnimatePresence>
+                    {showScrollToBottom && (
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                        onClick={() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                        style={{
+                          position: 'absolute',
+                          bottom: 100,
+                          right: 32,
+                          width: 40,
+                          height: 40,
+                          borderRadius: '50%',
+                          background: darkMode ? 'rgba(255,255,255,0.1)' : '#fff',
+                          border: border,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                          zIndex: 10,
+                        }}
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={titleClr} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+
+                  <div style={{ position: 'absolute', bottom: 32, left: 32, right: 32 }}>
                     <div style={{ position: 'relative' }}>
                         <input 
                           ref={inputRef}
@@ -1684,45 +2108,54 @@ function IntelligenceOverlay({
                           placeholder="Ask about patient history..."
                           style={{
                               width: '100%',
-                              background: darkMode ? 'rgba(255,255,255,0.06)' : '#fff',
+                              background: darkMode ? 'rgba(13, 21, 32, 0.85)' : 'rgba(255, 255, 255, 0.85)',
                               border: border,
-                              borderRadius: 20,
-                              padding: '18px 60px 18px 24px',
+                              borderRadius: 99,
+                              padding: '18px 60px 18px 28px',
                               fontSize: 15,
                               color: titleClr,
                               outline: 'none',
-                              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                              boxShadow: '0 12px 40px rgba(0,0,0,0.18)',
+                              backdropFilter: 'blur(20px)',
+                              WebkitBackdropFilter: 'blur(20px)',
                           }}
                         />
                         <button 
                           onClick={handleSend}
                           style={{ 
                               position: 'absolute', 
-                              right: 10, 
-                              top: 10, 
-                              width: 44, 
-                              height: 44, 
-                              borderRadius: 14, 
-                              background: accent, 
-                              border: 'none', 
+                              right: 8, 
+                              top: 8, 
+                              width: 40, 
+                              height: 40, 
+                              borderRadius: '50%', 
+                              background: 'rgba(255, 255, 255, 0.08)', 
+                              backdropFilter: 'blur(10px)',
+                              WebkitBackdropFilter: 'blur(10px)',
+                              border: border, 
                               display: 'flex', 
                               alignItems: 'center', 
                               justifyContent: 'center',
                               cursor: 'pointer',
-                              boxShadow: `0 4px 12px ${accent}44`
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                              transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.05)';
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
                           }}
                         >
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                              <line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/>
-                          </svg>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 5px ${accent}88)` }}><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
                         </button>
-                    </div>
-                    <div style={{ fontSize: 11, textAlign: 'center', color: muted, marginTop: 16, fontWeight: 700, letterSpacing: '0.04em' }}>
-                        Powered by Meiosis Clinical Engine
-                    </div>
-                  </div>
+                   </div>
+                </div>
+</div>
                </div>
-            </motion.div>
+              </motion.div>
           )}
         </AnimatePresence>
 
@@ -2131,13 +2564,25 @@ function SimpleListView({
                       <div style={{ flex: 1, minWidth: 0 }}>
                         {/* Pills row */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 6 }}>
-                          <span style={{
-                            fontSize: 10, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase',
-                            color: aptAccent, padding: '2px 8px', borderRadius: 6,
-                            background: `${aptAccent}1a`, border: `1px solid ${aptAccent}33`,
-                          }}>
-                            {accessLevel ? apt.specialty : 'Restricted'}
-                          </span>
+                          {hasMeds ? (
+                            <span style={{
+                              fontSize: 10, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase',
+                              color: apt.prescriptions.some(p => p.isActive) ? aptAccent : '#f97316',
+                              padding: '2px 8px', borderRadius: 6,
+                              background: apt.prescriptions.some(p => p.isActive) ? `${aptAccent}1a` : 'rgba(249, 115, 22, 0.1)',
+                              border: `1px solid ${apt.prescriptions.some(p => p.isActive) ? `${aptAccent}33` : 'rgba(249, 115, 22, 0.2)'}`,
+                            }}>
+                              {apt.prescriptions.some(p => p.isActive) ? 'Active Prescription' : 'Expired'}
+                            </span>
+                          ) : (
+                            <span style={{
+                              fontSize: 10, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase',
+                              color: aptAccent, padding: '2px 8px', borderRadius: 6,
+                              background: `${aptAccent}1a`, border: `1px solid ${aptAccent}33`,
+                            }}>
+                              {accessLevel ? apt.specialty : 'Restricted'}
+                            </span>
+                          )}
                           {accessLevel && (
                             <>
                               <span style={{
@@ -2272,9 +2717,10 @@ function SimpleListView({
                                     padding: '9px 11px', borderRadius: 10,
                                     background: rowBg, border: `1px solid ${rowBdr}`,
                                     alignItems: 'center',
+                                    opacity: med.isActive === false ? 0.6 : 1,
                                   }}>
                                     <div>
-                                      <span style={{ fontSize: 13, fontWeight: 700, color: neon }}>{med.name}</span>
+                                      <span style={{ fontSize: 13, fontWeight: 700, color: med.isActive === false ? muted : neon, textDecoration: med.isActive === false ? 'line-through' : 'none' }}>{med.name}</span>
                                       {med.dose && <span style={{ fontSize: 12, color: muted, marginLeft: 6 }}>{med.dose}</span>}
                                       {med.frequency && (
                                         <div style={{ fontSize: 11, color: sectionLbl, marginTop: 2 }}>
@@ -2282,9 +2728,14 @@ function SimpleListView({
                                         </div>
                                       )}
                                     </div>
-                                    {med.duration && (
-                                      <span style={{ fontSize: 11, color: sectionLbl, whiteSpace: 'nowrap', textAlign: 'right' }}>{med.duration}</span>
-                                    )}
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                                      {med.duration && (
+                                        <span style={{ fontSize: 11, color: sectionLbl, whiteSpace: 'nowrap', textAlign: 'right' }}>{med.duration}</span>
+                                      )}
+                                      {med.isActive === false && (
+                                        <span style={{ fontSize: 9, fontWeight: 800, background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444', padding: '2px 6px', borderRadius: 4, textTransform: 'uppercase' }}>Expired</span>
+                                      )}
+                                    </div>
                                   </div>
                                 ))}
                               </div>

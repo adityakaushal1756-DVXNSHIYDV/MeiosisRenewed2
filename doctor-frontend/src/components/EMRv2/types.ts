@@ -13,6 +13,7 @@ export interface PrescriptionEntry {
   frequency?: string;
   duration?: string;
   instructions?: string;
+  isActive?: boolean;
 }
 
 export interface MedicationEntry {

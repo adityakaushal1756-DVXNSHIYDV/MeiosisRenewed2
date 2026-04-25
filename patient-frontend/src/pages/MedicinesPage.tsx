@@ -14,8 +14,15 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
   // Logic to filter active items based on time + doctor-defined duration
   const activePrescriptions = (data.prescriptions || []).filter(p => {
     if (p.status !== 'ACTIVE') return false;
-    const expiryDate = addDays(parseISO(p.startDate), p.durationDays);
+    const duration = p.durationDays || 2;
+    const expiryDate = addDays(parseISO(p.startDate), duration);
     return !isAfter(today, expiryDate);
+  });
+
+  const inactivePrescriptions = (data.prescriptions || []).filter(p => {
+    const duration = p.durationDays || 2;
+    const expiryDate = addDays(parseISO(p.startDate), duration);
+    return p.status !== 'ACTIVE' || isAfter(today, expiryDate);
   });
   
   // Flatten items and calculate individual timers
@@ -33,6 +40,16 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
       daysLeft,
       progress,
       dayNumber: daysPassed + 1
+    })) || [];
+  });
+
+  const allInactiveItems = inactivePrescriptions.flatMap(p => {
+    const duration = p.durationDays || 2;
+    return p.items?.map(item => ({
+      ...item,
+      doctorName: p.doctor?.name,
+      totalDays: duration,
+      endedOn: addDays(parseISO(p.startDate), duration).toLocaleDateString()
     })) || [];
   });
 
@@ -245,6 +262,54 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
             </table>
           </div>
         </div>
+
+        {/* Past Medications Table */}
+        {allInactiveItems.length > 0 && (
+          <div className="glass-card p-0 border border-wire/10 overflow-hidden mt-8 opacity-80">
+            <div className="p-6 border-b border-wire/10 bg-white/[0.01]">
+              <h2 className="text-base font-bold text-mist flex items-center gap-2">
+                <Clock className="w-4 h-4" /> Past Medications
+              </h2>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                   <tr className="bg-white/[0.02]">
+                    <th className="py-4 px-6 text-[10px] font-semibold text-mist uppercase tracking-wider">Clinical Source</th>
+                    <th className="py-4 px-6 text-[10px] font-semibold text-mist uppercase tracking-wider">Medication</th>
+                    <th className="py-4 px-6 text-[10px] font-semibold text-mist uppercase tracking-wider">Protocol</th>
+                    <th className="py-4 px-6 text-[10px] font-semibold text-mist uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-wire/5">
+                  {allInactiveItems.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-white/[0.01] transition-colors">
+                      <td className="py-5 px-6">
+                         <p className="text-sm font-bold text-mist/80">{item.doctorName || 'Prescribing Lead'}</p>
+                      </td>
+                      <td className="py-5 px-6">
+                         <div className="flex items-center gap-2">
+                           <span className="text-sm font-bold text-mist/80 line-through">{item.medicine}</span>
+                         </div>
+                         <p className="text-[10px] text-mist/40 mt-1">{item.dose}</p>
+                      </td>
+                       <td className="py-5 px-6">
+                        <span className="text-[10px] text-mist/60 font-semibold uppercase">{item.frequency.replace(/_/g, ' ')}</span>
+                      </td>
+                      <td className="py-5 px-6">
+                         <div className="flex items-center gap-2">
+                           <div className="px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">Expired</div>
+                           <span className="text-xs font-semibold text-mist/50">Ended {item.endedOn}</span>
+                         </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
         
       </div>
     </div>

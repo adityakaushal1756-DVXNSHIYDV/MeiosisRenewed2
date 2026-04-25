@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, Fragment } from 'react';
 import type { ReactNode } from 'react';
+import { motion } from 'framer-motion';
 import {
   Activity,
   AlertTriangle,
@@ -725,7 +726,8 @@ export function PrescriptionModal({
       className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-black/65 px-4 py-8 backdrop-blur-sm"
       onClick={onClose}
     >
-      <div
+      <motion.div
+        layoutId={`emr-card-${appt ? appt.id : (lab ? lab.id : '')}`}
         className={`w-full ${layoutMode === 'wide' ? 'max-w-[1100px]' : 'max-w-[700px]'} overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0d1520] shadow-[0_32px_100px_rgba(0,0,0,0.75)]`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -1097,15 +1099,13 @@ export function PrescriptionModal({
                     <p className="text-[13px] leading-[1.65] text-white/80">{lab.summary}</p>
                   </div>
                 )}
-              </div>
+            </div>
             )}
           </>
         )}
 
-        {/* Footer spacer if needed, or remove bottom actions entirely */}
         <div className="h-4" />
-
-      </div>
+      </motion.div>
     </div>
   );
 }
