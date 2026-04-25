@@ -1726,29 +1726,6 @@ function IntelligenceOverlay({
   );
 }
 
-        <style>{`
-          .scroll-skin::-webkit-scrollbar {
-            width: 6px;
-          }
-          .scroll-skin::-webkit-scrollbar-track {
-            background: transparent;
-          }
-          .scroll-skin::-webkit-scrollbar-thumb {
-            background: ${darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'};
-            border-radius: 10px;
-          }
-          .scroll-skin::-webkit-scrollbar-thumb:hover {
-            background: ${accent};
-          }
-          .intelligence-slide {
-            flex-shrink: 0;
-            scrollbar-gutter: stable;
-          }
-        `}</style>
-      </motion.div>
-    </motion.div>
-  );
-}
 
 function VisitHistoryDrawer({
   data,
