@@ -941,7 +941,8 @@ function AIAnalysisPanel({
         zIndex: 1,
       }}
     >
-      <div
+      <motion.div
+        layoutId="overview-intelligence-panel"
         onClick={() => setIsOverviewExpanded(true)}
         style={{
           background: shellBg,
@@ -958,15 +959,12 @@ function AIAnalysisPanel({
           minHeight: 220,
           flex: stacked ? '1 1 320px' : '0 0 auto',
           cursor: 'pointer',
-          transition: 'all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+          position: 'relative',
         }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = darkMode ? 'rgba(3, 21, 37, 0.55)' : 'rgba(255, 255, 255, 0.7)';
-          e.currentTarget.style.scale = '1.005';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = shellBg;
-          e.currentTarget.style.scale = '1';
+        whileHover={{ scale: 1.005, background: darkMode ? 'rgba(3, 21, 37, 0.55)' : 'rgba(255, 255, 255, 0.7)' }}
+        transition={{ 
+          layout: { type: 'spring', stiffness: 400, damping: 40 },
+          scale: { duration: 0.2 }
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -1063,10 +1061,10 @@ function AIAnalysisPanel({
             <span style={{ fontWeight: 700, color: titleClr }}>{latestDate}</span>
           </div>
         )}
-      </div>
+      </motion.div>
 
       <motion.div
-        layoutId="ai-analysis-panel"
+        layoutId="ai-intelligence-panel"
         onClick={() => setIsAiExpanded(true)}
         style={{
           background: shellBg,
@@ -1314,7 +1312,7 @@ function IntelligenceOverlay({
       onClick={onClose}
     >
       <motion.div
-        layoutId="ai-analysis-panel"
+        layoutId={mode === 'overview' ? 'overview-intelligence-panel' : 'ai-intelligence-panel'}
         style={{
           width: 'min(1540px, 96vw)',
           height: 'min(880px, 92vh)',
