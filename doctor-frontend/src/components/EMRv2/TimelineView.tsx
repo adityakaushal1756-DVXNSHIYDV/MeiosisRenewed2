@@ -1220,11 +1220,13 @@ function IntelligenceOverlay({
   ]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      inputRef.current?.focus();
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
+    if (mode === 'ai') {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [mode]);
 
   // Handle keyboard shortcuts within the overlay
   useEffect(() => {
@@ -1250,12 +1252,20 @@ function IntelligenceOverlay({
       }
 
       if (e.key === ' ') {
-        if (isInput) {
-          if (!chatMessage.trim()) {
+        // In AI mode, space closing is conditional on chat text
+        if (mode === 'ai') {
+          if (isInput) {
+            if (!chatMessage.trim()) {
+              onClose();
+              e.preventDefault();
+            }
+          } else {
             onClose();
             e.preventDefault();
           }
-        } else {
+        } 
+        // In Overview mode, space always closes (no chat input)
+        else {
           onClose();
           e.preventDefault();
         }
@@ -1328,7 +1338,7 @@ function IntelligenceOverlay({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Main Content Area (SLIDING SLIDES) */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: border, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: mode === 'ai' ? border : 'none', position: 'relative', overflow: 'hidden' }}>
           
           {/* Static Header */}
           <div style={{ 
@@ -1596,89 +1606,125 @@ function IntelligenceOverlay({
           </div>
         </div>
 
-        {/* AI Chat Sidebar (Remains Static) */}
-        <div style={{ width: 440, display: 'flex', flexDirection: 'column', background: darkMode ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)', borderLeft: border }}>
-           <div style={{ padding: '32px', borderBottom: border }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                 <div style={{ width: 44, height: 44, borderRadius: 14, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 20px ${accent}44` }}>
-                    <Sparkles size={22} color="#000" />
-                 </div>
-                 <div>
-                    <div style={{ fontSize: 18, fontWeight: 900, color: titleClr, letterSpacing: '-0.01em' }}>AI Clinical Assistant</div>
-                    <div style={{ fontSize: 11, color: '#10B981', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>Secure Clinical Context · Active</div>
-                 </div>
-              </div>
-           </div>
+        {/* AI Chat Sidebar (Conditionally Rendered) */}
+        <AnimatePresence>
+          {mode === 'ai' && (
+            <motion.div 
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 440, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+              style={{ display: 'flex', flexDirection: 'column', background: darkMode ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)', borderLeft: border, overflow: 'hidden' }}
+            >
+               <div style={{ width: 440, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ padding: '32px', borderBottom: border }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 14, background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 20px ${accent}44` }}>
+                          <Sparkles size={22} color="#000" />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 18, fontWeight: 900, color: titleClr, letterSpacing: '-0.01em' }}>AI Clinical Assistant</div>
+                          <div style={{ fontSize: 11, color: '#10B981', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>Secure Clinical Context · Active</div>
+                        </div>
+                    </div>
+                  </div>
 
-           <div className="scroll-skin" style={{ flex: 1, overflowY: 'auto', padding: '32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-              {messages.map((msg, i) => (
-                <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%' }}>
-                   <div style={{ 
-                      padding: '16px 22px', 
-                      borderRadius: msg.role === 'user' ? '24px 24px 4px 24px' : '24px 24px 24px 4px',
-                      background: msg.role === 'user' ? accent : (darkMode ? 'rgba(255,255,255,0.08)' : '#fff'),
-                      color: msg.role === 'user' ? '#000' : titleClr,
-                      border: msg.role === 'user' ? 'none' : border,
-                      fontSize: 15,
-                      lineHeight: 1.6,
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
-                      fontWeight: msg.role === 'user' ? 700 : 500,
-                   }}>
-                      {msg.text}
-                   </div>
-                </div>
-              ))}
-           </div>
+                  <div className="scroll-skin" style={{ flex: 1, overflowY: 'auto', padding: '32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+                    {messages.map((msg, i) => (
+                      <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%' }}>
+                        <div style={{ 
+                            padding: '16px 22px', 
+                            borderRadius: msg.role === 'user' ? '24px 24px 4px 24px' : '24px 24px 24px 4px',
+                            background: msg.role === 'user' ? accent : (darkMode ? 'rgba(255,255,255,0.08)' : '#fff'),
+                            color: msg.role === 'user' ? '#000' : titleClr,
+                            border: msg.role === 'user' ? 'none' : border,
+                            fontSize: 15,
+                            lineHeight: 1.6,
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+                            fontWeight: msg.role === 'user' ? 700 : 500,
+                        }}>
+                            {msg.text}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
-           <div style={{ padding: '32px', borderTop: border, background: darkMode ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)' }}>
-              <div style={{ position: 'relative' }}>
-                 <input 
-                    ref={inputRef}
-                    type="text"
-                    value={chatMessage}
-                    onChange={(e) => setChatMessage(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder="Ask about patient history..."
-                    style={{
-                       width: '100%',
-                       background: darkMode ? 'rgba(255,255,255,0.06)' : '#fff',
-                       border: border,
-                       borderRadius: 20,
-                       padding: '18px 60px 18px 24px',
-                       fontSize: 15,
-                       color: titleClr,
-                       outline: 'none',
-                       boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                    }}
-                 />
-                 <button 
-                    onClick={handleSend}
-                    style={{ 
-                       position: 'absolute', 
-                       right: 10, 
-                       top: 10, 
-                       width: 44, 
-                       height: 44, 
-                       borderRadius: 14, 
-                       background: accent, 
-                       border: 'none', 
-                       display: 'flex', 
-                       alignItems: 'center', 
-                       justifyContent: 'center',
-                       cursor: 'pointer',
-                       boxShadow: `0 4px 12px ${accent}44`
-                    }}
-                 >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                       <line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/>
-                    </svg>
-                 </button>
-              </div>
-              <div style={{ fontSize: 11, textAlign: 'center', color: muted, marginTop: 16, fontWeight: 700, letterSpacing: '0.04em' }}>
-                 Powered by Meiosis Clinical Engine
-              </div>
-           </div>
-        </div>
+                  <div style={{ padding: '32px', borderTop: border, background: darkMode ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)' }}>
+                    <div style={{ position: 'relative' }}>
+                        <input 
+                          ref={inputRef}
+                          type="text"
+                          value={chatMessage}
+                          onChange={(e) => setChatMessage(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                          placeholder="Ask about patient history..."
+                          style={{
+                              width: '100%',
+                              background: darkMode ? 'rgba(255,255,255,0.06)' : '#fff',
+                              border: border,
+                              borderRadius: 20,
+                              padding: '18px 60px 18px 24px',
+                              fontSize: 15,
+                              color: titleClr,
+                              outline: 'none',
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                          }}
+                        />
+                        <button 
+                          onClick={handleSend}
+                          style={{ 
+                              position: 'absolute', 
+                              right: 10, 
+                              top: 10, 
+                              width: 44, 
+                              height: 44, 
+                              borderRadius: 14, 
+                              background: accent, 
+                              border: 'none', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              boxShadow: `0 4px 12px ${accent}44`
+                          }}
+                        >
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/>
+                          </svg>
+                        </button>
+                    </div>
+                    <div style={{ fontSize: 11, textAlign: 'center', color: muted, marginTop: 16, fontWeight: 700, letterSpacing: '0.04em' }}>
+                        Powered by Meiosis Clinical Engine
+                    </div>
+                  </div>
+               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <style>{`
+          .scroll-skin::-webkit-scrollbar {
+            width: 6px;
+          }
+          .scroll-skin::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .scroll-skin::-webkit-scrollbar-thumb {
+            background: ${darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'};
+            border-radius: 10px;
+          }
+          .scroll-skin::-webkit-scrollbar-thumb:hover {
+            background: ${accent};
+          }
+          .intelligence-slide {
+            flex-shrink: 0;
+            scrollbar-gutter: stable;
+          }
+        `}</style>
+      </motion.div>
+    </motion.div>
+  );
+}
 
         <style>{`
           .scroll-skin::-webkit-scrollbar {
@@ -2352,12 +2398,14 @@ function BottomZoomSlider({ value, onChange, chromeDarkMode }: { value: number; 
 
   return (
     <div 
+      tabIndex={-1}
       style={{
         position: 'absolute',
         bottom: 32,
         left: '50%',
         transform: 'translateX(-50%)',
-        zIndex: 100,
+        zIndex: 50,
+        outline: 'none',
         background: chromeDarkMode ? 'rgba(13, 25, 41, 0.45)' : 'rgba(255, 255, 255, 0.55)',
         backdropFilter: 'blur(32px) saturate(160%)',
         WebkitBackdropFilter: 'blur(32px) saturate(160%)',
@@ -3332,7 +3380,7 @@ export function TimelineView({
       )}
 
       {/* -- Bottom Floating Zoom Slider -- */}
-      {setTimelineZoom && !selApt && !isAiExpanded && (
+      {setTimelineZoom && !selApt && !isAiExpanded && !isOverviewExpanded && (
         <BottomZoomSlider value={timelineZoom} onChange={setTimelineZoom} chromeDarkMode={chromeDarkMode || false} />
       )}
     </div>
