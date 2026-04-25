@@ -1318,35 +1318,35 @@ function IntelligenceOverlay({
         padding: '24px',
       }}
     >
-      {/* Global Floating Close Button */}
+      {/* Global Floating Close Button (Top Left) */}
       <motion.button
         initial={{ opacity: 0, scale: 0.5, rotate: -45 }}
         animate={{ opacity: 1, scale: 1, rotate: 0 }}
         exit={{ opacity: 0, scale: 0.5, rotate: 45 }}
-        whileHover={{ scale: 1.1, rotate: 90, background: darkMode ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 1)' }}
+        whileHover={{ scale: 1.1, rotate: 90, background: accent, boxShadow: `0 0 20px ${accent}88` }}
         whileTap={{ scale: 0.9 }}
         onClick={onClose}
         style={{
           position: 'fixed',
           top: 32,
-          right: 32,
-          width: 52,
-          height: 52,
+          left: 32,
+          width: 44,
+          height: 44,
           borderRadius: '50%',
-          background: darkMode ? 'rgba(15, 23, 42, 0.85)' : 'rgba(255, 255, 255, 0.9)',
-          border: `2px solid ${accent}`,
-          color: accent,
+          background: accent,
+          border: 'none',
+          color: '#000',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
           zIndex: 10001,
-          boxShadow: `0 0 25px ${accent}44`,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
         }}
       >
-        <X size={26} strokeWidth={2.5} />
+        <X size={22} strokeWidth={3} />
       </motion.button>
 
       <motion.div
