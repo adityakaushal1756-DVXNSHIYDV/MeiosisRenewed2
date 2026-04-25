@@ -1241,14 +1241,12 @@ function IntelligenceOverlay({
         e.preventDefault();
       }
 
-      if (!isInput) {
-        if (e.key === 'ArrowDown' && mode === 'overview') {
-          setMode('ai');
-          e.preventDefault();
-        } else if (e.key === 'ArrowUp' && mode === 'ai') {
-          setMode('overview');
-          e.preventDefault();
-        }
+      if (e.key === 'ArrowDown' && mode === 'overview') {
+        setMode('ai');
+        e.preventDefault();
+      } else if (e.key === 'ArrowUp' && mode === 'ai') {
+        setMode('overview');
+        e.preventDefault();
       }
 
       if (e.key === ' ') {
