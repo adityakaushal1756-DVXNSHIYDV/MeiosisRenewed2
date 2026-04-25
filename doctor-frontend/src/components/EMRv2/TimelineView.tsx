@@ -2512,6 +2512,14 @@ export function TimelineView({
         setIsAiExpanded(true);
         setIsOverviewExpanded(false);
         e.preventDefault();
+      } else if (e.key === 'ArrowDown' && !isAiExpanded && !isOverviewExpanded) {
+        setIsAiExpanded(true);
+        setIsOverviewExpanded(false);
+        e.preventDefault();
+      } else if (e.key === 'ArrowUp' && !isAiExpanded && !isOverviewExpanded) {
+        setIsOverviewExpanded(true);
+        setIsAiExpanded(false);
+        e.preventDefault();
       }
     };
 
