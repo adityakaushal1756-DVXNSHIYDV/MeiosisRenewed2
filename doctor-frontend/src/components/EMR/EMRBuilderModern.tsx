@@ -25,8 +25,7 @@ import {
   PrescriptionTemplate,
 } from "../../types/EMR";
 import { Patient } from "../../types/Patient";
-import { useAudioScribe, type ScribeStatus } from "../../hooks/useAudioScribe";
-import { VoiceWave } from "./VoiceWave";
+
 import { MedicineAutocomplete } from "./MedicineAutocomplete";
 import { HoverRevealSidebar } from "../HoverRevealSidebar";
 
@@ -115,59 +114,7 @@ function injectStyles() {
   _styleInjected = true;
 }
 
-/* ── Scribe status chip ──────────────────────────────────── */
-function ScribeChip({
-  status,
-  error,
-  device,
-}: {
-  status: ScribeStatus;
-  error: string | null;
-  device: string;
-}) {
-  if (status === "idle") return null;
-  const configs: Record<
-    ScribeStatus,
-    { label: string; cls: string; icon: ReactNode }
-  > = {
-    idle: { label: "", cls: "", icon: null },
-    recording: {
-      label: "Recording",
-      cls: "border-red-400/30 bg-red-400/10 text-red-300",
-      icon: <span className="h-2 w-2 animate-pulse rounded-full bg-red-400" />,
-    },
-    extracting: {
-      label: "AI Filling…",
-      cls: "border-neon/30 bg-neon/10 text-neon",
-      icon: <Cpu size={11} className="animate-pulse" />,
-    },
-    done: {
-      label: "Scribe done ✓",
-      cls: "border-neon/20 bg-neon/[0.06] text-neon/80",
-      icon: null,
-    },
-    error: {
-      label: error ?? "Scribe error",
-      cls: "border-red-400/20 bg-red-400/[0.06] text-red-400/80 max-w-[220px] truncate",
-      icon: null,
-    },
-  };
-  const { label, cls, icon } = configs[status];
-  if (!label) return null;
-  return (
-    <span
-      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${cls}`}
-    >
-      {icon}
-      {label}
-      {device === "webgpu" && status !== "done" && status !== "error" && (
-        <span className="ml-0.5 rounded bg-violet-400/20 px-1 text-[9px] font-semibold uppercase tracking-wide text-violet-300">
-          GPU
-        </span>
-      )}
-    </span>
-  );
-}
+
 
 /* ── Vital pill ──────────────────────────────────────────── */
 function VitalPill({
@@ -267,7 +214,10 @@ function ModernPrescriptionRow({
   useEffect(() => {
     if (!dropdownOpen) return;
     function handleOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setDropdownOpen(false);
       }
     }
@@ -279,7 +229,10 @@ function ModernPrescriptionRow({
   useEffect(() => {
     if (!noteExpanded) return;
     function handleOutside(e: MouseEvent) {
-      if (noteAreaRef.current && !noteAreaRef.current.contains(e.target as Node)) {
+      if (
+        noteAreaRef.current &&
+        !noteAreaRef.current.contains(e.target as Node)
+      ) {
         setNoteExpanded(false);
       }
     }
@@ -310,8 +263,9 @@ function ModernPrescriptionRow({
     const active = row.notes.toLowerCase().includes(tag.toLowerCase());
     if (active) {
       const cleaned = row.notes
-        .replace(new RegExp(`(;\\s*)?${tag}(;\\s*)?`, "i"), (_: string, pre: string, post: string) =>
-          pre && post ? "; " : ""
+        .replace(
+          new RegExp(`(;\\s*)?${tag}(;\\s*)?`, "i"),
+          (_: string, pre: string, post: string) => (pre && post ? "; " : ""),
         )
         .trim()
         .replace(/^;\s*/, "")
@@ -340,12 +294,24 @@ function ModernPrescriptionRow({
             onChange(row.id, "medicineId", String(med.id));
             onChange(row.id, "identifier_brand", med.identifier_brand);
             onChange(row.id, "generic_name", med.generic_name);
-            if (med.substance_identifier) onChange(row.id, "substance_identifier", med.substance_identifier);
-            if (med.route_of_administration) onChange(row.id, "route_of_administration", med.route_of_administration);
+            if (med.substance_identifier)
+              onChange(
+                row.id,
+                "substance_identifier",
+                med.substance_identifier,
+              );
+            if (med.route_of_administration)
+              onChange(
+                row.id,
+                "route_of_administration",
+                med.route_of_administration,
+              );
             if (med.dose_form) onChange(row.id, "dose_form", med.dose_form);
-            if (med.therapeutic_role) onChange(row.id, "therapeutic_role", med.therapeutic_role);
+            if (med.therapeutic_role)
+              onChange(row.id, "therapeutic_role", med.therapeutic_role);
             if (med.iupac_name) onChange(row.id, "iupac_name", med.iupac_name);
-            if (med.molecular_formula) onChange(row.id, "molecular_formula", med.molecular_formula);
+            if (med.molecular_formula)
+              onChange(row.id, "molecular_formula", med.molecular_formula);
           }}
           placeholder="Medicine name"
         />
@@ -357,7 +323,9 @@ function ModernPrescriptionRow({
           placeholder="Dose"
         />
         {/* Frequency count selector */}
-        <div className={`flex shrink-0 overflow-hidden rounded-xl border border-wire/10 ${labelIsLong ? "opacity-80" : ""}`}>
+        <div
+          className={`flex shrink-0 overflow-hidden rounded-xl border border-wire/10 ${labelIsLong ? "opacity-80" : ""}`}
+        >
           {[1, 2, 3, 4].map((n) => (
             <button
               key={n}
@@ -381,8 +349,12 @@ function ModernPrescriptionRow({
             onClick={() => setDropdownOpen((v) => !v)}
             className="input-shell flex w-full items-center gap-1.5 py-1.5 text-left"
           >
-            <span className="font-mono text-[10px] text-white/35 shrink-0 tracking-widest">{currentPattern}</span>
-            <span className="flex-1 truncate text-xs text-white/80">{labelText}</span>
+            <span className="font-mono text-[10px] text-white/35 shrink-0 tracking-widest">
+              {currentPattern}
+            </span>
+            <span className="flex-1 truncate text-xs text-white/80">
+              {labelText}
+            </span>
             <ChevronDown
               size={11}
               className={`shrink-0 text-mist transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
@@ -401,7 +373,9 @@ function ModernPrescriptionRow({
                       : "text-slate-300 hover:bg-white/[0.06] hover:text-white"
                   }`}
                 >
-                  <span className="w-12 shrink-0 font-mono text-[10px] tracking-widest opacity-45">{p}</span>
+                  <span className="w-12 shrink-0 font-mono text-[10px] tracking-widest opacity-45">
+                    {p}
+                  </span>
                   <span className="flex-1 text-left">{patternLabel(p)}</span>
                 </button>
               ))}
@@ -457,7 +431,9 @@ function ModernPrescriptionRow({
               {/* Quick-tag rail */}
               <div className="flex flex-col gap-[3px] shrink-0 w-[118px]">
                 {NOTE_QUICK_TAGS.map((tag) => {
-                  const active = row.notes.toLowerCase().includes(tag.toLowerCase());
+                  const active = row.notes
+                    .toLowerCase()
+                    .includes(tag.toLowerCase());
                   return (
                     <button
                       key={tag}
@@ -485,7 +461,9 @@ function ModernPrescriptionRow({
                 {row.notes ? (
                   <p className="truncate text-xs text-white/70">{row.notes}</p>
                 ) : (
-                  <p className="text-xs text-white/25 italic">Add doctor's note…</p>
+                  <p className="text-xs text-white/25 italic">
+                    Add doctor's note…
+                  </p>
                 )}
               </div>
               <button
@@ -611,29 +589,10 @@ export function EMRBuilderModern({
   injectStyles();
 
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
-  const [showNote, setShowNote] = useState(false);
   const [severity, setSeverity] = useState<Severity>("LOW");
   const [minimized, setMinimized] = useState(false);
   const [minimizing, setMinimizing] = useState(false); // genie-out playing
   const [restoring, setRestoring] = useState(false); // genie-in playing
-
-  const {
-    status: scribeStatus,
-    error: scribeError,
-    transcript: liveTranscript,
-    lines: transcriptLines,
-    interimText,
-    modelReady,
-    workerDevice,
-    analyserNode,
-    startRecording,
-    stopRecording,
-    reset: resetScribe,
-  } = useAudioScribe({
-    patientId: patient?.id,
-    appointmentId: appointment?.id,
-    onFieldChange,
-  });
 
   /* Quick follow-up date shortcuts */
   function setFollowUpOffset(days: number | null) {
@@ -648,19 +607,16 @@ export function EMRBuilderModern({
 
   const handleStartConsultation = useCallback(() => {
     onStartConsultation?.();
-    startRecording();
-  }, [onStartConsultation, startRecording]);
+  }, [onStartConsultation]);
 
   const handleEndConsultation = useCallback(() => {
-    if (scribeStatus === "recording") stopRecording();
     onEndConsultation?.();
-  }, [onEndConsultation, scribeStatus, stopRecording]);
+  }, [onEndConsultation]);
 
   if (!composerOpen) return null;
 
   const inSession = appointment?.status === "IN_SESSION";
   const paused = appointment?.status === "PAUSED";
-  const isExtracting = scribeStatus === "extracting";
 
   /* ── Minimize handler ── */
   function handleMinimize() {
@@ -703,8 +659,6 @@ export function EMRBuilderModern({
               className={`relative h-2.5 w-2.5 rounded-full ${
                 inSession
                   ? "bg-neon shadow-[0_0_8px_rgba(82,255,157,0.8)]"
-                  : scribeStatus === "recording"
-                  ? "animate-pulse bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.7)]"
                   : "bg-white/40"
               }`}
             />
@@ -716,21 +670,12 @@ export function EMRBuilderModern({
               {patientName ?? "EMR Builder"}
             </span>
             <span className="text-[10px] font-medium text-neon/60 tracking-wide">
-              {inSession ? "In session" : scribeStatus === "recording" ? "Recording…" : "EMR open"}
+              {inSession ? "In session" : "EMR open"}
             </span>
           </div>
 
           {/* Separator */}
           <span className="h-5 w-px shrink-0 rounded-full bg-white/10" />
-
-          {/* Scribe status chip if active */}
-          {scribeStatus !== "idle" && (
-            <ScribeChip
-              status={scribeStatus}
-              error={scribeError}
-              device={workerDevice}
-            />
-          )}
 
           {/* Expand button */}
           <button
@@ -773,7 +718,9 @@ export function EMRBuilderModern({
       className="emr-backdrop fixed inset-0 z-[999]"
       onClick={onCloseComposer}
     >
-      {onNavigate && <HoverRevealSidebar onNavigate={onNavigate} zIndex={1001} />}
+      {onNavigate && (
+        <HoverRevealSidebar onNavigate={onNavigate} zIndex={1001} />
+      )}
       <div
         className={[
           "emr-sheet absolute inset-0 flex flex-col",
@@ -863,13 +810,6 @@ export function EMRBuilderModern({
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Scribe status */}
-          <ScribeChip
-            status={scribeStatus}
-            error={scribeError}
-            device={workerDevice}
-          />
-
           {/* Template */}
           <button
             type="button"
@@ -878,43 +818,6 @@ export function EMRBuilderModern({
           >
             <LayoutTemplate size={13} /> Template
           </button>
-
-          {/* Note toggle */}
-          <button
-            type="button"
-            onClick={() => setShowNote((v) => !v)}
-            className={`ghost-btn gap-1.5 py-1.5 text-xs ${showNote ? "!border-neon/35 !bg-neon/[0.10] !text-neon" : ""}`}
-          >
-            <Mic size={13} /> Note
-          </button>
-
-          {/* AI Scribe toggle */}
-          {(scribeStatus === "idle" ||
-            scribeStatus === "done" ||
-            scribeStatus === "error") && (
-            <button
-              type="button"
-              onClick={() => {
-                resetScribe();
-                startRecording();
-              }}
-              title={modelReady ? "Start AI Scribe" : "Loading Whisper model…"}
-              className="flex items-center gap-1.5 rounded-2xl border border-neon/20 bg-neon/[0.06] px-3 py-1.5 text-xs font-medium text-neon/80 transition hover:border-neon/40 hover:bg-neon/[0.12] hover:text-neon"
-            >
-              <Mic size={12} />
-              {modelReady ? "AI Scribe" : "Loading…"}
-            </button>
-          )}
-          {scribeStatus === "recording" && (
-            <button
-              type="button"
-              onClick={stopRecording}
-              className="flex items-center gap-1.5 rounded-2xl border border-red-400/30 bg-red-400/10 px-3 py-1.5 text-xs font-medium text-red-300 transition hover:bg-red-400/20"
-            >
-              <MicOff size={12} />
-              Stop AI
-            </button>
-          )}
 
           {/* Close */}
           <button
@@ -946,56 +849,6 @@ export function EMRBuilderModern({
             {isSaving ? "Saving…" : "Save EMR"}
           </button>
         </div>
-
-        {/* Voice wave strip */}
-        {scribeStatus === "recording" && (
-          <div className="relative overflow-hidden border-b border-wire/8 shrink-0">
-            <VoiceWave analyser={analyserNode} height={44} />
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2">
-              <span className="h-1.5 w-1.5 animate-ping rounded-full bg-red-400" />
-              <span className="text-[11px] font-semibold tracking-widest text-white/40 uppercase">
-                Listening
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Note / transcript panel (collapsible) */}
-        {showNote &&
-          (liveTranscript ||
-            transcriptLines.length > 0 ||
-            scribeStatus === "recording") && (
-            <div className="mx-4 my-2 rounded-2xl border border-wire/10 bg-white/[0.03] p-3 shrink-0">
-              <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/45">
-                <Mic size={10} />
-                Live transcript
-                {scribeStatus === "recording" && (
-                  <Loader
-                    size={9}
-                    className="ml-auto animate-spin text-white/35"
-                  />
-                )}
-              </div>
-              {transcriptLines.map((line, i) => (
-                <p
-                  key={i}
-                  className="text-[12px] leading-snug text-white/80 break-words mb-1"
-                >
-                  {line}
-                </p>
-              ))}
-              {interimText && (
-                <p className="text-[12px] leading-snug text-white/35 italic break-words">
-                  {interimText}
-                </p>
-              )}
-              {liveTranscript && !transcriptLines.length && (
-                <p className="text-[12px] leading-relaxed text-white/65">
-                  {liveTranscript}
-                </p>
-              )}
-            </div>
-          )}
 
         {/* ── Two-column body ── */}
         <div
@@ -1030,95 +883,17 @@ export function EMRBuilderModern({
             <Panel title="Diagnosis">
               <div className="space-y-3">
                 <SeverityPicker value={severity} onChange={setSeverity} />
-                <div
-                  className={`pointer-events-${isExtracting ? "none" : "auto"} relative`}
-                >
+                <div className="relative">
                   <textarea
-                    className={`input-shell min-h-[72px] w-full resize-none text-sm ${isExtracting ? "opacity-40" : ""}`}
+                    className="input-shell min-h-[72px] w-full resize-none text-sm"
                     value={emr.diagnosis}
                     onChange={(e) => onFieldChange("diagnosis", e.target.value)}
                     placeholder="Hypertension management..."
-                    disabled={isExtracting}
                   />
-                  {isExtracting && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-xl">
-                      <span className="flex items-center gap-2 rounded-full border border-neon/30 bg-black/60 px-3 py-1.5 text-xs font-medium text-neon shadow-lg backdrop-blur-sm">
-                        <Loader size={11} className="animate-spin" /> AI
-                        Processing
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
             </Panel>
 
-            {/* AI Assist — tall, fills remaining space */}
-            <Panel
-              title="AI Assist"
-              action={
-                scribeStatus === "recording" ? (
-                  <span className="flex items-center gap-1.5 rounded-full border border-neon/30 bg-neon/10 px-2.5 py-1 text-[11px] font-semibold text-neon">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-neon" />
-                    Live
-                  </span>
-                ) : null
-              }
-            >
-              <div className="space-y-2">
-                {scribeStatus === "idle" && (
-                  <p className="text-xs text-mist">
-                    AI transcription is paused. Use Start Consultation to resume
-                    live assist.
-                  </p>
-                )}
-                {scribeStatus === "recording" && (
-                  <p className="text-xs text-neon/70">
-                    Listening… speak naturally.
-                  </p>
-                )}
-                {scribeStatus === "extracting" && (
-                  <p className="text-xs text-neon/70 flex items-center gap-1.5">
-                    <Loader size={11} className="animate-spin" /> Filling EMR
-                    fields…
-                  </p>
-                )}
-                {scribeStatus === "done" && (
-                  <p className="text-xs text-neon/70">
-                    Scribe complete. Fields have been filled.
-                  </p>
-                )}
-                {scribeStatus === "error" && (
-                  <p className="text-xs text-red-400/70">
-                    {scribeError ?? "Scribe error"}
-                  </p>
-                )}
-
-                {/* Double-height transcript area */}
-                <div className="min-h-[160px] rounded-2xl border border-wire/8 bg-white/[0.02] p-3">
-                  {transcriptLines.length === 0 && !interimText ? (
-                    <p className="text-[11px] italic text-mist/60">
-                      No transcript snippets yet.
-                    </p>
-                  ) : (
-                    <>
-                      {transcriptLines.map((line, i) => (
-                        <p
-                          key={i}
-                          className="text-[12px] leading-snug text-white/75 break-words mb-1"
-                        >
-                          {line}
-                        </p>
-                      ))}
-                      {interimText && (
-                        <p className="text-[12px] italic text-white/35 break-words">
-                          {interimText}
-                        </p>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            </Panel>
           </div>
 
           {/* ── Right panel ── */}
@@ -1383,43 +1158,6 @@ export function EMRBuilderModern({
         )}
       </div>
 
-      {/* Floating transcript bar */}
-      {(scribeStatus === "recording" || transcriptLines.length > 0) &&
-        !showNote && (
-          <div className="fixed top-4 right-4 z-[90] w-72 rounded-2xl border border-wire/15 bg-black/80 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-xl overflow-hidden">
-            <div className="flex items-center gap-2 border-b border-wire/10 px-3 py-2">
-              {scribeStatus === "recording" && (
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" />
-              )}
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
-                {scribeStatus === "recording"
-                  ? "Live Transcript"
-                  : "Transcript"}
-              </span>
-              <FlaskConical size={10} className="ml-auto text-white/20" />
-            </div>
-            <div className="scroll-skin max-h-64 overflow-y-auto px-3 py-2.5 space-y-1.5">
-              {transcriptLines.length === 0 && !interimText && (
-                <p className="text-[11px] text-white/25 italic">
-                  Waiting for speech…
-                </p>
-              )}
-              {transcriptLines.map((line, i) => (
-                <p
-                  key={i}
-                  className="text-[12px] leading-snug text-white/80 break-words"
-                >
-                  {line}
-                </p>
-              ))}
-              {interimText && (
-                <p className="text-[12px] leading-snug text-white/35 italic break-words">
-                  {interimText}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
     </div>
   );
 }

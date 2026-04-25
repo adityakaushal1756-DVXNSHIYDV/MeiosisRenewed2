@@ -22,8 +22,7 @@ import { Appointment } from '../../types/Appointment';
 import { EMRState, PrescriptionRow, PrescriptionTemplate } from '../../types/EMR';
 import { Patient } from '../../types/Patient';
 import { PrescriptionTable } from './PrescriptionTable';
-import { useAudioScribe, type ScribeStatus } from '../../hooks/useAudioScribe';
-import { VoiceWave } from './VoiceWave';
+
 import { HoverRevealSidebar } from '../HoverRevealSidebar';
 
 /* ── Keyframe animations (injected once) ─────────────────── */
@@ -145,66 +144,7 @@ function VitalPill({
   );
 }
 
-/* ─── AI-aware textarea wrapper ──────────────────────────── */
-function ScribeField({
-  children,
-  isProcessing
-}: {
-  children: ReactNode;
-  isProcessing: boolean;
-}) {
-  return (
-    <div className="relative">
-      <div className={isProcessing ? 'pointer-events-none opacity-40 transition-opacity' : ''}>
-        {children}
-      </div>
-      {isProcessing && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-xl">
-          <span className="flex items-center gap-2 rounded-full border border-neon/30 bg-black/60 px-3 py-1.5 text-xs font-medium text-neon shadow-lg backdrop-blur-sm">
-            <Loader size={11} className="animate-spin" />
-            AI Processing
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
 
-/* ─── Scribe status chip ─────────────────────────────────── */
-function ScribeChip({
-  status,
-  error,
-  device
-}: {
-  status: ScribeStatus;
-  error: string | null;
-  device: string;
-}) {
-  if (status === 'idle') return null;
-
-  const configs: Record<ScribeStatus, { label: string; cls: string; icon: ReactNode }> = {
-    idle:       { label: '', cls: '', icon: null },
-    recording:  { label: 'Recording',     cls: 'border-red-400/30 bg-red-400/10 text-red-300',  icon: <span className="h-2 w-2 animate-pulse rounded-full bg-red-400" /> },
-    extracting: { label: 'AI Filling…',   cls: 'border-neon/30 bg-neon/10 text-neon',            icon: <Cpu size={11} className="animate-pulse" /> },
-    done:       { label: 'Scribe done ✓', cls: 'border-neon/20 bg-neon/[0.06] text-neon/80',    icon: null },
-    error:      { label: error ?? 'Scribe error', cls: 'border-red-400/20 bg-red-400/[0.06] text-red-400/80 max-w-[220px] truncate', icon: null },
-  };
-
-  const { label, cls, icon } = configs[status];
-  if (!label) return null;
-
-  return (
-    <span className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${cls}`}>
-      {icon}
-      {label}
-      {device === 'webgpu' && status !== 'done' && status !== 'error' && (
-        <span className="ml-0.5 rounded bg-violet-400/20 px-1 text-[9px] font-semibold uppercase tracking-wide text-violet-300">
-          GPU
-        </span>
-      )}
-    </span>
-  );
-}
 
 /* ─── Severity picker ────────────────────────────────────── */
 type Severity = 'LOW' | 'MILD' | 'SEVERE';
@@ -286,23 +226,6 @@ export function EMRBuilder({
   const [severity, setSeverity] = useState<Severity>('LOW');
   const [minimized, setMinimized] = useState(false);
 
-  const {
-    status:      scribeStatus,
-    error:       scribeError,
-    lines:       transcriptLines,
-    interimText,
-    modelReady,
-    workerDevice,
-    analyserNode,
-    startRecording,
-    stopRecording,
-    reset:       resetScribe,
-  } = useAudioScribe({
-    patientId:     patient?.id,
-    appointmentId: appointment?.id,
-    onFieldChange,
-  });
-
   /* Follow-up date quick-set */
   function setFollowUpOffset(days: number | null) {
     if (days === null) { onFieldChange('followUpDate', ''); return; }
@@ -312,15 +235,13 @@ export function EMRBuilder({
   }
 
   const handleEndConsultation = useCallback(() => {
-    if (scribeStatus === 'recording') stopRecording();
     onEndConsultation?.();
-  }, [onEndConsultation, scribeStatus, stopRecording]);
+  }, [onEndConsultation]);
 
   if (!composerOpen) return null;
 
   const inSession    = appointment?.status === 'IN_SESSION';
   const paused       = appointment?.status === 'PAUSED';
-  const isExtracting = scribeStatus === 'extracting';
 
   /* ── Minimised pill ── */
   if (minimized) {
@@ -335,9 +256,6 @@ export function EMRBuilder({
             {patientName ?? 'EMR Builder'}
           </span>
           <span className="h-4 w-px shrink-0 rounded-full bg-white/15" />
-          {scribeStatus !== 'idle' && (
-            <ScribeChip status={scribeStatus} error={scribeError} device={workerDevice} />
-          )}
           <button
             type="button"
             onClick={() => setMinimized(false)}
@@ -389,30 +307,8 @@ export function EMRBuilder({
             )}
           </div>
 
-          {/* Right: scribe chip + AI Scribe + Minimize + Save */}
+          {/* Right: Minimize + Save */}
           <div className="flex items-center gap-2">
-            <ScribeChip status={scribeStatus} error={scribeError} device={workerDevice} />
-            {(scribeStatus === 'idle' || scribeStatus === 'done' || scribeStatus === 'error') && (
-              <button
-                type="button"
-                onClick={() => { resetScribe(); startRecording(); }}
-                title={modelReady ? 'Start AI Scribe' : 'Loading Whisper model…'}
-                className="flex items-center gap-1.5 rounded-2xl border border-neon/20 bg-neon/[0.06] px-3 py-2 text-sm font-medium text-neon/80 transition hover:border-neon/40 hover:bg-neon/[0.12] hover:text-neon"
-              >
-                <Mic size={14} />
-                {modelReady ? 'AI Scribe' : 'Loading…'}
-              </button>
-            )}
-            {scribeStatus === 'recording' && (
-              <button
-                type="button"
-                onClick={stopRecording}
-                className="flex items-center gap-1.5 rounded-2xl border border-red-400/30 bg-red-400/10 px-3 py-2 text-sm font-medium text-red-300 transition hover:bg-red-400/20"
-              >
-                <MicOff size={14} />
-                Stop &amp; Fill EMR
-              </button>
-            )}
             <button
               type="button"
               onClick={() => setMinimized(true)}
@@ -457,73 +353,7 @@ export function EMRBuilder({
         {/* ── Two-column body ── */}
         <div className="flex flex-1 overflow-hidden">
 
-          {/* ── LEFT: AI Analysis sidebar ── */}
-          <div className="flex w-[302px] shrink-0 flex-col border-r border-wire/8">
 
-            {/* Header */}
-            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-wire/8 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <Cpu size={13} className="text-neon/60" />
-                <span className="text-[12px] font-semibold uppercase tracking-wider text-white/50">AI Analysis</span>
-              </div>
-              {scribeStatus === 'recording' && (
-                <span className="flex items-center gap-1.5 rounded-full border border-neon/30 bg-neon/10 px-2.5 py-1 text-[11px] font-semibold text-neon">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-neon" />
-                  Live
-                </span>
-              )}
-            </div>
-
-            {/* Voice wave when recording */}
-            {scribeStatus === 'recording' && (
-              <div className="relative shrink-0 overflow-hidden border-b border-wire/8">
-                <VoiceWave analyser={analyserNode} height={44} />
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2">
-                  <span className="h-1.5 w-1.5 animate-ping rounded-full bg-red-400" />
-                  <span className="text-[11px] font-semibold tracking-widest text-white/40 uppercase">Listening</span>
-                </div>
-              </div>
-            )}
-
-            {/* Status message */}
-            <div className="shrink-0 px-4 py-3">
-              {scribeStatus === 'idle' && (
-                <p className="text-xs text-mist">AI transcription paused. Use Start Consultation or AI Scribe to begin.</p>
-              )}
-              {scribeStatus === 'recording' && (
-                <p className="text-xs text-neon/70">Listening… speak naturally.</p>
-              )}
-              {scribeStatus === 'extracting' && (
-                <p className="flex items-center gap-1.5 text-xs text-neon/70">
-                  <Loader size={11} className="animate-spin" /> Filling EMR fields…
-                </p>
-              )}
-              {scribeStatus === 'done' && (
-                <p className="text-xs text-neon/70">Scribe complete. Fields have been filled.</p>
-              )}
-              {scribeStatus === 'error' && (
-                <p className="text-xs text-red-400/70">{scribeError ?? 'Scribe error'}</p>
-              )}
-            </div>
-
-            {/* Transcript scroll area */}
-            <div className="scroll-skin min-h-0 flex-1 overflow-y-auto px-4 pb-4">
-              <div className="min-h-[120px] rounded-2xl border border-wire/8 bg-white/[0.02] p-3">
-                {transcriptLines.length === 0 && !interimText ? (
-                  <p className="text-[11px] italic text-mist/60">No transcript snippets yet.</p>
-                ) : (
-                  <>
-                    {transcriptLines.map((line, i) => (
-                      <p key={i} className="mb-1 text-[12px] leading-snug text-white/75 break-words">{line}</p>
-                    ))}
-                    {interimText && (
-                      <p className="text-[12px] italic text-white/35 break-words">{interimText}</p>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
 
           {/* ── RIGHT: Form sections ── */}
           <div className="scroll-skin flex-1 overflow-y-auto">
@@ -570,15 +400,14 @@ export function EMRBuilder({
               <Section title="Assessment">
                 <div className="space-y-3">
                   <SeverityPicker value={severity} onChange={setSeverity} />
-                  <ScribeField isProcessing={isExtracting}>
+                  <div className="relative">
                     <textarea
                       className="input-shell w-full min-h-[88px] resize-none"
                       value={emr.diagnosis}
                       onChange={(e) => onFieldChange('diagnosis', e.target.value)}
                       placeholder="Hypertension management. Clinical impression and differential..."
-                      disabled={isExtracting}
                     />
-                  </ScribeField>
+                  </div>
                 </div>
               </Section>
 
