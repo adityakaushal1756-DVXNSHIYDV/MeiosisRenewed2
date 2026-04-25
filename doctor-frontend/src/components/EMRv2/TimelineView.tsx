@@ -1318,37 +1318,6 @@ function IntelligenceOverlay({
         padding: '24px',
       }}
     >
-      {/* Global Floating Close Button (Top Left) */}
-      <motion.button
-        initial={{ opacity: 0, scale: 0.5, rotate: -45 }}
-        animate={{ opacity: 1, scale: 1, rotate: 0 }}
-        exit={{ opacity: 0, scale: 0.5, rotate: 45 }}
-        whileHover={{ scale: 1.1, rotate: 90, background: accent, boxShadow: `0 0 20px ${accent}88` }}
-        whileTap={{ scale: 0.9 }}
-        onClick={onClose}
-        style={{
-          position: 'fixed',
-          top: 32,
-          left: 32,
-          width: 44,
-          height: 44,
-          borderRadius: '50%',
-          background: accent,
-          border: 'none',
-          color: '#000',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          zIndex: 10001,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-        }}
-      >
-        <X size={22} strokeWidth={3} />
-      </motion.button>
-
       <motion.div
         layoutId={mode === 'overview' ? 'overview-intelligence-panel' : 'ai-intelligence-panel'}
         style={{
@@ -1365,6 +1334,34 @@ function IntelligenceOverlay({
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Floating Close Button (Top Right Corner of Card) */}
+        <motion.button
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          whileHover={{ scale: 1.1, rotate: 90, background: accent, boxShadow: `0 0 20px ${accent}88` }}
+          whileTap={{ scale: 0.9 }}
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: 5,
+            right: 5,
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            background: accent,
+            border: 'none',
+            color: '#000',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 10001,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          }}
+        >
+          <X size={18} strokeWidth={3} />
+        </motion.button>
+
         {/* Main Content Area (SLIDING SLIDES) */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: mode === 'ai' ? border : 'none', position: 'relative', overflow: 'hidden' }}>
           
