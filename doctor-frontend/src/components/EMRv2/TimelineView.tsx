@@ -1454,7 +1454,7 @@ function IntelligenceOverlay({
                 style={{ height: '100%', width: '100%' }}
              >
                 {/* SLIDE 1: OVERVIEW */}
-                <div className="intelligence-slide scroll-skin" style={{ height: '100%', width: '100%', overflowY: 'auto', padding: '40px' }}>
+                <div className="intelligence-slide scroll-skin" style={{ height: '100%', width: '100%', overflowY: 'auto', padding: '96px 40px 40px' }}>
                    <h2 style={{ fontSize: 32, fontWeight: 800, color: titleClr, marginBottom: 40, letterSpacing: '-0.02em' }}>Patient Health Matrix</h2>
                    
                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 48 }}>
@@ -1520,7 +1520,7 @@ function IntelligenceOverlay({
                 </div>
 
                 {/* SLIDE 2: AI ANALYSIS */}
-                <div className="intelligence-slide scroll-skin" style={{ height: '100%', width: '100%', overflowY: 'auto', padding: '40px' }}>
+                <div className="intelligence-slide scroll-skin" style={{ height: '100%', width: '100%', overflowY: 'auto', padding: '96px 40px 40px' }}>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                       <Sparkles size={20} color={accent} />
                       <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: accent }}>
