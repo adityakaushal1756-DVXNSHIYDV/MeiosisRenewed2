@@ -1361,88 +1361,87 @@ function IntelligenceOverlay({
         >
           <X size={18} strokeWidth={3} />
         </motion.button>
-
-        {/* Main Content Area (SLIDING SLIDES) */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: mode === 'ai' ? border : 'none', position: 'relative', overflow: 'hidden' }}>
-          
-          {/* iOS-style Floating Segmented Toggle */}
-          <div style={{
-            position: 'absolute',
-            top: 24,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 100,
-            display: 'flex',
-            alignItems: 'center',
-            padding: 4,
-            background: darkMode ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.4)',
-            borderRadius: 999,
-            backdropFilter: 'blur(16px)',
-            border: border,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-          }}>
-            <div style={{ display: 'flex', position: 'relative' }}>
-              {/* Sliding Background Pill */}
-              <motion.div
-                layoutId="toggle-pill"
-                animate={{ x: mode === 'overview' ? 0 : 150 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: 150,
-                  height: '100%',
-                  background: accent,
-                  borderRadius: 999,
-                  zIndex: 0,
-                  boxShadow: `0 0 15px ${accent}44`,
-                }}
-              />
-              
-              <button
-                onClick={() => setMode('overview')}
-                style={{
-                  width: 150,
-                  padding: '10px 0',
-                  borderRadius: 999,
-                  fontSize: 11,
-                  fontWeight: 800,
-                  letterSpacing: '0.05em',
-                  color: mode === 'overview' ? '#000' : muted,
-                  cursor: 'pointer',
-                  border: 'none',
-                  background: 'transparent',
-                  zIndex: 1,
-                  transition: 'color 0.2s',
-                  position: 'relative',
-                }}
-              >
-                CLINICAL OVERVIEW
-              </button>
-              
-              <button
-                onClick={() => setMode('ai')}
-                style={{
-                  width: 150,
-                  padding: '10px 0',
-                  borderRadius: 999,
-                  fontSize: 11,
-                  fontWeight: 800,
-                  letterSpacing: '0.05em',
-                  color: mode === 'ai' ? '#000' : muted,
-                  cursor: 'pointer',
-                  border: 'none',
-                  background: 'transparent',
-                  zIndex: 1,
-                  transition: 'color 0.2s',
-                  position: 'relative',
-                }}
-              >
-                AI ANALYSIS
-              </button>
-            </div>
+ 
+        {/* iOS-style Floating Segmented Toggle (Centered relative to the entire card) */}
+        <div style={{
+          position: 'absolute',
+          top: 24,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 100,
+          display: 'flex',
+          alignItems: 'center',
+          padding: 4,
+          background: darkMode ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.4)',
+          borderRadius: 999,
+          backdropFilter: 'blur(16px)',
+          border: border,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+        }}>
+          <div style={{ display: 'flex', position: 'relative' }}>
+            {/* Sliding Background Pill */}
+            <motion.div
+              layoutId="toggle-pill"
+              animate={{ x: mode === 'overview' ? 0 : 150 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: 150,
+                height: '100%',
+                background: accent,
+                borderRadius: 999,
+                zIndex: 0,
+                boxShadow: `0 0 15px ${accent}44`,
+              }}
+            />
+            
+            <button
+              onClick={() => setMode('overview')}
+              style={{
+                width: 150,
+                padding: '10px 0',
+                borderRadius: 999,
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: '0.05em',
+                color: mode === 'overview' ? '#000' : muted,
+                cursor: 'pointer',
+                border: 'none',
+                background: 'transparent',
+                zIndex: 1,
+                transition: 'color 0.2s',
+                position: 'relative',
+              }}
+            >
+              CLINICAL OVERVIEW
+            </button>
+            
+            <button
+              onClick={() => setMode('ai')}
+              style={{
+                width: 150,
+                padding: '10px 0',
+                borderRadius: 999,
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: '0.05em',
+                color: mode === 'ai' ? '#000' : muted,
+                cursor: 'pointer',
+                border: 'none',
+                background: 'transparent',
+                zIndex: 1,
+                transition: 'color 0.2s',
+                position: 'relative',
+              }}
+            >
+              AI ANALYSIS
+            </button>
           </div>
+        </div>
+
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: mode === 'ai' ? border : 'none', position: 'relative', overflow: 'hidden' }}>
 
           {/* Removed local close button - now using global floating close */}
 
