@@ -1317,8 +1317,38 @@ function IntelligenceOverlay({
         WebkitBackdropFilter: 'blur(32px)',
         padding: '24px',
       }}
-      onClick={onClose}
     >
+      {/* Global Floating Close Button */}
+      <motion.button
+        initial={{ opacity: 0, scale: 0.5, rotate: -45 }}
+        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+        exit={{ opacity: 0, scale: 0.5, rotate: 45 }}
+        whileHover={{ scale: 1.1, rotate: 90, background: darkMode ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 1)' }}
+        whileTap={{ scale: 0.9 }}
+        onClick={onClose}
+        style={{
+          position: 'fixed',
+          top: 32,
+          right: 32,
+          width: 52,
+          height: 52,
+          borderRadius: '50%',
+          background: darkMode ? 'rgba(15, 23, 42, 0.85)' : 'rgba(255, 255, 255, 0.9)',
+          border: `2px solid ${accent}`,
+          color: accent,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 10001,
+          boxShadow: `0 0 25px ${accent}44`,
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }}
+      >
+        <X size={26} strokeWidth={2.5} />
+      </motion.button>
+
       <motion.div
         layoutId={mode === 'overview' ? 'overview-intelligence-panel' : 'ai-intelligence-panel'}
         style={{
@@ -1395,29 +1425,7 @@ function IntelligenceOverlay({
             />
           </div>
 
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            style={{
-              position: 'absolute',
-              top: 24,
-              right: 24,
-              width: 38,
-              height: 38,
-              borderRadius: 12,
-              background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-              border: border,
-              color: titleClr,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              zIndex: 40,
-            }}
-          >
-            <X size={20} />
-          </button>
+          {/* Removed local close button - now using global floating close */}
 
           {/* Sliding Container */}
           <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
