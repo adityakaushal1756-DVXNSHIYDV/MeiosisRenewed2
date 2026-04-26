@@ -1,4 +1,4 @@
-import { Bell, CalendarDays, Clock3, Moon, Sparkles, SunMedium, WifiOff, Wifi } from 'lucide-react';
+import { Bell, Building2, CalendarDays, Clock3, Moon, Sparkles, SunMedium, WifiOff, Wifi } from 'lucide-react';
 import type { SyncStatus } from '../hooks/useOfflineSync';
 
 interface TopbarProps {
@@ -15,9 +15,10 @@ interface TopbarProps {
   isOnline?: boolean;
   syncStatus?: SyncStatus;
   pendingCount?: number;
+  onOpenYourClinic: () => void;
 }
 
-export function Topbar({ doctorName, clinicStatus, currentTime, notifications, darkMode, onToggleTheme, onToggleNotifications, onOpenCalendar, liveCount = 0, compact = false, isOnline = true, syncStatus = 'online', pendingCount = 0 }: TopbarProps) {
+export function Topbar({ doctorName, clinicStatus, currentTime, notifications, darkMode, onToggleTheme, onToggleNotifications, onOpenCalendar, onOpenYourClinic, liveCount = 0, compact = false, isOnline = true, syncStatus = 'online', pendingCount = 0 }: TopbarProps) {
   return (
     <header className={`glass-card topbar-shell relative isolate overflow-hidden px-5 transition-[padding,transform,background-color,border-color] duration-200 ease-out ${compact ? 'py-2.5' : 'py-4'}`}>
       <div className={`relative flex flex-col gap-3 transition-[min-height,gap] duration-200 ease-out xl:flex-row xl:flex-nowrap xl:items-center xl:justify-between ${compact ? 'xl:min-h-[52px]' : 'xl:min-h-[84px]'}`}>
@@ -71,6 +72,10 @@ export function Topbar({ doctorName, clinicStatus, currentTime, notifications, d
           </div>
           <button onClick={onToggleTheme} className={`ghost-btn min-w-[48px] px-3 transition-[padding,transform,background-color,border-color] duration-200 ease-out ${compact ? 'py-2' : ''}`} aria-label="Toggle theme">
             {darkMode ? <SunMedium size={18} /> : <Moon size={18} />}
+          </button>
+          <button onClick={onOpenYourClinic} className={`ghost-btn gap-2 whitespace-nowrap px-4 transition-[padding,transform,background-color,border-color] duration-200 ease-out ${compact ? 'py-2' : ''}`} aria-label="Open your clinic">
+            <Building2 size={16} />
+            <span className={`${compact ? 'hidden' : 'inline'}`}>Your Clinic</span>
           </button>
           <button onClick={onOpenCalendar} className={`ghost-btn gap-2 whitespace-nowrap px-4 transition-[padding,transform,background-color,border-color] duration-200 ease-out ${compact ? 'py-2' : ''}`} aria-label="Open calendar">
             <CalendarDays size={16} />

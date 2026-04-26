@@ -21,7 +21,11 @@ import {
   Settings,
   Wand2,
   Trash2,
+  Bed,
+  Building2,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { BedLidarView } from "../components/BedLidarView";
 import {
   lazy,
   ReactNode,
@@ -674,6 +678,7 @@ export default function Dashboard(props: DashboardProps) {
   const [templateDeleteMode, setTemplateDeleteMode] = useState(false);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [bedsPopupOpen, setBedsPopupOpen] = useState(false);
   const [respondingShareId, setRespondingShareId] = useState<string | null>(
     null,
   );
@@ -1270,6 +1275,30 @@ export default function Dashboard(props: DashboardProps) {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="glass-card p-5">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[22px] border border-sky/20 bg-sky/10 text-sky shadow-[0_0_24px_rgba(56,189,248,0.15)]">
+              <Building2 size={28} />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-white">Your Clinic Console</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-mist/70 max-w-lg">
+                Access the central command center to monitor beds, manage infrastructure, and oversee clinic-wide operations in real-time.
+              </p>
+            </div>
+          </div>
+          <button 
+            type="button"
+            onClick={() => onNavChange('your-clinic')}
+            className="action-btn min-w-[220px] gap-3 py-3.5 px-8 text-sm font-bold !rounded-[18px] transition-all hover:shadow-[0_8px_32px_rgba(82,255,157,0.2)]"
+          >
+            Enter Console
+            <ArrowRight size={18} />
+          </button>
         </div>
       </section>
 
@@ -3329,6 +3358,42 @@ export default function Dashboard(props: DashboardProps) {
     </div>
   );
 
+  /* ── Your Clinic ── */
+  const yourClinicView = (
+    <div className="space-y-6">
+      <section className="glass-card p-5">
+        <SectionHeader
+          icon={<Building2 size={18} />}
+          title="Your Clinic"
+          copy="Manage clinic infrastructure, beds, and staff from a central command center."
+        />
+
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-6">
+          <button
+            onClick={() => setBedsPopupOpen(true)}
+            className="group relative flex flex-col items-center justify-center gap-3 rounded-[26px] border border-wire/10 bg-white/[0.03] p-6 transition-all hover:-translate-y-1 hover:bg-white/[0.06] hover:border-neon/30"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neon/10 text-neon group-hover:scale-110 transition-transform">
+              <Bed size={24} />
+            </div>
+            <span className="text-sm font-semibold text-white">Beds</span>
+            <div className="absolute inset-0 -z-10 rounded-[26px] bg-neon/5 opacity-0 blur-xl transition-opacity group-hover:opacity-100" />
+          </button>
+          
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className="flex flex-col items-center justify-center gap-3 rounded-[26px] border border-wire/5 bg-white/[0.01] p-6 opacity-40 grayscale"
+            >
+              <div className="h-12 w-12 rounded-2xl bg-white/5" />
+              <div className="h-4 w-12 rounded-full bg-white/5" />
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+
   const navBody: Record<NavKey, ReactNode> = {
     dashboard: (
       <Suspense fallback={<DashboardLoadingFallback label="Initializing Dashboard..." />}>
@@ -3373,6 +3438,11 @@ export default function Dashboard(props: DashboardProps) {
     "template-builder": (
       <Suspense fallback={<DashboardLoadingFallback label="Opening Template Builder..." />}>
         {settingsView}
+      </Suspense>
+    ),
+    "your-clinic": (
+      <Suspense fallback={<DashboardLoadingFallback label="Opening Your Clinic..." />}>
+        {yourClinicView}
       </Suspense>
     ),
   };
@@ -3442,6 +3512,7 @@ export default function Dashboard(props: DashboardProps) {
                       setNotificationsOpen((current) => !current)
                     }
                     onOpenCalendar={() => onNavChange("calendar")}
+                    onOpenYourClinic={() => onNavChange("your-clinic")}
                     liveCount={inSession}
                     compact={nav === "search" || nav === "queue" || topbarCompact}
                     isOnline={isOnline}
@@ -3736,6 +3807,20 @@ export default function Dashboard(props: DashboardProps) {
           />
         )}
       </Suspense>
+
+      <AnimatePresence>
+        {bedsPopupOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-[100]"
+          >
+            <BedLidarView onClose={() => setBedsPopupOpen(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

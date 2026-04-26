@@ -8,6 +8,8 @@ import { SpacetimeSingularity } from '../Patient/SpacetimeSingularity';
 import { PrescriptionModal } from '../EMR/EMRTimeline';
 import type { TimelineEvent } from '../EMR/EMRTimeline';
 import type { Patient } from '../../types/Patient';
+import { AdmissionRecord, AdmissionCard } from '../Shared/AdmissionStatus';
+
 
 const API_BASE = API_BASE_URL;
 
@@ -875,7 +877,8 @@ function AIAnalysisPanel({
   isAiExpanded,
   setIsAiExpanded,
   isOverviewExpanded,
-  setIsOverviewExpanded
+  setIsOverviewExpanded,
+  admissionRecord
 }: { 
   data: AppointmentEntry[]; 
   darkMode?: boolean; 
@@ -886,6 +889,7 @@ function AIAnalysisPanel({
   setIsAiExpanded: (val: boolean) => void;
   isOverviewExpanded: boolean;
   setIsOverviewExpanded: (val: boolean) => void;
+  admissionRecord: AdmissionRecord | null;
 }) {
   const totalVisits = data.length;
   const latest = data[0];
@@ -1206,6 +1210,7 @@ function AIAnalysisPanel({
             flaggedLabs={flaggedLabs}
             totalVisits={totalVisits}
             initialMode={isAiExpanded ? 'ai' : 'overview'}
+            admissionRecord={admissionRecord}
           />
         )}
       </AnimatePresence>
@@ -1220,7 +1225,8 @@ function IntelligenceOverlay({
   leadSpecialty, 
   flaggedLabs, 
   totalVisits,
-  initialMode
+  initialMode,
+  admissionRecord
 }: { 
   data: AppointmentEntry[]; 
   darkMode?: boolean; 
@@ -1229,6 +1235,7 @@ function IntelligenceOverlay({
   flaggedLabs: any[];
   totalVisits: number;
   initialMode: 'overview' | 'ai';
+  admissionRecord: AdmissionRecord | null;
 }) {
   const [mode, setMode] = useState<'overview' | 'ai'>(initialMode);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1611,17 +1618,23 @@ function IntelligenceOverlay({
                 {/* SLIDE 1: OVERVIEW */}
                 <div className="intelligence-slide scroll-skin" style={{ height: '100%', width: '100%', overflowY: 'auto', padding: '48px 40px 120px' }}>
                    
-                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 48 }}>
+                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 48 }}>
                       {[
+                        { 
+                           label: 'Medical Status', 
+                           value: !admissionRecord ? 'Normal' : (admissionRecord.type === 'observation' ? 'Observation' : 'Hospitalised'),
+                           icon: <Activity size={22} />,
+                           color: !admissionRecord ? '#22C55E' : (admissionRecord.type === 'observation' ? '#F97316' : '#EF4444')
+                        },
                         { label: 'Total Visits', value: totalVisits, icon: <History size={22} /> },
                         { label: 'Specialties', value: sortedSpecialties.length, icon: <Stethoscope size={22} /> },
                         { label: 'Flagged Labs', value: flaggedLabs.length, icon: <ShieldAlert size={22} /> },
                         { label: 'Prescriptions', value: prescriptionCount + medicationCount, icon: <Pill size={22} /> },
                       ].map(stat => (
-                        <div key={stat.label} style={{ background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderRadius: 28, padding: '32px 24px', border: border, transition: 'transform 0.2s' }}>
-                          <div style={{ color: accent, marginBottom: 20 }}>{stat.icon}</div>
-                          <div style={{ fontSize: 40, fontWeight: 800, color: titleClr, lineHeight: 1 }}>{stat.value}</div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 10 }}>{stat.label}</div>
+                        <div key={stat.label} style={{ background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderRadius: 28, padding: '32px 16px', border: border, transition: 'transform 0.2s' }}>
+                          <div style={{ color: (stat as any).color || accent, marginBottom: 20 }}>{stat.icon}</div>
+                          <div style={{ fontSize: String(stat.value || '').length > 8 ? 20 : 28, fontWeight: 800, color: (stat as any).color || titleClr, lineHeight: 1.2 }}>{stat.value}</div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 10 }}>{stat.label}</div>
                         </div>
                       ))}
                    </div>
@@ -2927,6 +2940,7 @@ function BottomZoomSlider({ value, onChange, chromeDarkMode }: { value: number; 
     </div>
   );
 }
+// Using shared AdmissionRecord and AdmissionCard from ../Shared/AdmissionStatus.tsx
 
 // -- TimelineView -------------------------------------------------
 export function TimelineView({
@@ -2968,6 +2982,25 @@ export function TimelineView({
   const [selApt,  setSelApt]  = useState<AppointmentEntry | null>(null);
   const [isAiExpanded, setIsAiExpanded] = useState(false);
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
+
+  // Read admission record for this patient from patient payload
+  const [admissionRecord, setAdmissionRecord] = useState<AdmissionRecord | null>(null);
+  useEffect(() => {
+    if (!patient?.meiosisCode) { setAdmissionRecord(null); return; }
+    
+    // Read from the backend patient payload which now has these fields
+    if (patient.medicalStatus && patient.medicalStatus !== 'normal') {
+      setAdmissionRecord({
+        type: patient.medicalStatus as 'observation' | 'hospitalisation',
+        bed: patient.admissionBed || '—',
+        ward: patient.admissionWard || '—',
+        timestamp: patient.admissionTime || new Date().toISOString(),
+        meiosisId: patient.meiosisCode
+      });
+    } else {
+      setAdmissionRecord(null);
+    }
+  }, [patient]);
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -3532,6 +3565,7 @@ export function TimelineView({
           setIsAiExpanded={setIsAiExpanded}
           isOverviewExpanded={isOverviewExpanded}
           setIsOverviewExpanded={setIsOverviewExpanded}
+          admissionRecord={admissionRecord}
         />
       </div>
 
@@ -3586,6 +3620,13 @@ export function TimelineView({
             Medical Timeline
           </span>
         </div>
+
+        {/* Admission Card (from Bed Management) */}
+        {admissionRecord && (
+          <div style={{ padding: `0 ${timelineHorizontalPad}px`, maxWidth: listMode ? 768 : layoutViewportWidth || undefined, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+            <AdmissionCard record={admissionRecord} chromeDarkMode={chromeDarkMode ?? false} />
+          </div>
+        )}
 
         {/* -- Restricted State -- */}
         {!loading && patientId && !accessLevel && (

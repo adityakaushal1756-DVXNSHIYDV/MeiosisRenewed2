@@ -1,7 +1,7 @@
-import { Activity, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, LayoutDashboard, Menu, MessageSquare, Search, Settings, Users, X } from 'lucide-react';
+import { Activity, Building2, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, LayoutDashboard, Menu, MessageSquare, Search, Settings, Users, X } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
-export type NavKey = 'dashboard' | 'queue' | 'search' | 'messages' | 'schedule' | 'calendar' | 'analytics' | 'settings' | 'template-builder';
+export type NavKey = 'dashboard' | 'queue' | 'search' | 'messages' | 'schedule' | 'calendar' | 'analytics' | 'settings' | 'template-builder' | 'your-clinic';
 
 const NAV_ICONS: { key: NavKey; icon: typeof LayoutDashboard }[] = [
   { key: 'dashboard', icon: LayoutDashboard },
@@ -12,6 +12,7 @@ const NAV_ICONS: { key: NavKey; icon: typeof LayoutDashboard }[] = [
   { key: 'calendar',  icon: CalendarDays    },
   { key: 'analytics', icon: Activity        },
   { key: 'settings',  icon: Settings        },
+  { key: 'your-clinic', icon: Building2       },
 ];
 
 const RAIL_WIDTH = 80; // px — icon-only collapsed width

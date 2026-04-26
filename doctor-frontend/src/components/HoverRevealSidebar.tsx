@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   Activity,
+  Building2,
   CalendarClock,
   CalendarDays,
   LayoutDashboard,
@@ -21,6 +22,7 @@ const NAV_ICONS: { key: string; icon: typeof LayoutDashboard }[] = [
   { key: 'calendar',  icon: CalendarDays    },
   { key: 'analytics', icon: Activity        },
   { key: 'settings',  icon: Settings        },
+  { key: 'your-clinic', icon: Building2       },
 ];
 
 const TRIGGER_W = 18;

@@ -20,6 +20,7 @@ import { useOfflineSync } from './hooks/useOfflineSync';
 import { enqueueEMR } from './utils/offlineQueue';
 import { OfflineSyncBar } from './components/OfflineSyncBar';
 import { apiUrl, assetUrl, getAuthHeader } from './lib/api';
+import { AdmissionRecord } from './components/Shared/AdmissionStatus';
 import { AccessDeniedOverlay } from './components/Patient/AccessDeniedOverlay';
 import { HoverRevealSidebar } from './components/HoverRevealSidebar';
 import { LoadingFallback } from './components/LoadingFallback';
@@ -477,6 +478,25 @@ export default function App() {
   const [viewRecordsPatientId, setViewRecordsPatientId] = useState<string | null>(null);
   const [isClosingRecords, setIsClosingRecords] = useState(false);
   const [accessDeniedPatientId, setAccessDeniedPatientId] = useState<string | null>(null);
+  const [deniedAdmissionRecord, setDeniedAdmissionRecord] = useState<AdmissionRecord | null>(null);
+
+  useEffect(() => {
+    if (!accessDeniedPatientId) { setDeniedAdmissionRecord(null); return; }
+    const p = patients.find(i => i.id === accessDeniedPatientId);
+    if (!p?.meiosisCode) return;
+
+    if (p.medicalStatus && p.medicalStatus !== 'normal') {
+      setDeniedAdmissionRecord({
+        type: p.medicalStatus as 'observation' | 'hospitalisation',
+        bed: p.admissionBed || '—',
+        ward: p.admissionWard || '—',
+        timestamp: p.admissionTime || new Date().toISOString(),
+        meiosisId: p.meiosisCode!
+      });
+    } else {
+      setDeniedAdmissionRecord(null);
+    }
+  }, [accessDeniedPatientId, patients]);
   const [accessLevel, setAccessLevel] = useState<'full' | 'lab' | 'summary' | null>(null);
 
   const closeViewRecords = useCallback(() => {
@@ -1715,6 +1735,7 @@ export default function App() {
                     onBuildEMR={handleBuildEMRFromRecords}
                     singularityModern={singularityModern}
                     isClosing={isClosingRecords}
+                    admissionRecord={deniedAdmissionRecord}
                   />
                 )}
 

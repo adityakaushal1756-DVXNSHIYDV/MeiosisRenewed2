@@ -193,4 +193,53 @@ router.patch('/:id/share-settings', asyncHandler(async (req, res) => {
   res.json(updated);
 }));
 
+/* ─────────────────────────────────────────────────────────────
+   PATCH /api/patients/:id/admission
+   Body: { medicalStatus, admissionWard, admissionBed }
+   Updates the patient's current hospital admission status
+───────────────────────────────────────────────────────────── */
+router.patch('/:id/admission', asyncHandler(async (req, res) => {
+  const { medicalStatus, admissionWard, admissionBed } = req.body;
+  
+  const patient = await prisma.patient.findFirst({
+    where: { OR: [{ id: req.params.id }, { meiosisId: req.params.id }, { universalCode: req.params.id }] }
+  });
+  
+  if (!patient) return res.status(404).json({ error: 'Patient not found' });
+  
+  const updated = await prisma.patient.update({
+    where: { id: patient.id },
+    data: {
+      medicalStatus: medicalStatus || 'normal',
+      admissionWard: medicalStatus && medicalStatus !== 'normal' ? admissionWard : null,
+      admissionBed: medicalStatus && medicalStatus !== 'normal' ? admissionBed : null,
+      admissionTime: medicalStatus && medicalStatus !== 'normal' ? new Date() : null
+    }
+  });
+  
+  res.json(updated);
+}));
+
+/* ─────────────────────────────────────────────────────────────
+   GET /api/patients/admissions/all
+   Fetches all currently admitted patients (hospitalised or observation)
+───────────────────────────────────────────────────────────── */
+router.get('/admissions/all', asyncHandler(async (req, res) => {
+  const patients = await prisma.patient.findMany({
+    where: {
+      medicalStatus: { in: ['observation', 'hospitalisation'] }
+    },
+    select: {
+      id: true,
+      meiosisId: true,
+      name: true,
+      medicalStatus: true,
+      admissionWard: true,
+      admissionBed: true,
+      admissionTime: true
+    }
+  });
+  res.json(patients);
+}));
+
 module.exports = router;

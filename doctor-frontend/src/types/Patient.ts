@@ -98,4 +98,8 @@ export interface Patient {
   pastAppointments: PatientPastAppointment[];
   prescriptions: PatientPrescriptionRecord[];
   medicalReports: PatientMedicalReport[];
+  medicalStatus?: string;
+  admissionWard?: string;
+  admissionBed?: string;
+  admissionTime?: string;
 }

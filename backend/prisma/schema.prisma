@@ -24,6 +24,10 @@ model Patient {
   abhaAddress      String?         @unique
   abhaId           String?         @unique
   shareSettings    Json?
+  medicalStatus    String?         @default("normal")
+  admissionWard    String?
+  admissionBed     String?
+  admissionTime    DateTime?
   appointments     Appointment[]
   emrShares        EmrShare[]
   labReports       LabReport[]

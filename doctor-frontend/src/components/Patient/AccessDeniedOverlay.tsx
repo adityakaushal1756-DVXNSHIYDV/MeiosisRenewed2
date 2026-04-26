@@ -1,5 +1,6 @@
-import { ShieldOff, X } from 'lucide-react';
+import { ShieldOff, X, Activity } from 'lucide-react';
 import { SpacetimeSingularity } from './SpacetimeSingularity';
+import { AdmissionRecord, AdmissionCard } from '../Shared/AdmissionStatus';
 
 interface AccessDeniedOverlayProps {
   patientName: string;
@@ -7,9 +8,17 @@ interface AccessDeniedOverlayProps {
   onBuildEMR: () => void;
   isClosing?: boolean;
   singularityModern?: boolean;
+  admissionRecord?: AdmissionRecord | null;
 }
 
-export function AccessDeniedOverlay({ patientName, onClose, onBuildEMR, isClosing, singularityModern = false }: AccessDeniedOverlayProps) {
+export function AccessDeniedOverlay({ 
+  patientName, 
+  onClose, 
+  onBuildEMR, 
+  isClosing, 
+  singularityModern = false,
+  admissionRecord
+}: AccessDeniedOverlayProps) {
   return (
     <div
       className={`fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm ${
@@ -60,6 +69,13 @@ export function AccessDeniedOverlay({ patientName, onClose, onBuildEMR, isClosin
               The patient can enable access from the Share Controls panel in their Health Records section.
             </p>
           </div>
+
+          {/* Admission Info (NEW) */}
+          {admissionRecord && (
+            <div className="w-full max-w-sm mt-2">
+              <AdmissionCard record={admissionRecord} chromeDarkMode={true} />
+            </div>
+          )}
 
           {/* Access level grid */}
           <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
