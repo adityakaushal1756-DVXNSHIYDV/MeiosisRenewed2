@@ -19,6 +19,10 @@ export interface PrescriptionItem {
   frequency: string;
   timing: string;
   reason: string;
+  /** Per-item duration in days. Null for legacy records (use parent prescription's durationDays). */
+  durationDays?: number | null;
+  /** Computed by the backend: true if this specific medicine is still within its active window. */
+  isActive?: boolean;
 }
 
 export interface Prescription {
@@ -31,7 +35,10 @@ export interface Prescription {
   doctorNote: string;
   doctor: Doctor;
   items: PrescriptionItem[];
+  /** Computed by the backend: true if at least one item is still active. */
+  isActive?: boolean;
 }
+
 
 export interface Appointment {
   id: string;
@@ -69,4 +76,20 @@ export interface PatientProfile {
   appointments: Appointment[];
   prescriptions: Prescription[];
   labReports: LabReport[];
+  
+  // Lifestyle & Habits
+  breakfastTime?: string | null;
+  breakfastDetails?: string | null;
+  lunchTime?: string | null;
+  lunchDetails?: string | null;
+  dinnerTime?: string | null;
+  dinnerDetails?: string | null;
+  snacksDetails?: string | null;
+  sleepTime?: string | null;
+  wakeupTime?: string | null;
+  teaCoffeeDetails?: string | null;
+  exerciseHabits?: string | null;
+  smokingStatus?: string | null;
+  alcoholConsumption?: string | null;
+  lifestyleNotes?: string | null;
 }

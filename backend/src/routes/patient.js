@@ -4,10 +4,50 @@ const prisma = require('../lib/prisma');
 const asyncHandler = require('../lib/async-handler');
 const { ensureFutureAppointmentSlots } = require('../lib/appointment-slots');
 const { createPatientSummaryPdf, createPatientAuditPdf } = require('../lib/pdf-documents');
+const { parseDurationToDays } = require('../lib/parse-duration');
 
 const { authMiddleware } = require('../middleware/auth-middleware');
 
 const router = express.Router();
+
+/**
+ * Compute real-time isActive for a PrescriptionItem.
+ * Priority:
+ *   1. item.durationDays  (stored numeric — set by new emr.js)
+ *   2. parseDurationToDays(item.timing)  (self-healing fallback: parse the raw text)
+ *   3. rx.durationDays   (prescription-wide fallback)
+ *   4. 30 days           (hard default)
+ */
+function computeItemIsActive(item, rxStartDate, rxDurationDays) {
+  const now = new Date();
+  const startDate = rxStartDate ? new Date(rxStartDate) : now;
+  // Resolve the most accurate duration available
+  const itemDays =
+    item.durationDays ??
+    parseDurationToDays(item.timing) ??
+    rxDurationDays ??
+    30;
+  const expiryMs = startDate.getTime() + itemDays * 24 * 60 * 60 * 1000;
+  return now.getTime() <= expiryMs;
+}
+
+/**
+ * Enrich all prescriptions (and their items) with real-time isActive.
+ */
+function enrichPrescriptions(prescriptions) {
+  return prescriptions.map(rx => {
+    const enrichedItems = (rx.items || []).map(item => ({
+      ...item,
+      isActive: computeItemIsActive(item, rx.startDate, rx.durationDays),
+    }));
+
+    const rxIsActive = enrichedItems.length > 0
+      ? enrichedItems.some(i => i.isActive)
+      : computeItemIsActive({ durationDays: null }, rx.startDate, rx.durationDays);
+
+    return { ...rx, items: enrichedItems, isActive: rxIsActive };
+  });
+}
 
 // Get all patients
 router.get('/', asyncHandler(async (req, res) => {
@@ -86,8 +126,20 @@ router.get('/profile', asyncHandler(async (req, res) => {
     }
   });
 
-  res.json(patient);
+  if (!patient) {
+    return res.status(404).json({ error: 'Patient not found' });
+  }
+
+  // Enrich prescriptions with real-time isActive per item and per prescription
+  const enrichedPatient = {
+    ...patient,
+    prescriptions: enrichPrescriptions(patient.prescriptions || []),
+  };
+
+  res.json(enrichedPatient);
 }));
+
+
 
 async function loadPatientWithRecords(id) {
   return prisma.patient.findFirst({
@@ -217,6 +269,41 @@ router.patch('/:id/admission', asyncHandler(async (req, res) => {
     }
   });
   
+  res.json(updated);
+}));
+
+/* ─────────────────────────────────────────────────────────────
+   PATCH /api/patients/:id/lifestyle
+   Body: { breakfastTime, breakfastDetails, lunchTime, lunchDetails, 
+           dinnerTime, dinnerDetails, snacksDetails, sleepTime, 
+           wakeupTime, teaCoffeeDetails, lifestyleNotes }
+───────────────────────────────────────────────────────────── */
+router.patch('/:id/lifestyle', asyncHandler(async (req, res) => {
+  const patient = await prisma.patient.findFirst({
+    where: { OR: [{ id: req.params.id }, { meiosisId: req.params.id }, { universalCode: req.params.id }] }
+  });
+  if (!patient) return res.status(404).json({ error: 'Patient not found' });
+
+  const updated = await prisma.patient.update({
+    where: { id: patient.id },
+    data: {
+      breakfastTime:    req.body.breakfastTime,
+      breakfastDetails: req.body.breakfastDetails,
+      lunchTime:        req.body.lunchTime,
+      lunchDetails:     req.body.lunchDetails,
+      dinnerTime:       req.body.dinnerTime,
+      dinnerDetails:    req.body.dinnerDetails,
+      snacksDetails:    req.body.snacksDetails,
+      sleepTime:        req.body.sleepTime,
+      wakeupTime:       req.body.wakeupTime,
+      teaCoffeeDetails: req.body.teaCoffeeDetails,
+      exerciseHabits:   req.body.exerciseHabits,
+      smokingStatus:    req.body.smokingStatus,
+      alcoholConsumption: req.body.alcoholConsumption,
+      lifestyleNotes:   req.body.lifestyleNotes,
+    }
+  });
+
   res.json(updated);
 }));
 

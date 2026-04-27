@@ -23,9 +23,12 @@ import {
   Trash2,
   Bed,
   Building2,
+  LayoutGrid,
+  LayoutList,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BedLidarView } from "../components/BedLidarView";
+import ClinicFeatureOverlay from "../components/ClinicFeatureOverlay";
 import {
   lazy,
   ReactNode,
@@ -679,6 +682,9 @@ export default function Dashboard(props: DashboardProps) {
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [bedsPopupOpen, setBedsPopupOpen] = useState(false);
+  const [bedV2Open, setBedV2Open] = useState(false);
+  const [staffV2Open, setStaffV2Open] = useState(false);
+  const [patientListV2Open, setPatientListV2Open] = useState(false);
   const [respondingShareId, setRespondingShareId] = useState<string | null>(
     null,
   );
@@ -3379,6 +3385,48 @@ export default function Dashboard(props: DashboardProps) {
             <span className="text-sm font-semibold text-white">Beds</span>
             <div className="absolute inset-0 -z-10 rounded-[26px] bg-neon/5 opacity-0 blur-xl transition-opacity group-hover:opacity-100" />
           </button>
+
+          <button
+            onClick={() => setBedV2Open(true)}
+            className="group relative flex flex-col items-center justify-center gap-3 rounded-[26px] border border-wire/10 bg-white/[0.03] p-6 transition-all hover:-translate-y-1 hover:bg-white/[0.06] hover:border-blue-400/30"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-400/10 text-blue-400 group-hover:scale-110 transition-transform">
+              <LayoutGrid size={24} />
+            </div>
+            <span className="text-sm font-semibold text-white">Beds v2</span>
+            <div className="absolute -top-1 -right-1 flex h-5 px-2 items-center justify-center rounded-full bg-blue-500 text-[10px] font-black text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]">
+              BETA
+            </div>
+            <div className="absolute inset-0 -z-10 rounded-[26px] bg-blue-400/5 opacity-0 blur-xl transition-opacity group-hover:opacity-100" />
+          </button>
+
+          <button
+            onClick={() => setStaffV2Open(true)}
+            className="group relative flex flex-col items-center justify-center gap-3 rounded-[26px] border border-wire/10 bg-white/[0.03] p-6 transition-all hover:-translate-y-1 hover:bg-white/[0.06] hover:border-purple-400/30"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-400/10 text-purple-400 group-hover:scale-110 transition-transform">
+              <Users size={24} />
+            </div>
+            <span className="text-sm font-semibold text-white">Staff v2</span>
+            <div className="absolute -top-1 -right-1 flex h-5 px-2 items-center justify-center rounded-full bg-purple-500 text-[10px] font-black text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]">
+              BETA
+            </div>
+            <div className="absolute inset-0 -z-10 rounded-[26px] bg-purple-400/5 opacity-0 blur-xl transition-opacity group-hover:opacity-100" />
+          </button>
+
+          <button
+            onClick={() => setPatientListV2Open(true)}
+            className="group relative flex flex-col items-center justify-center gap-3 rounded-[26px] border border-wire/10 bg-white/[0.03] p-6 transition-all hover:-translate-y-1 hover:bg-white/[0.06] hover:border-amber-400/30"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-400 group-hover:scale-110 transition-transform">
+              <LayoutList size={24} />
+            </div>
+            <span className="text-sm font-semibold text-white">Patient List v2</span>
+            <div className="absolute -top-1 -right-1 flex h-5 px-2 items-center justify-center rounded-full bg-amber-500 text-[10px] font-black text-white shadow-[0_0_15px_rgba(245,158,11,0.5)]">
+              BETA
+            </div>
+            <div className="absolute inset-0 -z-10 rounded-[26px] bg-amber-400/5 opacity-0 blur-xl transition-opacity group-hover:opacity-100" />
+          </button>
           
           {[1, 2, 3, 4, 5].map((i) => (
             <div
@@ -3821,6 +3869,36 @@ export default function Dashboard(props: DashboardProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ClinicFeatureOverlay 
+        isOpen={bedV2Open} 
+        onClose={() => setBedV2Open(false)} 
+        title="Beds Engine"
+        subtitle="We're re-engineering clinical space management from the ground up."
+        icon={LayoutGrid}
+        accentColor="blue-400"
+        accentHex="#60A5FA"
+      />
+
+      <ClinicFeatureOverlay 
+        isOpen={staffV2Open} 
+        onClose={() => setStaffV2Open(false)} 
+        title="Staff Console"
+        subtitle="Next-generation healthcare workforce orchestration and roster intelligence."
+        icon={Users}
+        accentColor="purple-400"
+        accentHex="#A855F7"
+      />
+
+      <ClinicFeatureOverlay 
+        isOpen={patientListV2Open} 
+        onClose={() => setPatientListV2Open(false)} 
+        title="Patient Directory"
+        subtitle="Intelligent patient indexing and unified clinical record retrieval."
+        icon={LayoutList}
+        accentColor="amber-400"
+        accentHex="#F59E0B"
+      />
     </div>
   );
 }

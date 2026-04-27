@@ -1,66 +1,147 @@
 import { useState } from 'react';
 import { Pill, ChevronRight, FileText, Clock, AlertTriangle } from 'lucide-react';
 import { cn } from '../components/Sidebar';
-import type { PatientProfile, Prescription } from '../types';
-import { differenceInDays, addDays, isAfter, parseISO, startOfDay } from 'date-fns';
+import type { PatientProfile, Prescription, PrescriptionItem } from '../types';
+import { differenceInDays, addDays, parseISO, startOfDay } from 'date-fns';
 
 interface MedicinesPageProps {
   data: PatientProfile;
 }
 
+// ── Client-side mirror of backend parse-duration.js ───────────────────────
+// Converts "7 days", "2 weeks", "30", "1m" → integer days, or null.
+function parseDurationToDays(str: string | null | undefined): number | null {
+  if (!str || typeof str !== 'string') return null;
+  const s = str.trim().toLowerCase();
+  if (!s) return null;
+  const match = s.match(/^(\d+(?:\.\d+)?)\s*(d|day|days|w|week|weeks|m|month|months|y|year|years)?\.?$/);
+  if (!match) return null;
+  const value = parseFloat(match[1]);
+  const unit = (match[2] || 'd').charAt(0);
+  let days: number;
+  switch (unit) {
+    case 'd': days = Math.round(value); break;
+    case 'w': days = Math.round(value * 7); break;
+    case 'm': days = Math.round(value * 30); break;
+    case 'y': days = Math.round(value * 365); break;
+    default:  days = Math.round(value);
+  }
+  return days > 0 ? days : null;
+}
+
+// ── Helper: compute per-item active status ─────────────────────────────────
+// Priority:
+//   1. backend isActive (most accurate)
+//   2. item.durationDays (stored numeric)
+//   3. parseDurationToDays(item.timing) (self-healing raw text parse)
+//   4. prescription.durationDays (prescription-wide fallback)
+function isItemActive(
+  item: PrescriptionItem,
+  prescription: Prescription,
+  today: Date
+): boolean {
+  // 1. Backend already computed this
+  if (typeof item.isActive === 'boolean') return item.isActive;
+
+  // 2–4. Client-side calculation with self-healing fallback chain
+  const itemDays =
+    item.durationDays ??
+    parseDurationToDays(item.timing) ??
+    prescription.durationDays ??
+    30;
+
+  const start = parseISO(prescription.startDate);
+  const expiry = addDays(start, itemDays);
+  return today <= expiry;
+}
+
+
+// ── Enriched item type ─────────────────────────────────────────────────────
+interface ActiveMedItem extends PrescriptionItem {
+  doctorName: string | undefined;
+  totalDays: number;
+  daysLeft: number;
+  progress: number;
+  dayNumber: number;
+  cycleEnd: Date;
+}
+
+interface InactiveMedItem extends PrescriptionItem {
+  doctorName: string | undefined;
+  totalDays: number;
+  endedOn: string;
+}
+
 export function MedicinesPage({ data }: MedicinesPageProps) {
   const today = startOfDay(new Date());
 
-  // Logic to filter active items based on time + doctor-defined duration
-  const activePrescriptions = (data.prescriptions || []).filter(p => {
-    if (p.status !== 'ACTIVE') return false;
-    const duration = p.durationDays || 2;
-    const expiryDate = addDays(parseISO(p.startDate), duration);
-    return !isAfter(today, expiryDate);
+  // ── Build active and inactive item lists ────────────────────────────────
+  const allActiveItems: ActiveMedItem[] = [];
+  const allInactiveItems: InactiveMedItem[] = [];
+
+  (data.prescriptions || []).forEach(p => {
+    if (p.status !== 'ACTIVE') {
+      // Entire prescription inactive: all items go to history
+      (p.items || []).forEach(item => {
+        const itemDays =
+          item.durationDays ??
+          parseDurationToDays(item.timing) ??
+          p.durationDays ??
+          30;
+        allInactiveItems.push({
+          ...item,
+          doctorName: p.doctor?.name,
+          totalDays: itemDays,
+          endedOn: addDays(parseISO(p.startDate), itemDays).toLocaleDateString(),
+        });
+      });
+      return;
+    }
+
+    (p.items || []).forEach(item => {
+      const active = isItemActive(item, p, today);
+      const itemDays =
+        item.durationDays ??
+        parseDurationToDays(item.timing) ??
+        p.durationDays ??
+        30;
+      const start = parseISO(p.startDate);
+      const cycleEnd = addDays(start, itemDays);
+
+      if (active) {
+        const daysPassed = Math.max(0, differenceInDays(today, start));
+        const daysLeft = Math.max(0, itemDays - daysPassed);
+        const progress = Math.min(100, (daysPassed / itemDays) * 100);
+        allActiveItems.push({
+          ...item,
+          doctorName: p.doctor?.name,
+          totalDays: itemDays,
+          daysLeft,
+          progress,
+          dayNumber: daysPassed + 1,
+          cycleEnd,
+        });
+      } else {
+        allInactiveItems.push({
+          ...item,
+          doctorName: p.doctor?.name,
+          totalDays: itemDays,
+          endedOn: cycleEnd.toLocaleDateString(),
+        });
+      }
+    });
   });
 
-  const inactivePrescriptions = (data.prescriptions || []).filter(p => {
-    const duration = p.durationDays || 2;
-    const expiryDate = addDays(parseISO(p.startDate), duration);
-    return p.status !== 'ACTIVE' || isAfter(today, expiryDate);
-  });
-  
-  // Flatten items and calculate individual timers
-  const allActiveItems = activePrescriptions.flatMap(p => {
-    const start = parseISO(p.startDate);
-    const totalDays = p.durationDays;
-    const daysPassed = Math.max(0, differenceInDays(today, start));
-    const daysLeft = Math.max(0, totalDays - daysPassed);
-    const progress = Math.min(100, (daysPassed / totalDays) * 100);
-
-    return p.items?.map(item => ({ 
-      ...item, 
-      doctorName: p.doctor?.name,
-      totalDays,
-      daysLeft,
-      progress,
-      dayNumber: daysPassed + 1
-    })) || [];
-  });
-
-  const allInactiveItems = inactivePrescriptions.flatMap(p => {
-    const duration = p.durationDays || 2;
-    return p.items?.map(item => ({
-      ...item,
-      doctorName: p.doctor?.name,
-      totalDays: duration,
-      endedOn: addDays(parseISO(p.startDate), duration).toLocaleDateString()
-    })) || [];
-  });
-
-  const [selectedMedicine, setSelectedMedicine] = useState<string | null>(allActiveItems.length > 0 ? allActiveItems[0].medicine : null);
+  const [selectedMedicine, setSelectedMedicine] = useState<string | null>(
+    allActiveItems.length > 0 ? allActiveItems[0].medicine : null
+  );
 
   return (
     <div className="p-6 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto h-full flex flex-col relative overflow-hidden">
       <header className="mb-8 mt-2 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">My Medications</h1>
-          <p className="text-mist mt-1 text-sm font-medium">Real-time treatment tracker & adherence assistant.</p>
+          <p className="text-mist mt-1 text-sm font-medium">Real-time treatment tracker &amp; adherence assistant.</p>
         </div>
         
         <div className="flex bg-white/[0.03] p-1.5 rounded-full border border-white/5 backdrop-blur-3xl shadow-2xl">
@@ -75,7 +156,7 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
         <div className="grid lg:grid-cols-12 gap-6 mb-8">
           
           <div className="lg:col-span-5 flex flex-col gap-6">
-            {/* Daily Tracker with Smart Timer Summary */}
+            {/* Daily Tracker */}
             <div className="glass-card p-6 border border-wire/10 border-b-neon/30 relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-neon/5 rounded-full blur-3xl group-hover:bg-neon/10 transition-colors"></div>
               <h2 className="text-xl font-bold text-white mb-1">Dose Checklist</h2>
@@ -110,7 +191,7 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
               )}
             </div>
 
-            {/* Medicine Selector with Progress Ring Logic */}
+            {/* Treatment Progress */}
             <div className="glass-card p-6 border border-wire/10 flex-1">
               <h2 className="text-lg font-bold text-white mb-1">Treatment Progress</h2>
               <p className="text-mist text-sm mb-6">Real-time countdown indicators for each medication.</p>
@@ -149,7 +230,7 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
                        <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden">
                           <div className="h-full bg-sky" style={{ width: `${item.progress}%` }}></div>
                        </div>
-                    </div>
+                     </div>
                   </div>
                 )) : (
                   <p className="text-mist text-sm text-center py-10">No cycles in progress.</p>
@@ -159,7 +240,7 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
           </div>
 
           <div className="lg:col-span-7">
-            {/* Today's Schedule View */}
+            {/* Today's Schedule */}
             <div className="glass-card p-6 border border-wire/10 h-full flex flex-col">
               <div className="flex justify-between items-start mb-8">
                 <div>
@@ -189,7 +270,7 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
                       </div>
                       <div className="pt-3 border-t border-white/5 flex items-center justify-between text-[10px]">
                           <span className="text-mist flex items-center gap-1.5">
-                            <Clock className="w-3 h-3" /> Cycle Ends: {addDays(parseISO(activePrescriptions[0].startDate), item.totalDays).toLocaleDateString()}
+                            <Clock className="w-3 h-3" /> Cycle Ends: {item.cycleEnd.toLocaleDateString()}
                           </span>
                           <span className="text-sky font-semibold uppercase">Active Track</span>
                       </div>
@@ -207,7 +288,7 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
           
         </div>
 
-        {/* Medication Plan Table */}
+        {/* Active Regimen Table */}
         <div className="glass-card p-0 border border-wire/10 overflow-hidden">
           <div className="p-6 border-b border-wire/10 bg-white/[0.01]">
             <h2 className="text-base font-bold text-white flex items-center gap-2">
@@ -263,7 +344,7 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
           </div>
         </div>
 
-        {/* Past Medications Table */}
+        {/* Past Medications */}
         {allInactiveItems.length > 0 && (
           <div className="glass-card p-0 border border-wire/10 overflow-hidden mt-8 opacity-80">
             <div className="p-6 border-b border-wire/10 bg-white/[0.01]">
@@ -299,7 +380,7 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
                       </td>
                       <td className="py-5 px-6">
                          <div className="flex items-center gap-2">
-                           <div className="px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">Expired</div>
+                           <div className="px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase bg-white/5 text-mist/60 border border-wire/10">Inactive</div>
                            <span className="text-xs font-semibold text-mist/50">Ended {item.endedOn}</span>
                          </div>
                       </td>

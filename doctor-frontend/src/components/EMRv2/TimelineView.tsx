@@ -13,6 +13,30 @@ import { AdmissionRecord, AdmissionCard } from '../Shared/AdmissionStatus';
 
 const API_BASE = API_BASE_URL;
 
+/**
+ * Client-side mirror of backend parse-duration.js.
+ * Converts "7 days", "2 weeks", "30", "1m" → integer days, or null.
+ * Used so item.timing acts as a self-healing fallback when item.durationDays is null.
+ */
+function parseDurationToDays(str: string | null | undefined): number | null {
+  if (!str || typeof str !== 'string') return null;
+  const s = str.trim().toLowerCase();
+  if (!s || s === '—') return null;
+  const match = s.match(/^(\d+(?:\.\d+)?)\s*(d|day|days|w|week|weeks|m|month|months|y|year|years)?\.?$/);
+  if (!match) return null;
+  const value = parseFloat(match[1]);
+  const unit = (match[2] || 'd').charAt(0);
+  let days: number;
+  switch (unit) {
+    case 'd': days = Math.round(value); break;
+    case 'w': days = Math.round(value * 7); break;
+    case 'm': days = Math.round(value * 30); break;
+    case 'y': days = Math.round(value * 365); break;
+    default:  days = Math.round(value);
+  }
+  return days > 0 ? days : null;
+}
+
 // -- Tokens -------------------------------------------------------
 const BG          = '#F5F5F3';
 const LINE_CLR    = 'rgba(103, 232, 249, 0.62)';
@@ -170,9 +194,13 @@ function buildTimelineData(data: any): AppointmentEntry[] {
         status: undefined,
       })),
       prescriptions: (rx.items ?? []).map((item: any) => {
-        const duration = item.durationDays ?? rx.durationDays ?? 2;
+        // 4-tier priority: stored durationDays → parse timing text → rx-wide days → 30d default
+        const duration =
+          item.durationDays ??
+          parseDurationToDays(item.timing) ??
+          rx.durationDays ??
+          30;
         const startDate = rx.startDate ? new Date(rx.startDate) : new Date();
-        // Set expiry date to start of day, or just compare exact times. Let's do exact times.
         const expiryDate = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
         const isActive = new Date() <= expiryDate;
 
@@ -354,8 +382,10 @@ const SCard = forwardRef<HTMLDivElement, SCardProps>(
           transform: focused
             ? `translateX(${side === 'right' ? 2 : -2}px) scale(1.01)`
             : 'translateX(0) scale(1)',
-          opacity: noAnim ? 1 : 0,
-          animation: noAnim ? 'none' : `sIn 0.38s ${delay}ms ease forwards`,
+          // Grey out inactive rx items in the secondary card
+          opacity: (item.kind === 'rx' && item.isActive === false) ? 0.45 : (noAnim ? 1 : 0),
+          filter: (item.kind === 'rx' && item.isActive === false) ? 'grayscale(0.7)' : 'none',
+          animation: (item.kind === 'rx' && item.isActive === false) ? 'none' : (noAnim ? 'none' : `sIn 0.38s ${delay}ms ease forwards`),
           cursor: 'default',
           willChange: 'transform, box-shadow',
         }}
@@ -472,8 +502,9 @@ const PCard = forwardRef<HTMLDivElement, PCardProps>(
           {(() => {
             const hasMeds = (apt.prescriptions?.length ?? 0) > 0 && accessLevel === 'full';
             const hasActiveMed = hasMeds && apt.prescriptions!.some(p => p.isActive);
-            const pillColor = hasMeds ? (hasActiveMed ? accent : '#f97316') : accent;
-            const pillText = hasMeds ? (hasActiveMed ? 'Active Prescription' : 'Expired') : apt.specialty;
+            // Active → accent color; Inactive → grey (no meds or all expired)
+            const pillColor = hasMeds ? (hasActiveMed ? accent : '#9CA3AF') : accent;
+            const pillText = hasMeds ? (hasActiveMed ? 'Active Prescription' : 'Inactive') : apt.specialty;
             return (
               <>
                 <span style={{ width: 4, height: 4, borderRadius: '50%', background: pillColor }} />
@@ -993,7 +1024,7 @@ function AIAnalysisPanel({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           {onBack ? (
             <button
-              onClick={onBack}
+              onClick={(e) => { e.stopPropagation(); onBack(); }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -2579,13 +2610,17 @@ function SimpleListView({
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 6 }}>
                           {hasMeds ? (
                             <span style={{
-                              fontSize: 10, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase',
-                              color: apt.prescriptions.some(p => p.isActive) ? aptAccent : '#f97316',
-                              padding: '2px 8px', borderRadius: 6,
-                              background: apt.prescriptions.some(p => p.isActive) ? `${aptAccent}1a` : 'rgba(249, 115, 22, 0.1)',
-                              border: `1px solid ${apt.prescriptions.some(p => p.isActive) ? `${aptAccent}33` : 'rgba(249, 115, 22, 0.2)'}`,
+                              color: apt.prescriptions.some(p => p.isActive) ? aptAccent : '#9CA3AF',
+                              fontSize: 9,
+                              fontWeight: 800,
+                              letterSpacing: '0.08em',
+                              padding: '3px 7px',
+                              borderRadius: 6,
+                              background: apt.prescriptions.some(p => p.isActive) ? `${aptAccent}1a` : 'rgba(156,163,175,0.12)',
+                              border: `1px solid ${apt.prescriptions.some(p => p.isActive) ? `${aptAccent}33` : 'rgba(156,163,175,0.25)'}`,
+                              textTransform: 'uppercase',
                             }}>
-                              {apt.prescriptions.some(p => p.isActive) ? 'Active Prescription' : 'Expired'}
+                              {apt.prescriptions.some(p => p.isActive) ? 'Active Prescription' : 'Inactive'}
                             </span>
                           ) : (
                             <span style={{
@@ -2746,7 +2781,7 @@ function SimpleListView({
                                         <span style={{ fontSize: 11, color: sectionLbl, whiteSpace: 'nowrap', textAlign: 'right' }}>{med.duration}</span>
                                       )}
                                       {med.isActive === false && (
-                                        <span style={{ fontSize: 9, fontWeight: 800, background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444', padding: '2px 6px', borderRadius: 4, textTransform: 'uppercase' }}>Expired</span>
+                                        <span style={{ fontSize: 9, fontWeight: 800, background: 'rgba(156,163,175,0.12)', color: '#9CA3AF', padding: '2px 6px', borderRadius: 4, textTransform: 'uppercase', border: '1px solid rgba(156,163,175,0.22)' }}>Inactive</span>
                                       )}
                                     </div>
                                   </div>

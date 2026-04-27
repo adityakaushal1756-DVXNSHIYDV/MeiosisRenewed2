@@ -35,6 +35,22 @@ model Patient {
   prescriptions    Prescription[]
   account          UserAccount?
   doctorLinks      PatientDoctor[]
+
+  // Lifestyle & Habits
+  breakfastTime    String?
+  breakfastDetails String?
+  lunchTime        String?
+  lunchDetails     String?
+  dinnerTime       String?
+  dinnerDetails    String?
+  snacksDetails    String?
+  sleepTime        String?
+  wakeupTime       String?
+  teaCoffeeDetails String?
+  exerciseHabits   String?
+  smokingStatus    String?
+  alcoholConsumption String?
+  lifestyleNotes   String?
 }
 
 model Doctor {
@@ -219,6 +235,10 @@ model PrescriptionItem {
   frequency               String
   timing                  String
   reason                  String
+  /// Number of days this specific medicine is prescribed for.
+  /// Parsed from the doctor's free-text duration field (e.g. "7 days", "2 weeks").
+  /// Null for legacy records — those fall back to the parent Prescription.durationDays.
+  durationDays            Int?
   dose_form               String?
   generic_name            String?
   identifier_brand        String?

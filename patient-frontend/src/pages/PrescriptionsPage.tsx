@@ -25,14 +25,18 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
 
   const today = startOfDay(new Date());
 
-  // Filter based on both status and real-time duration
+  // Filter based on backend isActive flag (preferred) or real-time duration calculation (fallback)
   const activePrescriptions = (data.prescriptions || []).filter(p => {
+    // Use the backend-computed field if available
+    if (typeof p.isActive === 'boolean') return p.isActive;
+    // Legacy fallback: use prescription-level durationDays
     if (p.status !== 'ACTIVE') return false;
     const expiryDate = addDays(parseISO(p.startDate), p.durationDays);
     return !isAfter(today, expiryDate);
   });
 
   const pastPrescriptions = (data.prescriptions || []).filter(p => {
+    if (typeof p.isActive === 'boolean') return !p.isActive;
     if (p.status !== 'ACTIVE') return true;
     const expiryDate = addDays(parseISO(p.startDate), p.durationDays);
     return isAfter(today, expiryDate);

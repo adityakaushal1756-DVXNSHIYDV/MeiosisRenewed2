@@ -1,11 +1,74 @@
+import { useState, useEffect } from 'react';
 import { User, Bell, Palette, LogOut, KeyRound, Edit3, SmartphoneNfc, Activity, Loader2, AlertTriangle } from 'lucide-react';
 import { cn } from '../components/Sidebar';
 import { useAuth } from '../lib/auth';
 import { usePatientProfile } from '../hooks/usePatientProfile';
+import { apiUrl, getAuthHeader } from '../lib/api';
 
 export function SettingsPage() {
   const { session, logout } = useAuth();
-  const { data: profile, isLoading, error } = usePatientProfile(session?.patientId);
+  const { data: profile, isLoading, error, refresh } = usePatientProfile(session?.patientId);
+  const [isEditingLifestyle, setIsEditingLifestyle] = useState(false);
+  const [isSavingLifestyle, setIsSavingLifestyle] = useState(false);
+  const [lifestyleForm, setLifestyleForm] = useState({
+    breakfastTime: '',
+    breakfastDetails: '',
+    lunchTime: '',
+    lunchDetails: '',
+    dinnerTime: '',
+    dinnerDetails: '',
+    snacksDetails: '',
+    sleepTime: '',
+    wakeupTime: '',
+    teaCoffeeDetails: '',
+    exerciseHabits: '',
+    smokingStatus: '',
+    alcoholConsumption: '',
+    lifestyleNotes: ''
+  });
+
+  useEffect(() => {
+    if (profile) {
+      setLifestyleForm({
+        breakfastTime: profile.breakfastTime || '',
+        breakfastDetails: profile.breakfastDetails || '',
+        lunchTime: profile.lunchTime || '',
+        lunchDetails: profile.lunchDetails || '',
+        dinnerTime: profile.dinnerTime || '',
+        dinnerDetails: profile.dinnerDetails || '',
+        snacksDetails: profile.snacksDetails || '',
+        sleepTime: profile.sleepTime || '',
+        wakeupTime: profile.wakeupTime || '',
+        teaCoffeeDetails: profile.teaCoffeeDetails || '',
+        exerciseHabits: profile.exerciseHabits || '',
+        smokingStatus: profile.smokingStatus || '',
+        alcoholConsumption: profile.alcoholConsumption || '',
+        lifestyleNotes: profile.lifestyleNotes || ''
+      });
+    }
+  }, [profile]);
+
+  const handleSaveLifestyle = async () => {
+    if (!session?.patientId) return;
+    setIsSavingLifestyle(true);
+    try {
+      const response = await fetch(apiUrl(`patient/${session.patientId}/lifestyle`), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        },
+        body: JSON.stringify(lifestyleForm)
+      });
+      if (!response.ok) throw new Error('Failed to save lifestyle info');
+      await refresh();
+      setIsEditingLifestyle(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSavingLifestyle(false);
+    }
+  };
 
   const renderAccountField = (label: string, value: string | undefined, isCode = false) => {
     if (isLoading) {
@@ -170,6 +233,185 @@ export function SettingsPage() {
             </div>
             <p className="text-xs text-mist leading-relaxed">Choose how your clinical history is visualized. 'Focus Timeline' provides an interactive node-based view inspired by doctor EMR systems.</p>
           </div>
+        </div>
+
+        {/* Lifestyle & Personal Info */}
+        <div className="glass-card p-6 border border-wire/10 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4">
+             <Edit3 
+               className={cn("w-5 h-5 cursor-pointer transition-colors", isEditingLifestyle ? "text-neon" : "text-mist hover:text-white")} 
+               onClick={() => setIsEditingLifestyle(!isEditingLifestyle)}
+             />
+          </div>
+          
+          <h2 className="section-title flex items-center gap-2 mb-6">
+            <Activity className="w-5 h-5 text-sky" /> Lifestyle & Habit Profile
+          </h2>
+
+          {isEditingLifestyle ? (
+            <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-4">
+                   <h3 className="text-xs font-bold uppercase tracking-wider text-mist">Meal Timing</h3>
+                   <div>
+                     <label className="text-[10px] text-mist/60 uppercase block mb-1">Breakfast</label>
+                     <input type="time" value={lifestyleForm.breakfastTime} onChange={e => setLifestyleForm({...lifestyleForm, breakfastTime: e.target.value})} className="w-full bg-white/5 border border-wire/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-sky" />
+                     <textarea placeholder="Breakfast details..." value={lifestyleForm.breakfastDetails} onChange={e => setLifestyleForm({...lifestyleForm, breakfastDetails: e.target.value})} className="w-full bg-white/5 border border-wire/10 rounded-lg px-3 py-2 text-white text-xs mt-2 min-h-[60px] outline-none" />
+                   </div>
+                   <div>
+                     <label className="text-[10px] text-mist/60 uppercase block mb-1">Lunch</label>
+                     <input type="time" value={lifestyleForm.lunchTime} onChange={e => setLifestyleForm({...lifestyleForm, lunchTime: e.target.value})} className="w-full bg-white/5 border border-wire/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-sky" />
+                     <textarea placeholder="Lunch details..." value={lifestyleForm.lunchDetails} onChange={e => setLifestyleForm({...lifestyleForm, lunchDetails: e.target.value})} className="w-full bg-white/5 border border-wire/10 rounded-lg px-3 py-2 text-white text-xs mt-2 min-h-[60px] outline-none" />
+                   </div>
+                   <div>
+                     <label className="text-[10px] text-mist/60 uppercase block mb-1">Dinner</label>
+                     <input type="time" value={lifestyleForm.dinnerTime} onChange={e => setLifestyleForm({...lifestyleForm, dinnerTime: e.target.value})} className="w-full bg-white/5 border border-wire/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-sky" />
+                     <textarea placeholder="Dinner details..." value={lifestyleForm.dinnerDetails} onChange={e => setLifestyleForm({...lifestyleForm, dinnerDetails: e.target.value})} className="w-full bg-white/5 border border-wire/10 rounded-lg px-3 py-2 text-white text-xs mt-2 min-h-[60px] outline-none" />
+                   </div>
+                </div>
+
+                <div className="space-y-4">
+                   <h3 className="text-xs font-bold uppercase tracking-wider text-mist">Sleep & Drinks</h3>
+                   <div>
+                     <label className="text-[10px] text-mist/60 uppercase block mb-1">Wakeup Time</label>
+                     <input type="time" value={lifestyleForm.wakeupTime} onChange={e => setLifestyleForm({...lifestyleForm, wakeupTime: e.target.value})} className="w-full bg-white/5 border border-wire/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-sky" />
+                   </div>
+                   <div>
+                     <label className="text-[10px] text-mist/60 uppercase block mb-1">Sleep Time</label>
+                     <input type="time" value={lifestyleForm.sleepTime} onChange={e => setLifestyleForm({...lifestyleForm, sleepTime: e.target.value})} className="w-full bg-white/5 border border-wire/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-sky" />
+                   </div>
+                   <div>
+                     <label className="text-[10px] text-mist/60 uppercase block mb-1">Tea / Coffee / Beverages</label>
+                     <textarea placeholder="e.g. 2 cups of tea, 1 black coffee..." value={lifestyleForm.teaCoffeeDetails} onChange={e => setLifestyleForm({...lifestyleForm, teaCoffeeDetails: e.target.value})} className="w-full bg-white/5 border border-wire/10 rounded-lg px-3 py-2 text-white text-sm min-h-[100px] outline-none" />
+                   </div>
+                </div>
+
+                <div className="space-y-4">
+                   <h3 className="text-xs font-bold uppercase tracking-wider text-mist">Other Info</h3>
+                   <div>
+                     <label className="text-[10px] text-mist/60 uppercase block mb-1">Snacks & Cravings</label>
+                     <textarea placeholder="Any mid-day snacks..." value={lifestyleForm.snacksDetails} onChange={e => setLifestyleForm({...lifestyleForm, snacksDetails: e.target.value})} className="w-full bg-white/5 border border-wire/10 rounded-lg px-3 py-2 text-white text-sm min-h-[80px] outline-none" />
+                   </div>
+                   <div>
+                     <label className="text-[10px] text-mist/60 uppercase block mb-1">Exercise Habits</label>
+                     <textarea placeholder="e.g. 30 mins walk, gym 3x week..." value={lifestyleForm.exerciseHabits} onChange={e => setLifestyleForm({...lifestyleForm, exerciseHabits: e.target.value})} className="w-full bg-white/5 border border-wire/10 rounded-lg px-3 py-2 text-white text-sm min-h-[60px] outline-none" />
+                   </div>
+                   <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] text-mist/60 uppercase block mb-1">Smoking</label>
+                        <select value={lifestyleForm.smokingStatus} onChange={e => setLifestyleForm({...lifestyleForm, smokingStatus: e.target.value})} className="w-full bg-white/5 border border-wire/10 rounded-lg px-2 py-2 text-white text-xs outline-none">
+                          <option value="">Select...</option>
+                          <option value="Never">Never</option>
+                          <option value="Ex-smoker">Ex-smoker</option>
+                          <option value="Current">Current</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-mist/60 uppercase block mb-1">Alcohol</label>
+                        <select value={lifestyleForm.alcoholConsumption} onChange={e => setLifestyleForm({...lifestyleForm, alcoholConsumption: e.target.value})} className="w-full bg-white/5 border border-wire/10 rounded-lg px-2 py-2 text-white text-xs outline-none">
+                          <option value="">Select...</option>
+                          <option value="None">None</option>
+                          <option value="Occasional">Occasional</option>
+                          <option value="Regular">Regular</option>
+                        </select>
+                      </div>
+                   </div>
+                   <div>
+                     <label className="text-[10px] text-mist/60 uppercase block mb-1">General Lifestyle Notes</label>
+                     <textarea placeholder="Any other medical info..." value={lifestyleForm.lifestyleNotes} onChange={e => setLifestyleForm({...lifestyleForm, lifestyleNotes: e.target.value})} className="w-full bg-white/5 border border-wire/10 rounded-lg px-3 py-2 text-white text-sm min-h-[80px] outline-none" />
+                   </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-wire/10">
+                 <button onClick={() => setIsEditingLifestyle(false)} className="px-4 py-2 text-sm text-mist hover:text-white">Cancel</button>
+                 <button 
+                   onClick={handleSaveLifestyle} 
+                   disabled={isSavingLifestyle}
+                   className="px-6 py-2 bg-sky text-ink font-bold rounded-xl flex items-center gap-2 hover:bg-white transition-colors"
+                 >
+                   {isSavingLifestyle ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Profile'}
+                 </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-[10px] uppercase tracking-widest text-mist mb-2">Daily Meals</h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-start">
+                       <span className="text-xs text-white/50">Breakfast</span>
+                       <div className="text-right">
+                         <div className="text-xs text-white font-medium">{lifestyleForm.breakfastTime || '--:--'}</div>
+                         <div className="text-[10px] text-mist italic max-w-[120px] truncate">{lifestyleForm.breakfastDetails || 'None'}</div>
+                       </div>
+                    </div>
+                    <div className="flex justify-between items-start">
+                       <span className="text-xs text-white/50">Lunch</span>
+                       <div className="text-right">
+                         <div className="text-xs text-white font-medium">{lifestyleForm.lunchTime || '--:--'}</div>
+                         <div className="text-[10px] text-mist italic max-w-[120px] truncate">{lifestyleForm.lunchDetails || 'None'}</div>
+                       </div>
+                    </div>
+                    <div className="flex justify-between items-start">
+                       <span className="text-xs text-white/50">Dinner</span>
+                       <div className="text-right">
+                         <div className="text-xs text-white font-medium">{lifestyleForm.dinnerTime || '--:--'}</div>
+                         <div className="text-[10px] text-mist italic max-w-[120px] truncate">{lifestyleForm.dinnerDetails || 'None'}</div>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-[10px] uppercase tracking-widest text-mist mb-2">Rest & Fluids</h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                       <span className="text-xs text-white/50">Wakeup</span>
+                       <span className="text-xs text-white font-medium">{lifestyleForm.wakeupTime || '--:--'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                       <span className="text-xs text-white/50">Bedtime</span>
+                       <span className="text-xs text-white font-medium">{lifestyleForm.sleepTime || '--:--'}</span>
+                    </div>
+                    <div>
+                       <span className="text-xs text-white/50 block mb-1">Tea / Coffee</span>
+                       <p className="text-[10px] text-mist leading-relaxed">{lifestyleForm.teaCoffeeDetails || 'None recorded'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-[10px] uppercase tracking-widest text-mist mb-2">Social & Activity</h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                       <span className="text-xs text-white/50">Exercise</span>
+                       <span className="text-xs text-white font-medium truncate max-w-[100px]">{lifestyleForm.exerciseHabits || 'None'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                       <span className="text-xs text-white/50">Smoking</span>
+                       <span className="text-xs text-white font-medium">{lifestyleForm.smokingStatus || 'Not set'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                       <span className="text-xs text-white/50">Alcohol</span>
+                       <span className="text-xs text-white font-medium">{lifestyleForm.alcoholConsumption || 'Not set'}</span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-[10px] uppercase tracking-widest text-mist mb-2">General Notes</h4>
+                  <div className="bg-white/[0.02] border border-wire/5 rounded-xl p-3 min-h-[60px]">
+                     <p className="text-[10px] text-mist leading-relaxed italic">{lifestyleForm.lifestyleNotes || 'No notes.'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Danger Zone */}
