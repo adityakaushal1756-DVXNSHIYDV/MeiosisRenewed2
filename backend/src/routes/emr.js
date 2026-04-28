@@ -4,31 +4,13 @@ const prisma = require('../lib/prisma');
 const asyncHandler = require('../lib/async-handler');
 const { createPrescriptionPdf } = require('../lib/pdf-documents');
 const { parseDurationToDays } = require('../lib/parse-duration');
+const {
+  buildPatientEmrPayload,
+  getLinkedDoctorAccessLevel,
+  resolvePatient,
+} = require('../lib/emr-read');
 
 const router = express.Router();
-
-/* ─────────────────────────────────────────────────────────────
-   Shared helper: compute real-time isActive for a prescription
-   item given the parent prescription's startDate.
-   
-   Priority:
-     1. item.durationDays  (stored numeric — set at creation time)
-     2. parseDurationToDays(item.timing)  (self-healing: parse the raw text field)
-     3. rx.durationDays    (prescription-wide fallback for legacy records)
-     4. 30 days            (absolute hard default)
-────────────────────────────────────────────────────────────── */
-function computeItemIsActive(item, rxStartDate, rxDurationDays) {
-  const now = new Date();
-  const startDate = rxStartDate ? new Date(rxStartDate) : now;
-  const itemDays =
-    item.durationDays ??
-    parseDurationToDays(item.timing) ??
-    rxDurationDays ??
-    30;
-  // expiry = startDate + itemDays days (at the *end* of that day)
-  const expiryMs = startDate.getTime() + itemDays * 24 * 60 * 60 * 1000;
-  return now.getTime() <= expiryMs;
-}
 
 /* ─────────────────────────────────────────────────────────────
    POST /api/emr
@@ -70,13 +52,7 @@ router.post('/', asyncHandler(async (req, res) => {
   }
 
   /* ── Resolve patient (by DB id, meiosisId, or universalCode) ── */
-  let patient = await prisma.patient.findUnique({ where: { id: patientId } }).catch(() => null);
-
-  if (!patient) {
-    patient = await prisma.patient.findFirst({
-      where: { OR: [{ meiosisId: patientId }, { universalCode: patientId }] }
-    });
-  }
+  let patient = await resolvePatient(patientId);
 
   if (!patient) {
     // Patient is a mock / not yet seeded — skip DB write, return success so
@@ -283,20 +259,13 @@ router.get('/', asyncHandler(async (req, res) => {
     return;
   }
 
-  let patient = await prisma.patient.findUnique({ where: { id: patientId } }).catch(() => null);
-
-  if (!patient) {
-    patient = await prisma.patient.findFirst({
-      where: { OR: [{ meiosisId: patientId }, { universalCode: patientId }] }
-    });
-  }
+  let patient = await resolvePatient(patientId);
 
   if (!patient) {
     res.status(404).json({ error: 'Patient not found' });
     return;
   }
 
-  // ── Access control for doctor callers ──────────────────────
   let accessLevel = 'full';
   if (caller && caller.role === 'DOCTOR') {
     const doctorAccount = await prisma.userAccount.findUnique({
@@ -305,86 +274,26 @@ router.get('/', asyncHandler(async (req, res) => {
     });
     const doctorId = doctorAccount?.doctorId;
 
-    if (doctorId) {
-      const link = await prisma.patientDoctor.findUnique({
-        where: { patientId_doctorId: { patientId: patient.id, doctorId } }
+    if (!doctorId) {
+      res.status(403).json({
+        error: 'doctor_account_missing',
+        message: 'Authenticated user is not attached to a doctor profile.'
       });
-
-      if (!link) {
-        res.status(403).json({
-          error: 'not_in_network',
-          message: 'This patient has not added you to their doctor network.'
-        });
-        return;
-      }
-
-      const settings = (patient.shareSettings && typeof patient.shareSettings === 'object')
-        ? patient.shareSettings
-        : {};
-      if (settings.fullAccess === true)        accessLevel = 'full';
-      else if (settings.labOnly === true)      accessLevel = 'lab';
-      else if (settings.summaryOnly === true)  accessLevel = 'summary';
-      else                                     accessLevel = 'full';
+      return;
     }
+
+    const linkedAccessLevel = await getLinkedDoctorAccessLevel({ patient, doctorId });
+    if (!linkedAccessLevel) {
+      res.status(403).json({
+        error: 'not_in_network',
+        message: 'This patient has not added you to their doctor network.'
+      });
+      return;
+    }
+    accessLevel = linkedAccessLevel;
   }
 
-  // ── Fetch data ──────────────────────────────────────────────
-  const [prescriptions, labReports, appointments] = await Promise.all([
-    prisma.prescription.findMany({
-      where: { patientId: patient.id },
-      include: { doctor: true, items: accessLevel !== 'lab' },
-      orderBy: { startDate: 'desc' }
-    }),
-    prisma.labReport.findMany({
-      where: { patientId: patient.id },
-      include: { doctor: true },
-      orderBy: { reportDate: 'desc' }
-    }),
-    prisma.appointment.findMany({
-      where: { patientId: patient.id },
-      include: { doctor: true },
-      orderBy: { scheduledDate: 'desc' }
-    })
-  ]);
-
-  // ── Apply access-level filtering ────────────────────────────
-  let prescriptionsOut = prescriptions;
-
-  if (accessLevel === 'lab') {
-    prescriptionsOut = [];
-  } else if (accessLevel === 'summary') {
-    prescriptionsOut = prescriptions.map(rx => ({
-      ...rx,
-      doctorNote: null,
-      items: [],
-    }));
-  }
-
-  // ── Enrich prescriptions with real-time isActive ────────────
-  // This is computed on the fly so it's always accurate without a cron job.
-  prescriptionsOut = prescriptionsOut.map(rx => {
-    const enrichedItems = (rx.items || []).map(item => ({
-      ...item,
-      isActive: computeItemIsActive(item, rx.startDate, rx.durationDays),
-    }));
-
-    // Prescription is active if:
-    //   • has items → at least one item is still active
-    //   • has no items → use the prescription-level durationDays
-    const rxIsActive = enrichedItems.length > 0
-      ? enrichedItems.some(i => i.isActive)
-      : computeItemIsActive({ durationDays: null }, rx.startDate, rx.durationDays);
-
-    return { ...rx, items: enrichedItems, isActive: rxIsActive };
-  });
-
-  res.json({
-    patient,
-    prescriptions: prescriptionsOut,
-    labReports,
-    appointments,
-    accessLevel,
-  });
+  res.json(await buildPatientEmrPayload({ patient, accessLevel }));
 }));
 
 module.exports = router;

@@ -19,12 +19,20 @@
       "destination": "/api/index"
     },
     {
+      "source": "/gateway",
+      "destination": "/api/index"
+    },
+    {
       "source": "/patient-record",
       "destination": "/api/index"
     },
     {
       "source": "/uploads/(.*)",
       "destination": "/api/index"
+    },
+    {
+      "source": "/temp-access",
+      "destination": "/index.html"
     }
   ]
 }

@@ -16,6 +16,13 @@ export default defineConfig({
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
           const urlPath = (req.url ?? '/').split('?')[0].replace(/^\//, '');
+          
+          if (urlPath === 'health') {
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ status: 'ok', service: 'doctor-portal' }));
+            return;
+          }
+
           if (ROOT_FILES.includes(urlPath)) {
             const filePath = path.resolve(__dirname, '..', urlPath);
             if (fs.existsSync(filePath)) {

@@ -13,6 +13,18 @@ function loadDoctorSession() {
 }
 
 function redirectToLogin(): never {
+  const params = new URLSearchParams(window.location.search);
+  const gatewayFallback = params.get('gatewayFallback');
+  const tempToken = params.get('tempToken');
+  const tempCode = params.get('tempCode');
+
+  if (gatewayFallback === 'true' && tempToken) {
+    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5002/api';
+    const baseUrl = backendUrl.replace(/\/api$/, '');
+    window.location.replace(`${baseUrl}/patient-record?token=${encodeURIComponent(tempToken)}&code=${encodeURIComponent(tempCode || '')}`);
+    throw new Error('Redirecting to temporary access');
+  }
+
   try {
     const links = JSON.parse(localStorage.getItem(ROOT_LINKS_KEY) || '{}');
     window.location.replace(links.login || '/login.html');

@@ -102,6 +102,10 @@ function App() {
     );
   }
 
+  if (!session || !data) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-ink flex overflow-hidden selection:bg-neon/30 selection:text-neon font-primary" data-doctor-theme={theme}>
       
@@ -144,7 +148,7 @@ function App() {
             {currentSection === 'prescriptions' && <PrescriptionsPage data={data} />}
             {currentSection === 'network' && <NetworkPage />}
             {currentSection === 'messages' && <MessagesPage />}
-            {currentSection === 'myqr' && <MyQrPage />}
+            {currentSection === 'myqr' && <MyQrPage data={data} patientId={session.patientId} />}
             {currentSection === 'settings' && <SettingsPage />}
             {currentSection === 'nfc' && <NfcPage />}
           </Suspense>
@@ -155,4 +159,3 @@ function App() {
 }
 
 export default App;
-

@@ -17,11 +17,16 @@ const analyticsRoutes = require('./routes/analytics');
 const extractRoutes = require('./routes/extract');
 const networkRoutes = require('./routes/network');
 const queueRoutes = require('./routes/queue');
+const gatewayRoutes = require('./routes/gateway');
 const { getDatabaseErrorPayload, isDatabaseUnavailableError } = require('./lib/database-errors');
 const { authMiddleware } = require('./middleware/auth-middleware');
 
 const app = express();
-const corsOrigins = (process.env.CORS_ORIGINS || '')
+app.use((req, res, next) => {
+  console.log(`[HTTP] ${req.method} ${req.url}`);
+  next();
+});
+const corsOrigins = (process.env.CORS_ORIGINS || '')
   .split(',')
   .map(origin => origin.trim())
   .filter(Boolean);
@@ -106,6 +111,7 @@ const apiRouter = express.Router();
 
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/otp', otpRoutes);
+apiRouter.use('/gateway', gatewayRoutes);
 
 // Protected Routes
 apiRouter.use('/patient', authMiddleware, patientRoutes);

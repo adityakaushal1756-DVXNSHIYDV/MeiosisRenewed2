@@ -362,15 +362,16 @@ model EmrShare {
 /// Drives EMR access control — a doctor can only view/write EMR for patients in their network.
 model PatientDoctor {
   id        String   @id @default(cuid())
-  patientId String
-  doctorId  String
-  linkedAt  DateTime @default(now())
+  patientId String   @map("patient_id")
+  doctorId  String   @map("doctor_id")
+  linkedAt  DateTime @default(now()) @map("linked_at")
   patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 
   @@unique([patientId, doctorId])
   @@index([patientId])
   @@index([doctorId])
+  @@map("doctor_patient_links")
 }
 
 /// Compliance audit trail for every AI-Scribe transcription sent to Gemini.

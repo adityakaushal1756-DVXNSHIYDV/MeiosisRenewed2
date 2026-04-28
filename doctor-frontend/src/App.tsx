@@ -20,6 +20,14 @@ import { useOfflineSync } from './hooks/useOfflineSync';
 import { enqueueEMR } from './utils/offlineQueue';
 import { OfflineSyncBar } from './components/OfflineSyncBar';
 import { apiUrl, assetUrl, getAuthHeader } from './lib/api';
+import {
+  PATIENT_HIGHLIGHT_CHANNEL,
+  PATIENT_HIGHLIGHT_EVENT,
+  publishPatientHighlight,
+  readStoredPatientHighlight,
+  subscribeToHighlightBroadcast,
+  type PatientHighlightEvent,
+} from './lib/patientHighlight';
 import { AdmissionRecord } from './components/Shared/AdmissionStatus';
 import { AccessDeniedOverlay } from './components/Patient/AccessDeniedOverlay';
 import { HoverRevealSidebar } from './components/HoverRevealSidebar';
@@ -30,6 +38,11 @@ const LazyDashboard = lazy(() => import('./pages/Dashboard'));
 const LazyTemplateBuilder = lazy(() =>
   import('./pages/TemplateBuilderPage').then((module) => ({
     default: module.TemplateBuilderPage,
+  }))
+);
+const LazyTempAccessPage = lazy(() =>
+  import('./pages/TempAccessPage').then((module) => ({
+    default: module.TempAccessPage,
   }))
 );
 
@@ -182,7 +195,7 @@ const defaultSchedule: DailySchedule[] = [
   { day: 'Sunday', open: false, morningStart: '00:00', morningEnd: '00:00', eveningStart: '00:00', eveningEnd: '00:00' }
 ];
 
-export default function App() {
+function DoctorWorkspace() {
   const {
     patients,
     setPatients,
@@ -472,7 +485,13 @@ export default function App() {
     try { localStorage.setItem('meiosis_doctor_lang_v1', l); } catch {}
   }, []);
 
-  const [showWelcome, setShowWelcome] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('highlightPatientId')) return false;
+    }
+    return true;
+  });
 
   const [nav, setNav] = useState<NavKey>('dashboard');
   const [viewRecordsPatientId, setViewRecordsPatientId] = useState<string | null>(null);
@@ -1223,6 +1242,70 @@ export default function App() {
     setEmrComposerOpen(false);
   };
 
+  const applyGatewayHighlight = useCallback(async (patientId: string) => {
+    if (!patientId) return;
+    setShowWelcome(false);
+    
+    // Switch navigation and wait for patients to load
+    setQuery('');
+    setNav('search');
+    await fetchDoctorPatients();
+    
+    // Now use the standard patient selection flow
+    await handleSelectPatient(patientId);
+    
+    // Background load the full EMR details
+    await loadPatientEMR(patientId);
+    
+    setEmrToast({ ok: true, msg: 'Verified QR scan linked to this patient record.' });
+    window.setTimeout(() => setEmrToast(null), 3500);
+  }, [fetchDoctorPatients, handleSelectPatient, loadPatientEMR, setQuery]);
+
+  useEffect(() => {
+    const onHighlight = (event: Event) => {
+      const detail = (event as CustomEvent<PatientHighlightEvent>).detail;
+      if (detail?.patientId) applyGatewayHighlight(detail.patientId);
+    };
+
+    window.addEventListener(PATIENT_HIGHLIGHT_EVENT, onHighlight);
+    const unsubscribeBroadcast = subscribeToHighlightBroadcast((event) => {
+      if (event.patientId) {
+        applyGatewayHighlight(event.patientId);
+        // Send ACK back to the bridge tab so it knows it can close
+        const bc = new BroadcastChannel(PATIENT_HIGHLIGHT_CHANNEL);
+        bc.postMessage('ACK:' + event.patientId);
+        bc.close();
+      }
+    });
+
+    const url = new URL(window.location.href);
+    const highlightedPatientId = url.searchParams.get('highlightPatientId');
+    if (highlightedPatientId) {
+      publishPatientHighlight({
+        patientId: highlightedPatientId,
+        source: 'url',
+        emittedAt: new Date().toISOString(),
+      });
+      url.searchParams.delete('highlightPatientId');
+      url.searchParams.delete('qrStatus');
+      url.searchParams.delete('tempToken');
+      url.searchParams.delete('tempCode');
+      url.searchParams.delete('gatewayFallback');
+      window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+    } else {
+      const stored = readStoredPatientHighlight();
+      const storedAgeMs = stored?.emittedAt ? Date.now() - new Date(stored.emittedAt).getTime() : Number.POSITIVE_INFINITY;
+      if (stored?.patientId && storedAgeMs < 30_000) {
+        applyGatewayHighlight(stored.patientId);
+      }
+    }
+
+    return () => {
+      window.removeEventListener(PATIENT_HIGHLIGHT_EVENT, onHighlight);
+      unsubscribeBroadcast();
+    };
+  }, [applyGatewayHighlight]);
+
   const handleViewRecords = async (patientId: string) => {
     try {
       const res = await fetch(
@@ -1771,4 +1854,18 @@ export default function App() {
       </>
     </LanguageContext.Provider>
   );
+}
+
+export default function App() {
+  const isTempAccessRoute = typeof window !== 'undefined' && window.location.pathname === '/temp-access';
+
+  if (isTempAccessRoute) {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <LazyTempAccessPage />
+      </Suspense>
+    );
+  }
+
+  return <DoctorWorkspace />;
 }
