@@ -34,6 +34,7 @@ import { AccessDeniedOverlay } from './components/Patient/AccessDeniedOverlay';
 import { HoverRevealSidebar } from './components/HoverRevealSidebar';
 import { LoadingFallback } from './components/LoadingFallback';
 import { EndConsultationDialog } from './components/EMR/EndConsultationDialog';
+import { useRemoteControl } from './hooks/useRemoteControl';
 
 const LazyDashboard = lazy(() => import('./pages/Dashboard'));
 const LazyTemplateBuilder = lazy(() =>
@@ -598,6 +599,15 @@ function DoctorWorkspace() {
       return stored === null ? true : stored === 'true';
     } catch {
       return true;
+    }
+  });
+
+  // WebSocket Remote Control (Mobile QR Scanner Integration)
+  useRemoteControl({
+    doctorId: CURRENT_DOCTOR?.id || null,
+    onRemoteHighlight: (patientId) => {
+      console.log(`[App] Remote highlight received for patient: ${patientId}`);
+      openViewRecords(patientId);
     }
   });
   const handleSingularityModernChange = (value: boolean) => {

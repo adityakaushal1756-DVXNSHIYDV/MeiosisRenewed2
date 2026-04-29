@@ -7,12 +7,14 @@ const prisma = require("./lib/prisma");
 const port = Number(process.env.PORT || 5000);
 
 const server = http.createServer(app);
+const { initSocket } = require("./lib/socket");
+initSocket(server);
 
 server.keepAliveTimeout = 65_000;
 server.headersTimeout = 66_000;
 
 server.listen(port, "0.0.0.0", () => {
-  console.log(`MEIOSIS backend listening on http://0.0.0.0:${port}`);
+  console.log(`MEIOSIS backend (with WebSockets) listening on http://0.0.0.0:${port}`);
   console.log(`  → Local: http://localhost:${port}`);
   const os = require("os");
   const ifaces = os.networkInterfaces();

@@ -323,4 +323,19 @@ router.get('/temp-emr', asyncHandler(async (req, res) => {
   });
 }));
 
+router.post('/remote-scan', authMiddleware, asyncHandler(async (req, res) => {
+  const { patientId, doctorId } = req.body;
+  if (!patientId || !doctorId) {
+    return res.status(400).json({ error: 'patientId_and_doctorId_required' });
+  }
+
+  const { getIO } = require('../lib/socket');
+  const io = getIO();
+
+  console.log(`[RemoteScan] Emitting highlight for patient ${patientId} to doctor room ${doctorId}`);
+  io.to(`doctor_${doctorId}`).emit('REMOTE_HIGHLIGHT', { patientId });
+
+  res.json({ status: 'OK', message: 'Highlight event emitted' });
+}));
+
 module.exports = router;
