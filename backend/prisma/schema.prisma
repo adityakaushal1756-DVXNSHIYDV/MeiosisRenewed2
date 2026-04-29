@@ -71,6 +71,7 @@ model Doctor {
   yearsExperience    Int                      @default(0)
   hfrId              String?
   hprId              String?                  @unique
+  lastActiveAt       DateTime?                @default(now())
   appointments       Appointment[]
   preferences        DoctorPreferences?
   schedules          DoctorSchedule[]
@@ -83,6 +84,19 @@ model Doctor {
   account            UserAccount?
   patientLinks       PatientDoctor[]
   queueSessions      QueueSession[]
+  remoteCommands     RemoteCommand[]
+}
+
+model RemoteCommand {
+  id        String   @id @default(cuid())
+  doctorId  String
+  command   String   // e.g., "OPEN_PATIENT"
+  payload   Json     // e.g., { patientId: "..." }
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId, isRead])
 }
 
 /// All doctor UI/UX preferences persisted to the DB.

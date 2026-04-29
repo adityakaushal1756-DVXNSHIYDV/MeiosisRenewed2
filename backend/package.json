@@ -20,8 +20,7 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.1.1",
     "pdf-parse": "^2.4.5",
-    "puppeteer": "^24.40.0",
-    "socket.io": "^4.8.3"
+    "puppeteer": "^24.40.0"
   },
   "devDependencies": {
     "prisma": "^6.5.0"

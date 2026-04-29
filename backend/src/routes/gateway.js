@@ -323,19 +323,82 @@ router.get('/temp-emr', asyncHandler(async (req, res) => {
   });
 }));
 
+// --- New Remote Control (Serverless Compatible) ---
+
+// 1. Doctor Dashboard Heartbeat
+router.post('/heartbeat', authMiddleware, asyncHandler(async (req, res) => {
+  const doctorId = req.user.doctorId;
+  if (!doctorId) return res.status(403).json({ error: 'doctor_only' });
+
+  await prisma.doctor.update({
+    where: { id: doctorId },
+    data: { lastActiveAt: new Date() }
+  });
+
+  res.json({ status: 'OK', role: 'active_doc' });
+}));
+
+// 2. Push Remote Command (from Companion App)
 router.post('/remote-scan', authMiddleware, asyncHandler(async (req, res) => {
   const { patientId, doctorId } = req.body;
+  console.log(`[RemoteScan] Attempting push for Doctor: ${doctorId} | Patient: ${patientId}`);
+  
   if (!patientId || !doctorId) {
+    console.warn('[RemoteScan] Missing parameters');
     return res.status(400).json({ error: 'patientId_and_doctorId_required' });
   }
 
-  const { getIO } = require('../lib/socket');
-  const io = getIO();
+  // Check if doctor is active (within last 2 minutes)
+  const doctor = await prisma.doctor.findUnique({ where: { id: doctorId } });
+  if (!doctor) {
+    console.error(`[RemoteScan] Doctor ${doctorId} not found in database`);
+    return res.status(404).json({ error: 'Doctor record missing' });
+  }
 
-  console.log(`[RemoteScan] Emitting highlight for patient ${patientId} to doctor room ${doctorId}`);
-  io.to(`doctor_${doctorId}`).emit('REMOTE_HIGHLIGHT', { patientId });
+  const isActive = doctor.lastActiveAt && (new Date() - new Date(doctor.lastActiveAt)) < 120000;
 
-  res.json({ status: 'OK', message: 'Highlight event emitted' });
+  try {
+    await prisma.remoteCommand.create({
+      data: {
+        doctorId,
+        command: 'OPEN_PATIENT',
+        payload: { patientId },
+        isRead: false
+      }
+    });
+    console.log(`[RemoteScan] Command queued successfully for ${doctorId}`);
+  } catch (dbErr) {
+    console.error('[RemoteScan] DB Error:', dbErr);
+    throw dbErr;
+  }
+
+  res.json({ 
+    status: 'OK', 
+    message: 'Command queued', 
+    doctorStatus: isActive ? 'active_doc' : 'inactive_doc' 
+  });
+}));
+
+// 3. Poll Remote Commands (from Doctor Dashboard)
+router.get('/remote-commands', authMiddleware, asyncHandler(async (req, res) => {
+  const doctorId = req.user.doctorId;
+  if (!doctorId) return res.status(403).json({ error: 'doctor_only' });
+
+  const command = await prisma.remoteCommand.findFirst({
+    where: { doctorId, isRead: false },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  if (command) {
+    // Mark as read immediately
+    await prisma.remoteCommand.update({
+      where: { id: command.id },
+      data: { isRead: true }
+    });
+    return res.json({ command: command.command, payload: command.payload });
+  }
+
+  res.json({ command: null });
 }));
 
 module.exports = router;

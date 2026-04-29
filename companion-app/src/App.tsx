@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
-import { io, Socket } from 'socket.io-client';
+import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
 import axios from 'axios';
-import { QrCode, LogOut, CheckCircle2, AlertCircle, Monitor, Smartphone, Hammer, Construction } from 'lucide-react';
+import { QrCode, LogOut, CheckCircle2, AlertCircle, Smartphone, User, IdCard, Phone, Droplet, Upload, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Configuration ---
@@ -24,6 +23,16 @@ const clearSession = () => {
   localStorage.removeItem('companion_auth');
 };
 
+// --- Types ---
+interface PatientData {
+  id: string;
+  meiosisId: string;
+  name: string;
+  phone: string;
+  bloodGroup: string;
+  universalCode: string;
+}
+
 // --- Components ---
 
 const Login: React.FC<{ onLogin: (data: any) => void }> = ({ onLogin }) => {
@@ -38,7 +47,7 @@ const Login: React.FC<{ onLogin: (data: any) => void }> = ({ onLogin }) => {
     setError('');
     try {
       const res = await axios.post(`${API_URL}/auth/login`, { identifier, password });
-      if (res.data.account.role !== 'DOCTOR') {
+      if (res.data.user.role !== 'DOCTOR') {
         throw new Error('Only doctors can use the companion app.');
       }
       onLogin(res.data);
@@ -59,7 +68,7 @@ const Login: React.FC<{ onLogin: (data: any) => void }> = ({ onLogin }) => {
         <div className="text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#52ff9d] text-slate-950 text-3xl font-black">M</div>
           <h2 className="mt-6 text-3xl font-bold tracking-tight">Companion App</h2>
-          <p className="mt-2 text-slate-400">Scan QR codes to update your PC dashboard</p>
+          <p className="mt-2 text-slate-400">Scan patient QR codes to identify patients</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -109,104 +118,114 @@ const Login: React.FC<{ onLogin: (data: any) => void }> = ({ onLogin }) => {
 };
 
 const Scanner: React.FC<{ doctor: any; onLogout: () => void }> = ({ doctor, onLogout }) => {
-  const [scannedId, setScannedId] = useState<string | null>(null);
-  const [status, setStatus] = useState<'idle' | 'scanning' | 'success' | 'error'>('scanning');
-  const [socketConnected, setSocketConnected] = useState(false);
-  const socketRef = useRef<Socket | null>(null);
+  const [patient, setPatient] = useState<PatientData | null>(null);
+  const [status, setStatus] = useState<'idle' | 'scanning' | 'loading' | 'success' | 'error'>('scanning');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [doctorStatus, setDoctorStatus] = useState<'active_doc' | 'inactive_doc' | 'unknown'>('unknown');
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Socket setup
-    const socket = io(API_BASE);
-    socketRef.current = socket;
+    initScanner();
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.clear().catch(console.error);
+      }
+    };
+  }, []);
 
-    socket.on('connect', () => {
-      setSocketConnected(true);
-      socket.emit('join_doctor_room', doctor.doctorId);
-    });
-
-    socket.on('disconnect', () => {
-      setSocketConnected(false);
-    });
-
-    // Scanner setup
+  const initScanner = () => {
     const scanner = new Html5QrcodeScanner(
       "reader",
       { fps: 10, qrbox: { width: 250, height: 250 } },
       /* verbose= */ false
     );
     scannerRef.current = scanner;
+    scanner.render(onScanSuccess, (err) => {});
+  };
 
-    scanner.render(onScanSuccess, onScanFailure);
+  const onScanSuccess = async (decodedText: string) => {
+    setStatus('loading');
+    
+    // Extract ID from QR (URL or raw ID)
+    let patientId = decodedText;
+    try {
+      const url = new URL(decodedText);
+      const data = url.searchParams.get('data');
+      if (data) {
+        const parsed = JSON.parse(atob(data));
+        patientId = parsed.p_id || patientId;
+      }
+    } catch (e) {}
 
-    function onScanSuccess(decodedText: string) {
-      // Typically the QR contains a full URL: http://.../gateway?data=...&sig=...
-      // Or just a patient ID for demo purposes.
-      // We'll try to extract data/sig if it's a URL, otherwise treat as ID.
-      let patientId = decodedText;
+    try {
+      // 1. Fetch Patient Info
+      const res = await axios.get(`${API_URL}/patient/profile?id=${patientId}`, {
+        headers: getAuthHeader()
+      });
+      const patientData = res.data;
+      setPatient(patientData);
+      setStatus('success');
+
+      // 2. Trigger Remote Command (Resilient)
       try {
-        const url = new URL(decodedText);
-        const data = url.searchParams.get('data');
-        if (data) {
-          // If it's a complex signed URL, we let the backend handle the verification
-          // But for this companion app, we want to extract the patient ID.
-          // In a real app, the QR data would be decrypted.
-          // For now, let's assume the QR decoded text *is* or contains the ID.
-          // Let's check if decodedText is JSON.
-          try {
-            const parsed = JSON.parse(atob(data));
-            patientId = parsed.p_id || patientId;
-          } catch(e) {}
-        }
-      } catch(e) {}
-
-      handleRemoteHighlight(patientId);
+        const remoteRes = await axios.post(`${API_URL}/gateway/remote-scan`, {
+          patientId: patientData.id, // Use the DB ID for better dashboard mapping
+          doctorId: doctor.doctorId
+        }, { headers: getAuthHeader() });
+        
+        setDoctorStatus(remoteRes.data.doctorStatus);
+      } catch (remoteErr: any) {
+        console.error('[RemoteSync] Failed:', remoteErr.message);
+        // We don't set status to 'error' here because identifying the patient succeeded!
+      }
+      
+      // Auto reset after 5 seconds
+      setTimeout(() => {
+        setPatient(null);
+        setStatus('scanning');
+        setDoctorStatus('unknown');
+      }, 5000);
+    } catch (err: any) {
+      console.error('[Scan] Error:', err);
+      setErrorMsg(err.response?.data?.error || 'Patient not found');
+      setStatus('error');
+      setTimeout(() => setStatus('scanning'), 3000);
     }
+  };
 
-    function onScanFailure(error: any) {
-      // Too noisy to log failures
-    }
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    return () => {
-      scanner.clear().catch(console.error);
-      socket.disconnect();
-    };
-  }, []);
-
-  const handleRemoteHighlight = async (patientId: string) => {
-    setScannedId(patientId);
-    setStatus('success');
+    setStatus('loading');
+    const html5QrCode = new Html5Qrcode("reader-hidden");
     
     try {
-      await axios.post(
-        `${API_URL}/gateway/remote-scan`,
-        { patientId, doctorId: doctor.doctorId },
-        { headers: getAuthHeader() }
-      );
-      
-      // Auto reset after 3 seconds
-      setTimeout(() => {
-        setStatus('scanning');
-        setScannedId(null);
-      }, 3000);
+      const decodedText = await html5QrCode.scanFile(file, true);
+      onScanSuccess(decodedText);
     } catch (err) {
-      console.error("Failed to emit remote highlight", err);
+      setErrorMsg('No QR code found in image');
       setStatus('error');
+      setTimeout(() => setStatus('scanning'), 3000);
+    } finally {
+      html5QrCode.clear();
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
   return (
     <div className="flex min-h-screen flex-col bg-[#060b13] text-white font-['Outfit']">
+      {/* Hidden element for file scanning */}
+      <div id="reader-hidden" className="hidden"></div>
+
       {/* Header */}
       <header className="flex items-center justify-between border-b border-white/10 bg-white/5 p-4 backdrop-blur-lg">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#52ff9d] text-slate-950 font-bold">M</div>
           <div>
             <h1 className="text-sm font-bold">Dr. {doctor.name.split(' ')[doctor.name.split(' ').length - 1]}</h1>
-            <div className="flex items-center gap-1.5">
-              <div className={`h-1.5 w-1.5 rounded-full ${socketConnected ? 'bg-[#52ff9d] shadow-[0_0_8px_#52ff9d]' : 'bg-red-500'}`} />
-              <span className="text-[10px] text-slate-400">{socketConnected ? 'Linked to PC' : 'Offline'}</span>
-            </div>
+            <span className="text-[10px] text-[#52ff9d] font-bold uppercase tracking-wider">Companion Terminal</span>
           </div>
         </div>
         <button 
@@ -218,55 +237,128 @@ const Scanner: React.FC<{ doctor: any; onLogout: () => void }> = ({ doctor, onLo
       </header>
 
       {/* Main Content */}
-      <main className="flex flex-1 flex-col items-center justify-center p-6">
+      <main className="flex flex-1 flex-col items-center justify-center p-6 pb-24">
         <div className="relative w-full max-w-[320px]">
-          {/* Scanner UI */}
+          {/* Scanner View */}
           <div 
             id="reader" 
             className="overflow-hidden rounded-3xl border-2 border-white/10 bg-black/40 shadow-2xl"
             style={{ minHeight: '320px' }}
           ></div>
 
-          {/* Status Overlay */}
+          {/* Overlays */}
           <AnimatePresence>
-            {status === 'success' && (
+            {status === 'loading' && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-3xl bg-black/80 backdrop-blur-sm"
+              >
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#52ff9d] border-t-transparent"></div>
+                <p className="mt-4 text-xs font-bold uppercase tracking-widest text-[#52ff9d]">Identifying...</p>
+              </motion.div>
+            )}
+
+            {status === 'success' && patient && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute inset-0 z-30 flex flex-col items-center justify-center rounded-3xl bg-[#52ff9d] p-6 text-slate-950"
+              >
+                <div className="mb-4 rounded-full bg-slate-950/10 p-3">
+                  <CheckCircle2 size={48} />
+                </div>
+                <h3 className="text-2xl font-black">{patient.name}</h3>
+                
+                {doctorStatus !== 'unknown' && (
+                  <div className={`mt-2 flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider ${
+                    doctorStatus === 'active_doc' 
+                      ? 'bg-slate-950/20 text-slate-950' 
+                      : 'bg-red-500/20 text-red-700'
+                  }`}>
+                    <div className={`h-1.5 w-1.5 rounded-full ${
+                      doctorStatus === 'active_doc' ? 'bg-slate-950' : 'bg-red-700'
+                    }`} />
+                    {doctorStatus === 'active_doc' ? 'Dashboard Active' : 'Dashboard Inactive'}
+                  </div>
+                )}
+                
+                <div className="mt-6 w-full space-y-3">
+                  <div className="flex items-center gap-3 rounded-xl bg-slate-950/5 p-3">
+                    <IdCard size={18} className="opacity-60" />
+                    <div className="text-left">
+                      <p className="text-[10px] font-bold uppercase opacity-60">Meiosis ID</p>
+                      <p className="text-sm font-black">{patient.meiosisId}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 rounded-xl bg-slate-950/5 p-3">
+                    <Droplet size={18} className="opacity-60" />
+                    <div className="text-left">
+                      <p className="text-[10px] font-bold uppercase opacity-60">Blood Group</p>
+                      <p className="text-sm font-black">{patient.bloodGroup}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 rounded-xl bg-slate-950/5 p-3">
+                    <Phone size={18} className="opacity-60" />
+                    <div className="text-left">
+                      <p className="text-[10px] font-bold uppercase opacity-60">Contact</p>
+                      <p className="text-sm font-black">{patient.phone}</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {status === 'error' && (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-3xl bg-[#52ff9d]/90 p-6 text-center text-slate-950 backdrop-blur-sm"
+                className="absolute inset-0 z-30 flex flex-col items-center justify-center rounded-3xl bg-red-500 p-6 text-center text-white"
               >
-                <CheckCircle2 size={64} strokeWidth={2.5} className="mb-4" />
-                <h3 className="text-xl font-bold">Patient Scanned!</h3>
-                <p className="mt-1 text-sm font-medium opacity-80">PC dashboard is updating...</p>
-                <div className="mt-4 rounded-full bg-slate-950/20 px-4 py-1 text-[10px] font-bold uppercase tracking-wider">
-                  ID: {scannedId}
-                </div>
+                <AlertCircle size={64} className="mb-4" />
+                <h3 className="text-xl font-bold">Error</h3>
+                <p className="mt-2 text-sm font-medium opacity-80">{errorMsg}</p>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Info Card */}
-        <div className="mt-12 w-full max-w-[320px] rounded-3xl border border-white/10 bg-white/5 p-5 text-center">
-          <div className="mb-4 flex justify-center gap-4">
-            <Smartphone className="text-[#52ff9d]" size={32} />
-            <div className="h-8 w-px bg-white/10" />
-            <Monitor className="text-slate-500" size={32} />
-          </div>
-          <h4 className="text-sm font-bold">How it works</h4>
-          <p className="mt-2 text-xs leading-relaxed text-slate-400">
-            Scanning a patient's QR code on your phone instantly triggers the "View Records" action on your desktop dashboard.
+        {/* Controls */}
+        <div className="mt-8 flex w-full max-w-[320px] gap-3">
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 py-4 text-sm font-bold transition-all active:scale-95 active:bg-white/10"
+          >
+            <Upload size={18} className="text-[#52ff9d]" />
+            Upload Image
+          </button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            accept="image/*" 
+            onChange={handleFileUpload}
+          />
+        </div>
+
+        <div className="mt-8 text-center opacity-40">
+          <Smartphone size={24} className="mx-auto mb-2" />
+          <p className="text-[10px] font-bold uppercase tracking-widest">
+            Scan QR from camera or gallery
           </p>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="p-4 text-center">
-        <p className="text-[10px] font-medium text-slate-600 uppercase tracking-widest">
-          Meiosis Companion System v1.0
-        </p>
-      </footer>
+      {/* Navigation / Mode */}
+      <div className="fixed bottom-0 left-0 right-0 border-t border-white/10 bg-white/5 p-4 backdrop-blur-xl">
+        <div className="flex items-center justify-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
+           <Camera size={14} />
+           Live Scanning Mode
+        </div>
+      </div>
     </div>
   );
 };
@@ -279,10 +371,10 @@ export default function App() {
     const session = localStorage.getItem('companion_auth');
     if (session) {
       try {
-        const { account } = JSON.parse(session);
-        setDoctor(account);
+        const { user } = JSON.parse(session);
+        setDoctor(user);
       } catch (e) {
-        clearSession();
+        localStorage.removeItem('companion_auth');
       }
     }
     setInitializing(false);
@@ -290,7 +382,7 @@ export default function App() {
 
   const handleLogin = (data: any) => {
     saveSession(data);
-    setDoctor(data.account);
+    setDoctor(data.user);
   };
 
   const handleLogout = () => {
@@ -301,7 +393,7 @@ export default function App() {
   if (initializing) return null;
 
   return (
-    <div className="bg-[#060b13] min-h-screen">
+    <div className="bg-[#060b13] min-h-screen selection:bg-[#52ff9d] selection:text-slate-950">
       {doctor ? (
         <Scanner doctor={doctor} onLogout={handleLogout} />
       ) : (

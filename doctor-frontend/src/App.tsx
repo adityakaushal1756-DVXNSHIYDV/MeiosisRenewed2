@@ -34,7 +34,7 @@ import { AccessDeniedOverlay } from './components/Patient/AccessDeniedOverlay';
 import { HoverRevealSidebar } from './components/HoverRevealSidebar';
 import { LoadingFallback } from './components/LoadingFallback';
 import { EndConsultationDialog } from './components/EMR/EndConsultationDialog';
-import { useRemoteControl } from './hooks/useRemoteControl';
+import { useRemoteControlPolling } from './hooks/useRemoteControlPolling';
 
 const LazyDashboard = lazy(() => import('./pages/Dashboard'));
 const LazyTemplateBuilder = lazy(() =>
@@ -601,19 +601,19 @@ function DoctorWorkspace() {
       return true;
     }
   });
-
-  // WebSocket Remote Control (Mobile QR Scanner Integration)
-  useRemoteControl({
-    doctorId: CURRENT_DOCTOR?.id || null,
-    onRemoteHighlight: (patientId) => {
-      console.log(`[App] Remote highlight received for patient: ${patientId}`);
-      openViewRecords(patientId);
-    }
-  });
   const handleSingularityModernChange = (value: boolean) => {
     setSingularityModernState(value);
     try { localStorage.setItem(DOCTOR_SINGULARITY_MODERN_KEY, String(value)); } catch {}
   };
+
+  // Database-backed Remote Control (Vercel/Serverless Compatible)
+  useRemoteControlPolling({
+    doctorId: CURRENT_DOCTOR?.id || null,
+    onRemoteHighlight: (patientId) => {
+      console.log(`[App] Remote command received to open patient: ${patientId}`);
+      openViewRecords(patientId);
+    }
+  });
   const [singularitySpeed, setSingularitySpeedState] = useState<number>(() => {
     try {
       const stored = localStorage.getItem(DOCTOR_SINGULARITY_SPEED_KEY);
