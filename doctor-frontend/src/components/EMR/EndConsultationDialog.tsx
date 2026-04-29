@@ -20,6 +20,8 @@ interface EndConsultationDialogProps {
   onCancel: () => void;
   /** Called when doctor clicks "View Prescription" */
   onViewPrescription: (path: string) => void;
+  /** Called when doctor clicks "Print" button */
+  onPrintPrescription?: (path: string) => void;
   /** Called after a successful save when doctor wants to close/dismiss */
   onClose?: () => void;
 }
@@ -58,6 +60,7 @@ export function EndConsultationDialog({
   onConfirm,
   onCancel,
   onViewPrescription,
+  onPrintPrescription,
   onClose,
 }: EndConsultationDialogProps) {
   const autoCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -160,16 +163,28 @@ export function EndConsultationDialog({
               </button>
             )}
 
-            {/* View Prescription (shown after a successful save) */}
+            {/* View / Print Prescription (shown after a successful save) */}
             {lastSavedPrescriptionPath && (
-              <button
-                onClick={() => handleManualAction(() => onViewPrescription(lastSavedPrescriptionPath))}
-                className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-[15px] font-semibold text-white transition hover:bg-white/[0.08] hover:border-white/20"
-              >
-                <FileText size={17} className="text-mist/70" />
-                View Prescription
-                <ArrowRight size={13} className="ml-auto text-mist/30" />
-              </button>
+              <div className="flex flex-col gap-2">
+                {onPrintPrescription && (
+                  <button
+                    onClick={() => handleManualAction(() => onPrintPrescription(lastSavedPrescriptionPath))}
+                    className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-neon/10 border border-neon/20 px-6 py-4 text-[15px] font-bold text-neon transition hover:bg-neon/20 hover:border-neon/40"
+                  >
+                    <Zap size={16} fill="currentColor" />
+                    Print Prescription
+                  </button>
+                )}
+                
+                <button
+                  onClick={() => handleManualAction(() => onViewPrescription(lastSavedPrescriptionPath))}
+                  className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 text-[15px] font-semibold text-white transition hover:bg-white/[0.08] hover:border-white/20"
+                >
+                  <FileText size={17} className="text-mist/70" />
+                  View Prescription
+                  <ArrowRight size={13} className="ml-auto text-mist/30" />
+                </button>
+              </div>
             )}
 
             {/* Dismiss / Keep open */}

@@ -23,9 +23,11 @@ import {
   User,
   UserCheck,
   X,
-  XCircle
+  XCircle,
+  Zap
 } from 'lucide-react';
 import { assetUrl } from '../../lib/api';
+import { printDocument } from '../../utils/printHelper';
 import type { Patient, PatientPastAppointment, PatientMedicalReport } from '../../types/Patient';
 
 /* ─────────────────────────────────────────────────────────── */
@@ -755,14 +757,23 @@ export function PrescriptionModal({
             {/* Top Right Actions */}
             <div className="flex items-center gap-2 shrink-0">
               {docPath && (
-                <a
-                  href={assetUrl(docPath)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="action-btn flex items-center justify-center gap-2 !px-4 !py-2 text-xs"
-                >
-                  <Download size={13} /> Download PDF
-                </a>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => printDocument(docPath)}
+                    className="action-btn flex items-center justify-center gap-2 !px-4 !py-2 text-xs !bg-neon/10 !border-neon/20 !text-neon hover:!bg-neon/20"
+                  >
+                    <Zap size={13} fill="currentColor" /> Print
+                  </button>
+                  <a
+                    href={assetUrl(docPath)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ghost-btn flex items-center justify-center gap-2 !px-4 !py-2 text-xs"
+                  >
+                    <Download size={13} /> PDF
+                  </a>
+                </>
               )}
               <button
                 type="button"

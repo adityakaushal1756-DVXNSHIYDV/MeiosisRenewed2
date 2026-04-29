@@ -136,7 +136,7 @@ export function BedLidarView({ onClose }: { onClose:()=>void }) {
     if (!admType||!meiosisInput.trim()) return;
     
     // Optimistically update bed state
-    const newBeds = beds.map(b => b.id===selId ? {...b,status:'occupied',patientId:meiosisInput} : b);
+    const newBeds: BedState[] = beds.map(b => b.id===selId ? {...b,status:'occupied' as BedStatus,patientId:meiosisInput} : b);
     setBeds(newBeds);
     setLastManualUpdate(Date.now());
     

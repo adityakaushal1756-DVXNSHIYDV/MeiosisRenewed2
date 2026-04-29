@@ -3,7 +3,7 @@ export interface LabEntry {
   label: string;
   value: string;
   unit?: string;
-  status?: 'normal' | 'high' | 'low' | 'critical';
+  status?: 'normal' | 'high' | 'low' | 'critical' | 'PENDING';
 }
 
 export interface PrescriptionEntry {
@@ -30,7 +30,7 @@ export interface AppointmentEntry {
   specialty: string;
   doctor: string;
   metrics: string;
-  severity?: 'critical' | 'mild' | 'low';
+  severity?: 'critical' | 'high' | 'mild' | 'low';
   notes?: string;
   status?: string;
   startDate?: string;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, forwardRef, useMemo } from 'react';
-import { FlaskConical, Pill, Stethoscope, ChevronDown, Sparkles, Activity, ShieldAlert, TrendingUp, History, Moon, Sun, ArrowLeft, PlusCircle, X, Brain, HeartPulse, Microscope } from 'lucide-react';
+import { FlaskConical, Pill, Stethoscope, ChevronDown, Sparkles, Activity, ShieldAlert, TrendingUp, History, Moon, Sun, ArrowLeft, PlusCircle, Plus, X, Brain, HeartPulse, Microscope } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL, getAuthHeader } from '../../lib/api';
 import { SidePanel } from './SidePanel';
@@ -9,6 +9,8 @@ import { PrescriptionModal } from '../EMR/EMRTimeline';
 import type { TimelineEvent } from '../EMR/EMRTimeline';
 import type { Patient } from '../../types/Patient';
 import { AdmissionRecord, AdmissionCard } from '../Shared/AdmissionStatus';
+import { DocumentBuilderOverlay } from './DocumentBuilderOverlay';
+
 
 
 const API_BASE = API_BASE_URL;
@@ -3017,6 +3019,8 @@ export function TimelineView({
   const [selApt,  setSelApt]  = useState<AppointmentEntry | null>(null);
   const [isAiExpanded, setIsAiExpanded] = useState(false);
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
+  const [showDocOverlay, setShowDocOverlay] = useState(false);
+
 
   // Read admission record for this patient from patient payload
   const [admissionRecord, setAdmissionRecord] = useState<AdmissionRecord | null>(null);
@@ -3520,7 +3524,7 @@ export function TimelineView({
             color: forcedDarker
               ? 'var(--doctor-accent, #52ff9d)'
               : chromeDarkMode ? 'var(--doctor-text, #f8fafc)' : '#0f172a',
-            borderRadius: 12,
+            borderRadius: '50%',
             cursor: 'pointer',
             boxShadow: chromeDarkMode ? '0 8px 32px rgba(0,0,0,0.2)' : '0 8px 24px rgba(0,0,0,0.04)',
             backdropFilter: 'blur(12px)',
@@ -3539,6 +3543,37 @@ export function TimelineView({
           }}
         >
           {forcedDarker ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+
+        {/* New "+" button */}
+        <button
+          type="button"
+          onClick={() => setShowDocOverlay(true)}
+          title="Create New Document"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 38,
+            height: 38,
+            border: '1px solid var(--doctor-accent, #52ff9d)',
+            background: 'var(--doctor-accent, #52ff9d)',
+            color: '#06111d',
+            borderRadius: 12,
+            cursor: 'pointer',
+            boxShadow: '0 8px 24px rgba(82,255,157,0.2)',
+            transition: 'all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-1px) scale(1.05)';
+            e.currentTarget.style.boxShadow = '0 10px 28px rgba(82,255,157,0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0) scale(1)';
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(82,255,157,0.2)';
+          }}
+        >
+          <Plus size={20} strokeWidth={3} />
         </button>
 
         {onBuildEMR && (
@@ -3578,6 +3613,7 @@ export function TimelineView({
           </button>
         )}
       </div>
+
 
       <div
         style={{
@@ -3919,6 +3955,17 @@ export function TimelineView({
       {setTimelineZoom && !selApt && !isAiExpanded && !isOverviewExpanded && (
         <BottomZoomSlider value={timelineZoom} onChange={setTimelineZoom} chromeDarkMode={chromeDarkMode || false} />
       )}
+
+      {/* Document Builder Overlay */}
+      <AnimatePresence>
+        {showDocOverlay && (
+          <DocumentBuilderOverlay 
+            onClose={() => setShowDocOverlay(false)} 
+            darkMode={chromeDarkMode} 
+          />
+        )}
+      </AnimatePresence>
     </div>
+
   );
 }

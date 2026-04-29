@@ -28,6 +28,7 @@ import {
   subscribeToHighlightBroadcast,
   type PatientHighlightEvent,
 } from './lib/patientHighlight';
+import { printDocument } from './utils/printHelper';
 import { AdmissionRecord } from './components/Shared/AdmissionStatus';
 import { AccessDeniedOverlay } from './components/Patient/AccessDeniedOverlay';
 import { HoverRevealSidebar } from './components/HoverRevealSidebar';
@@ -67,6 +68,7 @@ const DOCTOR_SLOT_DURATION_KEY        = 'meiosis_doctor_slot_duration_v1';
 const DOCTOR_QUEUE_BLOCK_DURATION_KEY = 'meiosis_doctor_queue_block_duration_v1';
 const DOCTOR_FOLLOWUP_GAP_KEY         = 'meiosis_doctor_followup_gap_v1';
 const DOCTOR_PRESCRIPTION_LAYOUT_MODE_KEY = 'meiosis_doctor_prescription_layout_mode_v1';
+const DOCTOR_AUTO_PRINT_KEY            = 'meiosis_doctor_auto_print_v1';
 const TIMELINE_ZOOM_MIN = 0.8;
 const TIMELINE_ZOOM_MAX = 1.4;
 const TIMELINE_ZOOM_STEP = 0.05;
@@ -543,8 +545,7 @@ function DoctorWorkspace() {
     setEmr(createInitialEmr(patient ? { name: patient.name, vitals: patient.vitals, visitReason: patient.visitReason } : null));
     setEmrOpenedFromRecords(true);
     setEmrComposerOpen(true);
-    closeViewRecords();
-  }, [viewRecordsPatientId, accessDeniedPatientId, patients, setSelectedPatientId, closeViewRecords]);
+  }, [viewRecordsPatientId, accessDeniedPatientId, patients, setSelectedPatientId]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [themeMode, setThemeMode] = useState<DoctorThemeMode>(() => {
     try {
@@ -790,20 +791,27 @@ function DoctorWorkspace() {
   const [lateStartTime, setLateStartTime] = useState('11:30');
   const [emrComposerOpen, setEmrComposerOpen] = useState(false);
   const [prescriptionLayout, setPrescriptionLayoutState] = useState<'classic' | 'wide'>(() => {
-    try {
-      const stored = localStorage.getItem(DOCTOR_PRESCRIPTION_LAYOUT_MODE_KEY);
-      return stored === 'wide' ? 'wide' : 'classic';
-    } catch {
-      return 'classic';
-    }
+    try { return (localStorage.getItem(DOCTOR_PRESCRIPTION_LAYOUT_MODE_KEY) as 'classic' | 'wide') ?? 'classic'; } catch { return 'classic'; }
   });
 
-  const setPrescriptionLayout = (mode: 'classic' | 'wide') => {
+  const setPrescriptionLayout = useCallback((mode: 'classic' | 'wide') => {
     setPrescriptionLayoutState(mode);
-    try {
-      localStorage.setItem(DOCTOR_PRESCRIPTION_LAYOUT_MODE_KEY, mode);
-    } catch {}
-  };
+    try { localStorage.setItem(DOCTOR_PRESCRIPTION_LAYOUT_MODE_KEY, mode); } catch {}
+  }, []);
+
+  const [autoPrintEnabled, setAutoPrintEnabled] = useState(() => {
+    try { return localStorage.getItem(DOCTOR_AUTO_PRINT_KEY) === 'true'; } catch { return false; }
+  });
+
+  const handleAutoPrintEnabledChange = useCallback((enabled: boolean) => {
+    setAutoPrintEnabled(enabled);
+    try { localStorage.setItem(DOCTOR_AUTO_PRINT_KEY, String(enabled)); } catch {}
+  }, []);
+
+  const handlePrintPrescription = useCallback((path: string) => {
+    printDocument(path);
+  }, []);
+
   const [emrOpenedFromRecords, setEmrOpenedFromRecords] = useState(false);
   const [emr, setEmr] = useState<EMRState>(() => createInitialEmr(null));
   const [emrSaving, setEmrSaving] = useState(false);
@@ -1537,6 +1545,23 @@ function DoctorWorkspace() {
     }
 
     setEmrSaving(true);
+    
+    // START PRINT WARMUP for Safari compatibility
+    // We create an invisible iframe NOW while we are still in the click event's call stack.
+    // This establishes a "user-initiated" context that Safari will trust for the later print call.
+    let preWarmedIframe: HTMLIFrameElement | null = null;
+    if (autoPrintEnabled) {
+      preWarmedIframe = document.createElement('iframe');
+      preWarmedIframe.style.position = 'fixed';
+      preWarmedIframe.style.right = '-1000px';
+      preWarmedIframe.style.bottom = '-1000px';
+      preWarmedIframe.style.width = '100px';
+      preWarmedIframe.style.height = '100px';
+      preWarmedIframe.style.opacity = '0';
+      preWarmedIframe.style.pointerEvents = 'none';
+      document.body.appendChild(preWarmedIframe);
+    }
+
     try {
       const res = await fetch(apiUrl('/emr'), {
         method: 'POST',
@@ -1558,10 +1583,19 @@ function DoctorWorkspace() {
       } else {
         const saved = await res.json();
         showToast(true, `EMR synced for ${savedPatient.name}`);
-        setLastSavedPrescriptionPath(saved?.prescription?.documentPath || null);
+        const path = saved?.prescription?.documentPath || null;
+        setLastSavedPrescriptionPath(path);
         setEmrSaveSuccess(true);
         // Force the DB data to refresh in cache so next View Records shows the new entry
         loadPatientEMR(savedPatientId);
+
+        // TRIGGER AUTO-PRINT IF ENABLED
+        if (autoPrintEnabled && path) {
+          printDocument(path, preWarmedIframe || undefined);
+        } else if (preWarmedIframe) {
+          // Cleanup if we didn't use it
+          document.body.removeChild(preWarmedIframe);
+        }
       }
 
       // We DO NOT close the EMR builder here anymore; we let the success dialog tick animation play out,
@@ -1767,6 +1801,8 @@ function DoctorWorkspace() {
                 accessLevel={accessLevel}
                 prescriptionLayout={prescriptionLayout}
                 onPrescriptionLayoutChange={setPrescriptionLayout}
+                autoPrintEnabled={autoPrintEnabled}
+                onAutoPrintEnabledChange={handleAutoPrintEnabledChange}
               />
 
               {nav === 'template-builder' && (
@@ -1846,6 +1882,7 @@ function DoctorWorkspace() {
                       }
                     }}
                     onViewPrescription={(path) => window.open(assetUrl(path), '_blank')}
+                    onPrintPrescription={handlePrintPrescription}
                   />
                 )}
             </>

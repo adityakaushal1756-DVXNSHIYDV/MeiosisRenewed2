@@ -42,7 +42,7 @@ import { useTranslation } from "../i18n/LanguageContext";
 import { LANGUAGES } from "../i18n/translations";
 import { Sidebar, NavKey } from "../components/Sidebar";
 import { Topbar } from "../components/Topbar";
-import { apiUrl } from "../lib/api";
+import { apiUrl, getAuthHeader } from "../lib/api";
 import { CURRENT_DOCTOR } from "../config/doctorProfile";
 const QueuePanel = lazy(() => import("../components/Queue/QueuePanel").then(m => ({ default: m.QueuePanel })));
 const PatientSearch = lazy(() => import("../components/Patient/PatientSearch").then(m => ({ default: m.PatientSearch })));
@@ -228,6 +228,8 @@ interface DashboardProps {
   accessLevel: "full" | "lab" | "summary" | null;
   prescriptionLayout: 'classic' | 'wide';
   onPrescriptionLayoutChange: (mode: 'classic' | 'wide') => void;
+  autoPrintEnabled: boolean;
+  onAutoPrintEnabledChange: (enabled: boolean) => void;
 }
 
 /* ── Shared primitives ───────────────────────────────────── */
@@ -811,9 +813,11 @@ export default function Dashboard(props: DashboardProps) {
     isSyncingQueue = false,
     isSyncingPatients = false,
     isSyncingAnalytics = false,
-    accessLevel = "full",
+    accessLevel,
     prescriptionLayout,
     onPrescriptionLayoutChange,
+    autoPrintEnabled,
+    onAutoPrintEnabledChange,
   } = props;
 
   const isSyncingAny = isSyncingQueue || isSyncingPatients || isSyncingAnalytics;
@@ -2559,6 +2563,38 @@ export default function Dashboard(props: DashboardProps) {
                         </div>
                         <span className={`text-xs font-medium ${prescriptionLayout === "wide" ? "text-neon" : "text-mist group-hover:text-white/70"}`}>Wide</span>
                       </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Auto-Print EMR — simple toggle */}
+                <div className="rounded-2xl border border-wire/8 bg-slate-950/20 p-4 mt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 rounded-xl border border-neon/20 bg-neon/10 p-2.5 text-neon shadow-[0_0_15px_rgba(82,255,157,0.15)]">
+                        <Printer size={20} strokeWidth={2.5} />
+                      </div>
+                      <div>
+                        <div className="font-medium text-white">Auto-Print Prescription</div>
+                        <div className="mt-1 text-sm text-mist max-w-[280px] leading-relaxed">
+                          Automatically trigger the print dialog for the built PDF as soon as you end the consultation and sync.
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onAutoPrintEnabledChange(!autoPrintEnabled)}
+                      className={[
+                        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                        autoPrintEnabled ? "bg-neon" : "bg-white/10",
+                      ].join(" ")}
+                    >
+                      <span
+                        className={[
+                          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out",
+                          autoPrintEnabled ? "translate-x-5" : "translate-x-0",
+                        ].join(" ")}
+                      />
                     </button>
                   </div>
                 </div>
