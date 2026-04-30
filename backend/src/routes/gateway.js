@@ -327,7 +327,8 @@ router.get('/temp-emr', asyncHandler(async (req, res) => {
 
 // 1. Doctor Dashboard Heartbeat
 router.post('/heartbeat', authMiddleware, asyncHandler(async (req, res) => {
-  const doctorId = req.user.doctorId;
+  const account = await getAccountFromRequest(req);
+  const doctorId = account?.doctorId;
   if (!doctorId) return res.status(403).json({ error: 'doctor_only' });
 
   await prisma.doctor.update({
@@ -381,7 +382,8 @@ router.post('/remote-scan', authMiddleware, asyncHandler(async (req, res) => {
 
 // 3. Poll Remote Commands (from Doctor Dashboard)
 router.get('/remote-commands', authMiddleware, asyncHandler(async (req, res) => {
-  const doctorId = req.user.doctorId;
+  const account = await getAccountFromRequest(req);
+  const doctorId = account?.doctorId;
   if (!doctorId) return res.status(403).json({ error: 'doctor_only' });
 
   const command = await prisma.remoteCommand.findFirst({
@@ -399,6 +401,51 @@ router.get('/remote-commands', authMiddleware, asyncHandler(async (req, res) => 
   }
 
   res.json({ command: null });
+}));
+
+// 4. Get Doctor Status (for Companion App)
+router.get('/doctor-status', authMiddleware, asyncHandler(async (req, res) => {
+  const account = await getAccountFromRequest(req);
+  const doctorId = account?.doctorId;
+  if (!doctorId) return res.status(403).json({ error: 'doctor_only' });
+
+  const doctor = await prisma.doctor.findUnique({ where: { id: doctorId } });
+  const isActive = doctor?.lastActiveAt && (new Date() - new Date(doctor.lastActiveAt)) < 120000;
+
+  res.json({ 
+    status: isActive ? 'active_doc' : 'inactive_doc',
+    lastActiveAt: doctor?.lastActiveAt
+  });
+}));
+
+// 5. Resolve Patient from any identifier (DB id, meiosisId, or universalCode)
+// Used by the Companion App after a QR scan to get the canonical patient record.
+router.get('/resolve-patient', authMiddleware, asyncHandler(async (req, res) => {
+  noStore(res);
+  const id = String(req.query.id || '').trim();
+  if (!id) return res.status(400).json({ error: 'id_required' });
+
+  const patient = await prisma.patient.findFirst({
+    where: {
+      OR: [
+        { id },
+        { meiosisId: id },
+        { universalCode: id }
+      ]
+    },
+    select: {
+      id: true,
+      meiosisId: true,
+      universalCode: true,
+      name: true,
+      phone: true,
+      bloodGroup: true,
+    }
+  });
+
+  if (!patient) return res.status(404).json({ error: 'patient_not_found' });
+
+  res.json(patient);
 }));
 
 module.exports = router;

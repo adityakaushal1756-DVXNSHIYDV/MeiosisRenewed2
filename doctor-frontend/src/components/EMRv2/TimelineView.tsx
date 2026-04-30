@@ -2992,6 +2992,7 @@ export function TimelineView({
   accessLevel,
   onBack,
   onBuildEMR,
+  onSelectHP,
   prescriptionLayout = 'classic',
   patient = null,
 }: {
@@ -3006,6 +3007,7 @@ export function TimelineView({
   accessLevel?: 'full' | 'lab' | 'summary' | null;
   onBack?: () => void;
   onBuildEMR?: () => void;
+  onSelectHP?: () => void;
   prescriptionLayout?: 'classic' | 'wide';
   patient?: Patient | null;
 }) {
@@ -3961,6 +3963,7 @@ export function TimelineView({
         {showDocOverlay && (
           <DocumentBuilderOverlay 
             onClose={() => setShowDocOverlay(false)} 
+            onSelectHP={onSelectHP}
             darkMode={chromeDarkMode} 
           />
         )}

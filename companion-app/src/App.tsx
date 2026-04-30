@@ -9,11 +9,49 @@ const API_BASE = 'http://' + window.location.hostname + ':5002';
 const API_URL = `${API_BASE}/api`;
 
 const getAuthHeader = () => {
-  const session = localStorage.getItem('companion_auth');
-  if (!session) return {};
-  const { token } = JSON.parse(session);
-  return { 'Authorization': `Bearer ${token}` };
+  try {
+    const session = localStorage.getItem('companion_auth');
+    if (!session) return {};
+    const { token } = JSON.parse(session);
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
 };
+
+/**
+ * Extracts the best patient identifier from a QR code string.
+ * Handles 4 formats:
+ *   1. MEIOSIS gateway URL  → ?data=base64({p_id:"..."})
+ *   2. Raw gateway URL      → parses any query param named p_id or patientId
+ *   3. Plain meiosisId       → e.g. "99999998"
+ *   4. Raw DB uuid / universalCode → pass-through
+ */
+function extractPatientIdFromQr(raw: string): string {
+  const trimmed = raw.trim();
+
+  // Try to parse as URL
+  try {
+    const url = new URL(trimmed);
+
+    // Format 1: ?data=base64(JSON)
+    const dataParam = url.searchParams.get('data');
+    if (dataParam) {
+      try {
+        // base64url or standard base64
+        const decoded = JSON.parse(atob(dataParam.replace(/-/g, '+').replace(/_/g, '/')));
+        if (decoded?.p_id) return String(decoded.p_id);
+      } catch { /* not valid base64-JSON, fall through */ }
+    }
+
+    // Format 2: explicit query params
+    const pId = url.searchParams.get('p_id') || url.searchParams.get('patientId');
+    if (pId) return pId;
+  } catch { /* not a URL, treat as raw identifier */ }
+
+  // Formats 3 & 4: raw string
+  return trimmed;
+}
 
 const saveSession = (data: any) => {
   localStorage.setItem('companion_auth', JSON.stringify(data));
@@ -127,12 +165,31 @@ const Scanner: React.FC<{ doctor: any; onLogout: () => void }> = ({ doctor, onLo
 
   useEffect(() => {
     initScanner();
+    
+    // Initial status check
+    checkDoctorStatus();
+    
+    // Poll for status every 30 seconds
+    const interval = setInterval(checkDoctorStatus, 30000);
+    
     return () => {
+      clearInterval(interval);
       if (scannerRef.current) {
         scannerRef.current.clear().catch(console.error);
       }
     };
   }, []);
+
+  const checkDoctorStatus = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/gateway/doctor-status`, {
+        headers: getAuthHeader()
+      });
+      setDoctorStatus(res.data.status);
+    } catch (err) {
+      console.error('[StatusCheck] Failed:', err);
+    }
+  };
 
   const initScanner = () => {
     const scanner = new Html5QrcodeScanner(
@@ -145,52 +202,54 @@ const Scanner: React.FC<{ doctor: any; onLogout: () => void }> = ({ doctor, onLo
   };
 
   const onScanSuccess = async (decodedText: string) => {
+    // Prevent double-firing while already processing
+    if (status === 'loading' || status === 'success') return;
     setStatus('loading');
-    
-    // Extract ID from QR (URL or raw ID)
-    let patientId = decodedText;
-    try {
-      const url = new URL(decodedText);
-      const data = url.searchParams.get('data');
-      if (data) {
-        const parsed = JSON.parse(atob(data));
-        patientId = parsed.p_id || patientId;
-      }
-    } catch (e) {}
+
+    // ── Step 1: Robustly extract a patient identifier from the QR ──
+    const rawId = extractPatientIdFromQr(decodedText);
+    console.log('[Scan] QR decoded →', rawId);
 
     try {
-      // 1. Fetch Patient Info
-      const res = await axios.get(`${API_URL}/patient/profile?id=${patientId}`, {
-        headers: getAuthHeader()
-      });
-      const patientData = res.data;
+      // ── Step 2: Resolve the patient via the lightweight endpoint ──
+      // /gateway/resolve-patient accepts DB id, meiosisId, or universalCode
+      const resolveRes = await axios.get(
+        `${API_URL}/gateway/resolve-patient?id=${encodeURIComponent(rawId)}`,
+        { headers: getAuthHeader() }
+      );
+      const patientData = resolveRes.data as PatientData;
       setPatient(patientData);
       setStatus('success');
 
-      // 2. Trigger Remote Command (Resilient)
+      // ── Step 3: Push OPEN_PATIENT command to the dashboard ──
+      // Always use the canonical DB id so the dashboard can match it reliably
       try {
-        const remoteRes = await axios.post(`${API_URL}/gateway/remote-scan`, {
-          patientId: patientData.id, // Use the DB ID for better dashboard mapping
-          doctorId: doctor.doctorId
-        }, { headers: getAuthHeader() });
-        
+        const remoteRes = await axios.post(
+          `${API_URL}/gateway/remote-scan`,
+          { patientId: patientData.id, doctorId: doctor.doctorId },
+          { headers: getAuthHeader() }
+        );
         setDoctorStatus(remoteRes.data.doctorStatus);
+        console.log('[Scan] Remote command sent. Dashboard status:', remoteRes.data.doctorStatus);
       } catch (remoteErr: any) {
-        console.error('[RemoteSync] Failed:', remoteErr.message);
-        // We don't set status to 'error' here because identifying the patient succeeded!
+        // Don't fail the scan if the push fails — patient was still identified
+        console.warn('[RemoteSync] Push failed (non-fatal):', remoteErr.message);
       }
-      
-      // Auto reset after 5 seconds
+
+      // ── Step 4: Auto-reset after 6 s so the scanner is ready again ──
       setTimeout(() => {
         setPatient(null);
         setStatus('scanning');
         setDoctorStatus('unknown');
-      }, 5000);
+      }, 6000);
     } catch (err: any) {
-      console.error('[Scan] Error:', err);
-      setErrorMsg(err.response?.data?.error || 'Patient not found');
+      const msg = err.response?.data?.error === 'patient_not_found'
+        ? 'Patient not found in MEIOSIS'
+        : err.response?.data?.error || 'Scan failed — please try again';
+      console.error('[Scan] Error:', msg, err);
+      setErrorMsg(msg);
       setStatus('error');
-      setTimeout(() => setStatus('scanning'), 3000);
+      setTimeout(() => setStatus('scanning'), 3500);
     }
   };
 
@@ -222,10 +281,24 @@ const Scanner: React.FC<{ doctor: any; onLogout: () => void }> = ({ doctor, onLo
       {/* Header */}
       <header className="flex items-center justify-between border-b border-white/10 bg-white/5 p-4 backdrop-blur-lg">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#52ff9d] text-slate-950 font-bold">M</div>
+          <div className="relative">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#52ff9d] text-slate-950 font-bold">M</div>
+            {doctorStatus !== 'unknown' && (
+              <div className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-[#060b13] ${
+                doctorStatus === 'active_doc' ? 'bg-[#52ff9d] shadow-[0_0_8px_#52ff9d]' : 'bg-red-500'
+              }`} />
+            )}
+          </div>
           <div>
-            <h1 className="text-sm font-bold">Dr. {doctor.name.split(' ')[doctor.name.split(' ').length - 1]}</h1>
-            <span className="text-[10px] text-[#52ff9d] font-bold uppercase tracking-wider">Companion Terminal</span>
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm font-bold">Dr. {doctor.name.split(' ')[doctor.name.split(' ').length - 1]}</h1>
+              <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md ${
+                doctorStatus === 'active_doc' ? 'bg-[#52ff9d]/10 text-[#52ff9d]' : 'bg-red-500/10 text-red-400'
+              }`}>
+                {doctorStatus === 'active_doc' ? 'Online' : 'Offline'}
+              </span>
+            </div>
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Companion Terminal</span>
           </div>
         </div>
         <button 

@@ -17,6 +17,7 @@ interface EMRv2Props {
   accessLevel?: 'full' | 'lab' | 'summary' | null;
   onBack?: () => void;
   onBuildEMR?: () => void;
+  onSelectHP?: () => void;
   prescriptionLayout?: 'classic' | 'wide';
 }
 
@@ -34,6 +35,7 @@ export default function EMRv2({
   accessLevel,
   onBack,
   onBuildEMR,
+  onSelectHP,
   prescriptionLayout = 'classic',
 }: EMRv2Props) {
   const pageBg = timelineTheme === 'dashboard-dark'
@@ -65,6 +67,7 @@ export default function EMRv2({
         accessLevel={accessLevel} 
         onBack={onBack}
         onBuildEMR={onBuildEMR}
+        onSelectHP={onSelectHP}
         prescriptionLayout={prescriptionLayout}
       />
     </div>

@@ -4,6 +4,7 @@ import { Search, X, Plus, FileText, Activity, Shield, Users, Heart, Brain, Sciss
 
 interface DocumentBuilderOverlayProps {
   onClose: () => void;
+  onSelectHP?: () => void;
   darkMode?: boolean;
 }
 
@@ -146,7 +147,7 @@ const CATEGORIES = [
   }
 ];
 
-export const DocumentBuilderOverlay: React.FC<DocumentBuilderOverlayProps> = ({ onClose, darkMode }) => {
+export const DocumentBuilderOverlay: React.FC<DocumentBuilderOverlayProps> = ({ onClose, onSelectHP, darkMode }) => {
   const [search, setSearch] = useState('');
   const [comingSoon, setComingSoon] = useState<string | null>(null);
   const [minimized, setMinimized] = useState(false);
@@ -428,7 +429,14 @@ export const DocumentBuilderOverlay: React.FC<DocumentBuilderOverlayProps> = ({ 
                   }}
                   whileHover={{ scale: 1.02, translateY: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setComingSoon(doc)}
+                  onClick={() => {
+                    if (doc === 'History & Physical (H&P)' && onSelectHP) {
+                      onSelectHP();
+                      onClose();
+                    } else {
+                      setComingSoon(doc);
+                    }
+                  }}
                   style={{
                     background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.5)',
                     border: darkMode ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)',

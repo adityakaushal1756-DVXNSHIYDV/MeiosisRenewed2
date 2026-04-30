@@ -35,6 +35,7 @@ import { HoverRevealSidebar } from './components/HoverRevealSidebar';
 import { LoadingFallback } from './components/LoadingFallback';
 import { EndConsultationDialog } from './components/EMR/EndConsultationDialog';
 import { useRemoteControlPolling } from './hooks/useRemoteControlPolling';
+import { HistoryAndPhysicalUniversal } from './pages/HistoryAndPhysicalUniversal';
 
 const LazyDashboard = lazy(() => import('./pages/Dashboard'));
 const LazyTemplateBuilder = lazy(() =>
@@ -497,6 +498,7 @@ function DoctorWorkspace() {
   });
 
   const [nav, setNav] = useState<NavKey>('dashboard');
+  const [hpUniversalOpen, setHpUniversalOpen] = useState(false);
   const [viewRecordsPatientId, setViewRecordsPatientId] = useState<string | null>(null);
   const [isClosingRecords, setIsClosingRecords] = useState(false);
   const [accessDeniedPatientId, setAccessDeniedPatientId] = useState<string | null>(null);
@@ -609,8 +611,58 @@ function DoctorWorkspace() {
   // Database-backed Remote Control (Vercel/Serverless Compatible)
   useRemoteControlPolling({
     doctorId: CURRENT_DOCTOR?.id || null,
-    onRemoteHighlight: (patientId) => {
-      console.log(`[App] Remote command received to open patient: ${patientId}`);
+    onRemoteHighlight: async (patientId: string) => {
+      console.log(`[App] Remote command received → opening patient: ${patientId}`);
+
+      // Check if this patient is already in local state
+      const alreadyLoaded = patients.some(
+        (p) => p.id === patientId || p.meiosisCode === patientId
+      );
+
+      if (!alreadyLoaded) {
+        // Fetch the minimal patient record from backend so the EMR view has
+        // something to render, then load the full EMR in the background.
+        try {
+          const res = await fetch(
+            apiUrl(`/patient/profile?id=${encodeURIComponent(patientId)}`),
+            { headers: getAuthHeader() }
+          );
+          if (res.ok) {
+            const p = await res.json();
+            if (p?.id) {
+              setPatients((prev) => {
+                if (prev.some((x) => x.id === p.id)) return prev;
+                return [
+                  ...prev,
+                  {
+                    id: p.id,
+                    meiosisCode: p.universalCode || p.meiosisId || p.id,
+                    name: p.name || 'Unknown',
+                    phone: p.phone || '',
+                    email: p.email || '',
+                    age: 0,
+                    gender: 'Other' as const,
+                    visitReason: 'Remote Scan',
+                    lastVisitDate: '',
+                    allergies: [],
+                    chronicConditions: [],
+                    vitals: { bloodPressure: '', pulse: '', temperature: '', spo2: '', height: '', weight: '' },
+                    history: [],
+                    pastAppointments: [],
+                    prescriptions: [],
+                    medicalReports: [],
+                  },
+                ];
+              });
+            }
+          }
+        } catch (err) {
+          console.warn('[RemoteHighlight] Could not pre-fetch patient:', err);
+        }
+      }
+
+      // Load their full EMR then open the view
+      await loadPatientEMR(patientId);
       openViewRecords(patientId);
     }
   });
@@ -1850,6 +1902,7 @@ function DoctorWorkspace() {
                       prescriptionLayout={prescriptionLayout}
                       onBack={handleBackToPatientSearch}
                       onBuildEMR={handleBuildEMRFromRecords}
+                      onSelectHP={() => setHpUniversalOpen(true)}
                     />
                   </Suspense>
                 </div>
@@ -1898,6 +1951,13 @@ function DoctorWorkspace() {
             </>
           )}
         </Suspense>
+        {hpUniversalOpen && (
+          <HistoryAndPhysicalUniversal 
+            onClose={() => setHpUniversalOpen(false)}
+            patientName={effectivePatient?.name}
+            darkMode={darkMode}
+          />
+        )}
       </>
     </LanguageContext.Provider>
   );
