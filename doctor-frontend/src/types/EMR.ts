@@ -39,6 +39,7 @@ export interface EMRState {
   symptomCode?: string;
   diagnosis: string;
   diagnosisCode?: string;
+  simpleNote?: string;
   labTests: string;
   advice: string;
   followUpDate: string;

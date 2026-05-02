@@ -9,6 +9,7 @@ interface MedicineAutocompleteProps {
   onSelect: (med: MedicineDBRecord) => void;
   placeholder?: string;
   className?: string;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
 export function MedicineAutocomplete({
@@ -16,7 +17,8 @@ export function MedicineAutocomplete({
   onChange,
   onSelect,
   placeholder = "Medicine name",
-  className = ""
+  className = "",
+  onKeyDown
 }: MedicineAutocompleteProps) {
   const [query, setQuery]     = useState(value);
   const [results, setResults] = useState<MedicineDBRecord[]>([]);
@@ -200,6 +202,7 @@ export function MedicineAutocomplete({
           setIsOpen(true);
           computePos();
         }}
+        onKeyDown={onKeyDown}
         placeholder={placeholder}
       />
       {loading && (

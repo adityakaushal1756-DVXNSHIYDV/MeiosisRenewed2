@@ -76,6 +76,7 @@ export interface PatientProfile {
   appointments: Appointment[];
   prescriptions: Prescription[];
   labReports: LabReport[];
+  hpNotes?: any[];
   
   // Lifestyle & Habits
   breakfastTime?: string | null;

@@ -120,6 +120,10 @@ router.get('/profile', asyncHandler(async (req, res) => {
         include: { doctor: true },
         orderBy: { reportDate: 'desc' }
       },
+      hpNotes: {
+        include: { doctor: true },
+        orderBy: { noteDate: 'desc' }
+      },
       doctorLinks: {
         include: { doctor: true }
       }
@@ -161,6 +165,10 @@ async function loadPatientWithRecords(id) {
       labReports: {
         include: { doctor: true },
         orderBy: { reportDate: 'desc' }
+      },
+      hpNotes: {
+        include: { doctor: true },
+        orderBy: { noteDate: 'desc' }
       }
     }
   });

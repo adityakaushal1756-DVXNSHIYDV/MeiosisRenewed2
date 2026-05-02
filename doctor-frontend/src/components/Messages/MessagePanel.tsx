@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MessageSquare, Send, RefreshCw, User, Plus, X, Search, Play, Pause, Mic, Trash2 } from 'lucide-react';
 import { CURRENT_DOCTOR } from '../../config/doctorProfile';
-import { API_BASE_URL, assetUrl } from '../../lib/api';
+import { API_BASE_URL, assetUrl, getAuthHeader } from '../../lib/api';
 
 const MESSAGE_ATTACHMENT_PREFIX = '__MEIOSIS_ATTACHMENT__::';
 
@@ -195,7 +195,7 @@ export function MessagePanel() {
     if (!quiet) setLoading(true);
     else setRefreshing(true);
     try {
-      const res = await fetch(`${API}/messages/threads?doctorId=${encodeURIComponent(CURRENT_DOCTOR.id)}`);
+      const res = await fetch(`${API}/messages/threads?doctorId=${encodeURIComponent(CURRENT_DOCTOR.id)}`, { headers: getAuthHeader() });
       if (!res.ok) throw new Error('fetch failed');
       const data: BackendThread[] = await res.json();
       setThreads(data);
@@ -214,7 +214,7 @@ export function MessagePanel() {
   /* ── Fetch all patients for this doctor ── */
   const fetchPatients = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/doctors/${encodeURIComponent(CURRENT_DOCTOR.id)}/patients`);
+      const res = await fetch(`${API}/doctors/${encodeURIComponent(CURRENT_DOCTOR.id)}/patients`, { headers: getAuthHeader() });
       if (!res.ok) return;
       const data: PatientSummary[] = await res.json();
       setAllPatients(data);
@@ -251,7 +251,7 @@ export function MessagePanel() {
     try {
       const res = await fetch(`${API}/messages/threads`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
         body: JSON.stringify({ doctorId: CURRENT_DOCTOR.id, patientId: patient.id })
       });
       if (!res.ok) throw new Error('failed');
@@ -296,7 +296,7 @@ export function MessagePanel() {
     try {
       await fetch(`${API}/messages/threads/${activeThread.id}/messages`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
         body: JSON.stringify({ sender: 'DOCTOR', text })
       });
     } catch {
@@ -394,7 +394,8 @@ export function MessagePanel() {
 
           await fetch(`${API}/messages/threads/${activeThread.id}/attachments`, {
             method: 'POST',
-            body: form
+            headers: getAuthHeader(),
+          body: form
           });
         } catch {
           // keep optimistic — will reconcile on next poll

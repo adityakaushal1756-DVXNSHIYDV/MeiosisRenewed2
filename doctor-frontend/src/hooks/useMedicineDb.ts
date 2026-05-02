@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { API_BASE_URL } from '../lib/api';
+import { API_BASE_URL, getAuthHeader } from '../lib/api';
 
 const API = API_BASE_URL;
 const STORAGE_KEY = 'meiosis_medicine_db_v1';
@@ -40,6 +40,7 @@ export function useMedicineDb(): UseMedicineDbReturn {
       formData.append('pdf', file);
       const res = await fetch(`${API}/medicines/upload`, {
         method: 'POST',
+        headers: getAuthHeader(),
         body: formData,
       });
       if (!res.ok) {

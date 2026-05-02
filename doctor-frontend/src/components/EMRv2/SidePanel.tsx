@@ -1,7 +1,7 @@
 import { useState, Fragment, useEffect } from 'react';
-import { Download } from 'lucide-react';
+import { Download, User, Stethoscope, Calendar } from 'lucide-react';
 import type { AppointmentEntry } from './types';
-import { apiUrl } from '../../lib/api';
+import { apiUrl, getAuthHeader, handleAuthError } from '../../lib/api';
 
 const TIMING_SLOTS = ['Breakfast', 'Lunch', 'Dinner', 'Night'] as const;
 function patternLabel(code: string | undefined): string {
@@ -25,18 +25,21 @@ function fmtDate(value?: string): string {
 }
 
 function MetaTile({
-  label, value, border, topBorder,
+  label, value, icon: Icon,
 }: {
-  label: string; value: string; border?: boolean; topBorder?: boolean;
+  label: string; value: string; icon?: any;
 }) {
   return (
-    <div className={[
-      'bg-white/[0.02] px-4 py-3',
-      border    ? 'border-l border-white/[0.07]' : '',
-      topBorder ? 'border-t border-white/[0.07]' : '',
-    ].join(' ')}>
-      <p className="text-[9px] font-medium uppercase tracking-[0.16em] text-mist/55">{label}</p>
-      <p className="mt-1 text-[13px] font-semibold text-white">{value || '—'}</p>
+    <div className="flex flex-1 items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-5 py-4 backdrop-blur-md transition-all hover:border-white/[0.12] hover:bg-white/[0.05] hover:shadow-[0_8px_20px_rgba(0,0,0,0.2)]">
+      {Icon && (
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.05] text-white/40">
+          <Icon size={18} strokeWidth={1.5} />
+        </div>
+      )}
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-mist/40">{label}</p>
+        <p className="mt-1 truncate text-[15px] font-bold text-white/90">{value || '—'}</p>
+      </div>
     </div>
   );
 }
@@ -110,9 +113,17 @@ export function SidePanel({ appointment, onClose, accessLevel = 'full' }: SidePa
     let objectUrl: string | null = null;
     try {
       const downloadUrl = apiUrl(`/prescriptions/${encodeURIComponent(appointment.id)}/pdf?download=1`);
-      const response = await fetch(downloadUrl);
+      const response = await fetch(downloadUrl, {
+        headers: {
+          ...getAuthHeader(),
+        },
+      });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          handleAuthError();
+          return;
+        }
         let message = 'Unable to generate the prescription PDF right now.';
         try {
           const payload = await response.json();
@@ -132,8 +143,9 @@ export function SidePanel({ appointment, onClose, accessLevel = 'full' }: SidePa
       link.click();
       link.remove();
     } catch (err) {
-      console.error('Failed to generate PDF:', err);
-      setDownloadError(err instanceof Error ? err.message : 'Unable to download the prescription PDF.');
+      console.error('[SidePanel] Failed to generate PDF:', err);
+      const errorMsg = err instanceof Error ? err.message : 'Unable to download the prescription PDF.';
+      setDownloadError(`${errorMsg} (Please check if you are still logged in)`);
     } finally {
       if (objectUrl) {
         window.setTimeout(() => URL.revokeObjectURL(objectUrl as string), 1000);
@@ -163,46 +175,45 @@ export function SidePanel({ appointment, onClose, accessLevel = 'full' }: SidePa
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[700px] overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0d1520] shadow-[0_32px_100px_rgba(0,0,0,0.75)]"
+        className="w-full max-w-[1000px] overflow-hidden rounded-[32px] border border-white/[0.08] bg-[#0d1520] shadow-[0_32px_100px_rgba(0,0,0,0.75)]"
         onClick={(e) => e.stopPropagation()}
       >
 
         {/* ── Hero ── */}
-        <div className="border-b border-white/[0.07] px-6 pt-6 pb-5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-neon/70">
-            MEIOSIS PRESCRIPTION
-          </p>
-          <h3 className="mt-1.5 text-[18px] font-bold leading-snug text-white">
-            {appointment.type || 'Consultation Record'}
-          </h3>
-          <div className="mt-3 flex flex-wrap items-center gap-2.5">
-            <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
-              isActive
-                ? 'bg-neon/[0.13] text-neon'
-                : 'bg-white/[0.07] text-white/55'
-            }`}>
-              {statusLabel}
-            </span>
-            <span className="text-[12px] text-mist/65">{dateRange}</span>
+        <div className="border-b border-white/[0.07] px-8 pt-8 pb-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-neon/70">
+                MEIOSIS PRESCRIPTION
+              </p>
+              <h3 className="mt-2 text-[24px] font-bold tracking-tight text-white">
+                {appointment.type || 'Consultation Record'}
+              </h3>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <span className={`rounded-full px-4 py-1.5 text-[11px] font-bold tracking-wide ${
+                isActive
+                  ? 'bg-neon/[0.13] text-neon shadow-[0_0_15px_rgba(0,255,163,0.1)]'
+                  : 'bg-white/[0.07] text-white/55'
+              }`}>
+                {statusLabel}
+              </span>
+              <span className="text-[12px] font-medium text-mist/65">{dateRange}</span>
+            </div>
           </div>
         </div>
 
         {/* ── Meta tiles ── */}
-        <div className="grid grid-cols-4 border-b border-white/[0.07]">
-          <MetaTile label="DOCTOR"         value={appointment.doctor    ?? '—'} />
-          <MetaTile label="SPECIALTY"      value={appointment.specialty ?? '—'} border />
-          <MetaTile label="FOLLOW-UP DATE" value={fmtDate(appointment.endDate)} border />
-          <MetaTile
-            label="DURATION"
-            value={appointment.durationDays ? `${appointment.durationDays} days` : '—'}
-            border
-          />
+        <div className="flex flex-wrap gap-4 border-b border-white/[0.07] p-6 bg-white/[0.01]">
+          <MetaTile label="Attending Physician" value={appointment.doctor ?? '—'} icon={User} />
+          <MetaTile label="Clinical Specialty"  value={appointment.specialty ?? '—'} icon={Stethoscope} />
+          <MetaTile label="Encounter Date"      value={appointment.date ?? '—'} icon={Calendar} />
         </div>
 
         {/* ── Medications table ── */}
         {canSeeMeds && (
-          <div className="border-b border-white/[0.07] px-5 py-4">
-            <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80">
+          <div className="border-b border-white/[0.07] px-8 py-6">
+            <p className="mb-4 text-[13px] font-bold uppercase tracking-[0.14em] text-white/90">
               💊 Medications
             </p>
             {meds.length === 0 ? (
@@ -282,8 +293,8 @@ export function SidePanel({ appointment, onClose, accessLevel = 'full' }: SidePa
         )}
         {/* ── Vitals ── */}
         {canSeeVitals && (
-          <div className="border-b border-white/[0.07] px-5 py-4">
-            <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80">
+          <div className="border-b border-white/[0.07] px-8 py-6">
+            <p className="mb-4 text-[13px] font-bold uppercase tracking-[0.14em] text-white/90">
               🩺 Vitals
             </p>
             <div className="grid grid-cols-3 gap-2.5">
@@ -308,8 +319,8 @@ export function SidePanel({ appointment, onClose, accessLevel = 'full' }: SidePa
 
         {/* ── Clinical Notes ── */}
         {hasNotes && (
-          <div className="border-b border-white/[0.07] px-5 py-4">
-            <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80">
+          <div className="border-b border-white/[0.07] px-8 py-6">
+            <p className="mb-4 text-[13px] font-bold uppercase tracking-[0.14em] text-white/90">
               📋 Clinical Notes
             </p>
             <div className="space-y-3">

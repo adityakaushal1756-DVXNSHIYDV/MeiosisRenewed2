@@ -8,7 +8,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { CURRENT_DOCTOR } from '../config/doctorProfile';
-import { API_BASE_URL } from '../lib/api';
+import { API_BASE_URL, getAuthHeader } from '../lib/api';
 import { saveToCache, loadFromCache } from '../utils/persistentCache';
 
 const API = API_BASE_URL;
@@ -87,7 +87,8 @@ function mapRaw(raw: any[]): CalendarEvent[] {
 async function fetchDate(date: string): Promise<CalendarEvent[]> {
   try {
     const res = await fetch(
-      `${API}/appointments?doctorId=${encodeURIComponent(CURRENT_DOCTOR.id)}&date=${date}`
+      `${API}/appointments?doctorId=${encodeURIComponent(CURRENT_DOCTOR.id)}&date=${date}`,
+      { headers: getAuthHeader() }
     );
     if (!res.ok) return [];
     const raw = await res.json();

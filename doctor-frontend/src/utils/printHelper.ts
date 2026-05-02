@@ -1,4 +1,4 @@
-import { assetUrl } from '../lib/api';
+import { assetUrl, getAuthHeader } from '../lib/api';
 
 /**
  * Triggers a print dialog for a document at the given path.
@@ -18,7 +18,11 @@ export const printDocument = async (path: string, existingIframe?: HTMLIFrameEle
   try {
     // 1. Fetch the PDF as a blob. This makes it a "local" same-origin resource,
     // which Safari is much more likely to allow for programmatic printing.
-    const response = await fetch(rawUrl);
+    const response = await fetch(rawUrl, {
+      headers: {
+        ...getAuthHeader()
+      }
+    });
     if (!response.ok) throw new Error("Failed to fetch PDF");
     const blob = await response.blob();
     const blobUrl = URL.createObjectURL(blob);

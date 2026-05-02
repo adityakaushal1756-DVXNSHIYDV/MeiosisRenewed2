@@ -411,6 +411,15 @@ export function EMRBuilder({
                 </div>
               </Section>
 
+              <Section title="Added Note">
+                <textarea
+                  className="input-shell w-full min-h-[88px] resize-none"
+                  value={emr.simpleNote || ""}
+                  onChange={(e) => onFieldChange("simpleNote", e.target.value)}
+                  placeholder="Additional clinical note, observations, or subjective findings..."
+                />
+              </Section>
+
               <Section title="Lab Orders">
                 <textarea
                   className="input-shell w-full min-h-[88px] resize-none"

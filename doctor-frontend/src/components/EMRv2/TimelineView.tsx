@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, forwardRef, useMemo } from 'react';
-import { FlaskConical, Pill, Stethoscope, ChevronDown, Sparkles, Activity, ShieldAlert, TrendingUp, History, Moon, Sun, ArrowLeft, PlusCircle, Plus, X, Brain, HeartPulse, Microscope } from 'lucide-react';
+import { FlaskConical, Pill, Stethoscope, ChevronDown, Sparkles, Activity, ShieldAlert, TrendingUp, History, Moon, Sun, ArrowLeft, PlusCircle, Plus, X, Brain, HeartPulse, Microscope, StickyNote } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL, getAuthHeader } from '../../lib/api';
 import { SidePanel } from './SidePanel';
@@ -148,6 +148,7 @@ function buildTimelineData(data: any): AppointmentEntry[] {
   const prescriptions = Array.isArray(data.prescriptions) ? data.prescriptions : [];
   const labReports    = Array.isArray(data.labReports)    ? data.labReports    : [];
   const appointments  = Array.isArray(data.appointments)  ? data.appointments  : [];
+  const hpNotes       = Array.isArray(data.hpNotes)       ? data.hpNotes       : [];
 
   // Track dates to avoid double-counting consultations and prescriptions
   const handledDates = new Set<string>();
@@ -287,7 +288,6 @@ function buildTimelineData(data: any): AppointmentEntry[] {
   });
 
   // Add HP notes from the payload
-  const hpNotes = Array.isArray(data.hpNotes) ? data.hpNotes : [];
   hpNotes.forEach((note: any) => {
     let displayDate = 'Unknown Date';
     try {
@@ -297,16 +297,21 @@ function buildTimelineData(data: any): AppointmentEntry[] {
       }
     } catch {}
 
+    const isSimple = !!note.noteData?.isSimpleNote;
+    const rawDate = note.noteDate || note.createdAt;
+
     results.push({
       id: note.id,
       date: displayDate,
-      type: note.title || 'H&P Note',
+      type: isSimple ? 'Clinical Note' : (note.title || 'Added Note'),
       specialty: note.doctor?.specialty || 'General Practice',
       doctor: note.doctor?.name || 'Unknown',
-      metrics: 'H&P',
-      startDate: note.noteDate,
+      metrics: isSimple ? 'Note' : 'H&P',
+      startDate: rawDate,
       status: 'COMPLETED',
-      isHPNote: true,
+      isHPNote: !isSimple,
+      isNote: isSimple,
+      noteText: isSimple ? note.noteData?.text : undefined,
       hpNoteData: note.noteData || {},
       labs: [],
       prescriptions: [],
@@ -314,7 +319,14 @@ function buildTimelineData(data: any): AppointmentEntry[] {
     } as any);
   });
 
-  return results.sort((a, b) => new Date(b.startDate || b.date).getTime() - new Date(a.startDate || a.date).getTime());
+  return results.sort((a, b) => {
+    const timeA = new Date(a.startDate || a.date).getTime();
+    const timeB = new Date(b.startDate || b.date).getTime();
+    if (isNaN(timeA) && isNaN(timeB)) return 0;
+    if (isNaN(timeA)) return 1;
+    if (isNaN(timeB)) return -1;
+    return timeB - timeA;
+  });
 }
 
 
@@ -540,7 +552,7 @@ const PCard = forwardRef<HTMLDivElement, PCardProps>(
                 <>
                   <span style={{ width: 4, height: 4, borderRadius: '50%', background: accent }} />
                   <span style={{ fontSize: Math.max(9, 9 * scale), fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: accent }}>
-                    H&amp;P Note
+                    Added Note
                   </span>
                 </>
               );
@@ -561,7 +573,7 @@ const PCard = forwardRef<HTMLDivElement, PCardProps>(
           })()}
         </div>
         <div style={{ position: 'relative', zIndex: 1, fontSize: Math.max(15, 16 * scale), fontWeight: 800, color: timelineTheme === 'beige-light' ? '#2e2418' : '#FFFFFF', lineHeight: 1.3, marginBottom: 5, textShadow: timelineTheme === 'beige-light' ? '0 1px 0 rgba(255,255,255,0.18)' : '0 1px 0 rgba(0,0,0,0.16)' }}>
-          {(apt as any).isHPNote ? 'H&P Documentation' : 'Consultation'}, {apt.date}
+          {(apt as any).isHPNote ? 'Added Note' : 'Consultation'}, {apt.date}
         </div>
         <div style={{ position: 'relative', zIndex: 1, fontSize: Math.max(10.5, 11 * scale), color: timelineTheme === 'beige-light' ? 'rgba(72,56,38,0.78)' : 'rgba(240,247,255,0.72)', marginBottom: Math.max(14, Math.round(16 * scale)), fontWeight: 500 }}>
           {apt.date} · {apt.doctor}
@@ -3069,6 +3081,9 @@ export function TimelineView({
   const [hiId,    setHiId]    = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [selApt,  setSelApt]  = useState<AppointmentEntry | null>(null);
+  const [showAddNoteModal, setShowAddNoteModal] = useState(false);
+  const [newNoteText, setNewNoteText] = useState('');
+  const [isSubmittingNote, setIsSubmittingNote] = useState(false);
   const [isAiExpanded, setIsAiExpanded] = useState(false);
   const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
   const [showDocOverlay, setShowDocOverlay] = useState(false);
@@ -3185,6 +3200,36 @@ export function TimelineView({
     return [];
   }, [mergedAptData, accessLevel]);
 
+  const handleAddNoteSubmit = async () => {
+    if (!newNoteText.trim() || !patientId) return;
+    setIsSubmittingNote(true);
+    try {
+      const res = await fetch(`${API_BASE}/hp-notes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        },
+        body: JSON.stringify({
+          patientId,
+          title: 'Clinical Note',
+          noteData: { isSimpleNote: true, text: newNoteText.trim() }
+        })
+      });
+      if (res.ok) {
+        setNewNoteText('');
+        setShowAddNoteModal(false);
+        if (patientId) {
+          loadData(patientId);
+        }
+      }
+    } catch (err) {
+      console.error('[EMR] Error saving note:', err);
+    } finally {
+      setIsSubmittingNote(false);
+    }
+  };
+
   const [serpPath,    setSerpPath]     = useState('');
   const [svgH,        setSvgH]         = useState(0);
   const [visibleRows, setVisibleRows]  = useState<Set<number>>(new Set());
@@ -3254,6 +3299,28 @@ export function TimelineView({
   }, [timelineLayout]);
 
   // -- Fetch data when patientId changes ------------------------
+  const loadData = async (pid: string, cancelled = { current: false }) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/emr?patientId=${encodeURIComponent(pid)}`, {
+        headers: getAuthHeader()
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (cancelled.current) return;
+      const formatted = buildTimelineData(data);
+      setAptData(formatted);
+      if (formatted.length === 0) {
+        console.warn("[Meiosis] Timeline fetched but returned no records for patient:", pid);
+      }
+    } catch (err) {
+      console.error("[Meiosis] Failed to fetch timeline records:", err);
+      if (!cancelled.current) setAptData([]);
+    } finally {
+      if (!cancelled.current) setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!patientId) {
       setAptData([]);
@@ -3262,36 +3329,14 @@ export function TimelineView({
       return;
     }
 
-    let cancelled = false;
-    setLoading(true);
+    const state = { current: false };
     setAptData([]);
     setSelApt(null);
     serpAnimDone.current = false;
 
-    fetch(`${API_BASE}/emr?patientId=${encodeURIComponent(patientId)}`, {
-      headers: getAuthHeader()
-    })
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then(data => {
-        if (cancelled) return;
-        const formatted = buildTimelineData(data);
-        setAptData(formatted);
-        if (formatted.length === 0) {
-          console.warn("[Meiosis] Timeline fetched but returned no records for patient:", patientId);
-        }
-      })
-      .catch(err => {
-        console.error("[Meiosis] Failed to fetch timeline records:", err);
-        if (!cancelled) setAptData([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    loadData(patientId, state);
 
-    return () => { cancelled = true; };
+    return () => { state.current = true; };
   }, [patientId]);
 
   function computeSerpentine() {
@@ -3662,6 +3707,40 @@ export function TimelineView({
           <Plus size={20} strokeWidth={3} />
         </button>
 
+        <button
+          type="button"
+          onClick={() => setShowAddNoteModal(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            border: '1px solid var(--wire-color, rgba(255,255,255,0.1))',
+            background: 'var(--card-bg, rgba(255,255,255,0.02))',
+            color: 'var(--mist-color, rgba(255,255,255,0.6))',
+            borderRadius: 99,
+            padding: '10px 22px',
+            cursor: 'pointer',
+            fontSize: 12,
+            fontWeight: 800,
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = 'var(--text-color, #ffffff)';
+            e.currentTarget.style.borderColor = 'rgba(251, 191, 36, 0.4)';
+            e.currentTarget.style.background = 'rgba(251, 191, 36, 0.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = 'var(--mist-color, rgba(255,255,255,0.6))';
+            e.currentTarget.style.borderColor = 'var(--wire-color, rgba(255,255,255,0.1))';
+            e.currentTarget.style.background = 'var(--card-bg, rgba(255,255,255,0.02))';
+          }}
+        >
+          <StickyNote size={18} />
+          <span>Add Note</span>
+        </button>
+
         {onBuildEMR && (
           <button
             type="button"
@@ -3990,7 +4069,24 @@ export function TimelineView({
       </div>{/* end timeline column */}
       {/* -- Side panel or Wide Modal -- */}
       {selApt && (
-        selApt.isHPNote ? (
+        selApt.isNote ? (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/65 px-4 backdrop-blur-sm" onClick={() => setSelApt(null)}>
+            <div className="w-full max-w-[500px] overflow-hidden rounded-3xl border border-amber-400/20 bg-[#0d1520] shadow-[0_32px_100px_rgba(0,0,0,0.75)]" onClick={(e) => e.stopPropagation()}>
+              <div className="border-b border-white/[0.07] px-6 py-5 flex items-center justify-between bg-amber-400/[0.02]">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2"><StickyNote className="text-amber-400" size={18} /> {selApt.type}</h3>
+                <button onClick={() => setSelApt(null)} className="ghost-btn !px-2 !py-2 text-mist"><X size={16} /></button>
+              </div>
+              <div className="p-6">
+                <div className="text-sm font-semibold text-amber-200/50 uppercase tracking-widest mb-3">Note Details</div>
+                <p className="text-[15px] leading-relaxed text-white/90 whitespace-pre-wrap">{selApt.noteText}</p>
+                <div className="mt-8 flex justify-between items-center text-[12px] text-mist/50 border-t border-white/[0.04] pt-4">
+                  <span>Added by Dr. {selApt.doctor}</span>
+                  <span>{selApt.date}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : selApt.isHPNote ? (
           <HPNotePanel appointment={selApt} onClose={() => setSelApt(null)} />
         ) : prescriptionLayout === 'wide' ? (
           <PrescriptionModal
@@ -4054,6 +4150,37 @@ export function TimelineView({
           />
         )}
       </AnimatePresence>
+
+      {/* Add Note Modal */}
+      {showAddNoteModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/65 px-4 backdrop-blur-sm" onClick={() => setShowAddNoteModal(false)}>
+          <div className="w-full max-w-[500px] overflow-hidden rounded-3xl border border-amber-400/20 bg-[#0d1520] shadow-[0_32px_100px_rgba(0,0,0,0.75)]" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b border-white/[0.07] px-6 py-5 flex items-center justify-between bg-amber-400/[0.02]">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2"><StickyNote className="text-amber-400" size={18} /> Add Clinical Note</h3>
+              <button onClick={() => setShowAddNoteModal(false)} className="ghost-btn !px-2 !py-2 text-mist"><X size={16} /></button>
+            </div>
+            <div className="p-6">
+              <textarea
+                value={newNoteText}
+                onChange={(e) => setNewNoteText(e.target.value)}
+                placeholder="Type your important clinical note here..."
+                className="w-full h-32 bg-white/[0.03] border border-white/10 rounded-xl p-4 text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 resize-none mb-4"
+                autoFocus
+              />
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setShowAddNoteModal(false)} className="ghost-btn">Cancel</button>
+                <button 
+                  onClick={handleAddNoteSubmit} 
+                  disabled={isSubmittingNote || !newNoteText.trim()}
+                  className="action-btn !bg-amber-400/10 !border-amber-400/20 !text-amber-400 hover:!bg-amber-400/20 disabled:opacity-50"
+                >
+                  {isSubmittingNote ? 'Saving...' : 'Save Note'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
 
   );

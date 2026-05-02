@@ -59,6 +59,8 @@ export interface AppointmentEntry {
   prescriptions: PrescriptionEntry[];
   medications: MedicationEntry[];
   documentPath?: string;
+  isNote?: boolean;
+  noteText?: string;
 }
 
 const ACCENT: Record<string, string> = {
@@ -157,6 +159,29 @@ function mapToAppointmentEntries(data: PatientProfile): AppointmentEntry[] {
     }
   });
 
+  const hpNotes = data.hpNotes || [];
+  hpNotes.forEach((note: any) => {
+    if (note.noteData?.isSimpleNote) {
+      const d = parseISO(note.noteDate || note.createdAt);
+      const dateStr = format(d, 'dd MMM yyyy');
+      entries.push({
+        id: note.id,
+        rawDate: d,
+        date: dateStr,
+        type: note.title || 'Clinical Note',
+        specialty: note.doctor?.specialty || 'General Practice',
+        doctor: note.doctor?.name || 'Unknown Doctor',
+        metrics: 'Important Note',
+        status: 'COMPLETED',
+        isNote: true,
+        noteText: note.noteData.text,
+        labs: [],
+        prescriptions: [],
+        medications: []
+      });
+    }
+  });
+
   return entries.sort((a,b) => b.rawDate.getTime() - a.rawDate.getTime());
 }
 
@@ -191,20 +216,20 @@ const TimelineNode = ({ entry, delay, onSelect }: TimelineNodeProps) => {
 
       {/* Center Axis Node */}
       <div className="relative flex items-center justify-center shrink-0 w-6 h-6 z-10 transition-transform duration-300 group-hover/node:scale-125">
-         <div className="absolute inset-0 rounded-full blur-[8px] opacity-40 transition-opacity duration-300 group-hover/node:opacity-80" style={{ backgroundColor: accent }}></div>
-         <div className="w-5 h-5 rounded-full border-[3px] border-[#0A1118] relative z-10 shadow-[0_0_10px_rgba(0,0,0,0.5)] flex items-center justify-center p-[2px]" style={{ backgroundColor: accent }}>
-            {isMedication ? <Pill className="w-2.5 h-2.5 text-[#0A1118]" /> : <Stethoscope className="w-2.5 h-2.5 text-[#0A1118]" />}
+         <div className="absolute inset-0 rounded-full blur-[8px] opacity-40 transition-opacity duration-300 group-hover/node:opacity-80" style={{ backgroundColor: entry.isNote ? '#FCD34D' : accent }}></div>
+         <div className="w-5 h-5 rounded-full border-[3px] border-[#0A1118] relative z-10 shadow-[0_0_10px_rgba(0,0,0,0.5)] flex items-center justify-center p-[2px]" style={{ backgroundColor: entry.isNote ? '#FCD34D' : accent }}>
+            {entry.isNote ? <Stethoscope className="w-2.5 h-2.5 text-[#0A1118]" /> : isMedication ? <Pill className="w-2.5 h-2.5 text-[#0A1118]" /> : <Stethoscope className="w-2.5 h-2.5 text-[#0A1118]" />}
          </div>
       </div>
 
       {/* Content Card */}
       <div className="flex-1 min-w-0 py-4">
-        <div className="glass-card p-5 border border-wire/10 hover:border-white/20 transition-all rounded-[24px] relative overflow-hidden group-hover/node:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group-hover/node:-translate-y-0.5 transform-gpu translate-z-0">
+        <div className={cn("glass-card p-5 border border-wire/10 hover:border-white/20 transition-all rounded-[24px] relative overflow-hidden group-hover/node:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group-hover/node:-translate-y-0.5 transform-gpu translate-z-0", entry.isNote && "border-amber-400/30 bg-amber-400/5 hover:border-amber-400/50")}>
           {/* Subtle accent glow inside card - Using radial gradient for better performance & reliability */}
           <div 
             className="absolute inset-0 opacity-0 group-hover/node:opacity-10 transition-opacity duration-500 pointer-events-none" 
             style={{ 
-              background: `radial-gradient(circle at top right, ${accent}80, transparent 60%)` 
+              background: `radial-gradient(circle at top right, ${entry.isNote ? '#FCD34D' : accent}80, transparent 60%)` 
             }}
           />
           
@@ -226,9 +251,13 @@ const TimelineNode = ({ entry, delay, onSelect }: TimelineNodeProps) => {
           <p className="text-xs text-mist font-medium mb-4 truncate">Dr. {entry.doctor}</p>
 
           <div className="flex flex-wrap gap-3">
-              <div className="bg-[#0A1118]/60 border border-white/5 rounded-xl p-3 flex-1 min-w-[200px]">
-                 <p className="text-[9px] uppercase tracking-[0.2em] text-[#8CA1B4] mb-1">Primary Clinical Metric</p>
-                 <p className="text-sm font-semibold text-white truncate" style={{ color: accent }}>{entry.metrics}</p>
+              <div className={cn("bg-[#0A1118]/60 border border-white/5 rounded-xl p-3 flex-1 min-w-[200px]", entry.isNote && "border-amber-400/20")}>
+                 <p className="text-[9px] uppercase tracking-[0.2em] text-[#8CA1B4] mb-1">{entry.isNote ? 'Note Content' : 'Primary Clinical Metric'}</p>
+                 {entry.isNote ? (
+                   <p className="text-sm text-white/90 whitespace-pre-wrap">{entry.noteText}</p>
+                 ) : (
+                   <p className="text-sm font-semibold text-white truncate" style={{ color: accent }}>{entry.metrics}</p>
+                 )}
               </div>
               
               {itemCount > 0 && (

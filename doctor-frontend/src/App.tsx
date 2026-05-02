@@ -1565,7 +1565,7 @@ function DoctorWorkspace() {
           notes: r.notes || undefined 
         })),
       followUp:    savedEmr.followUpDate || undefined,
-      notes:       savedEmr.advice       || undefined,
+      notes:       [savedEmr.advice, savedEmr.simpleNote].filter(Boolean).join('\n\n') || undefined,
     };
 
     const labEntries: PatientMedicalReport[] = savedEmr.labTests?.trim()
@@ -1601,6 +1601,7 @@ function DoctorWorkspace() {
       vitals: savedEmr.vitals,
       symptoms: savedEmr.symptoms,
       diagnosis: savedEmr.diagnosis,
+      simpleNote: savedEmr.simpleNote,
       severity: severity,
       advice: savedEmr.advice,
       prescriptionRows: savedEmr.prescriptionRows,

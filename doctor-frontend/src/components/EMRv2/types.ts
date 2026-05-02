@@ -55,5 +55,7 @@ export interface AppointmentEntry {
   documentPath?: string;
   isHPNote?: boolean;
   hpNoteData?: HPNoteSnapshot;
+  isNote?: boolean;
+  noteText?: string;
 }
 

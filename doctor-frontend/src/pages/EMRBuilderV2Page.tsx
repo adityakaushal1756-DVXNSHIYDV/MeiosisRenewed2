@@ -48,6 +48,7 @@ function createInitialEmr(followUpGapDays: number, patient: Patient | null): EMR
     },
     symptoms: '',
     diagnosis: '',
+    simpleNote: '',
     labTests: '',
     advice: '',
     followUpDate: calcFollowUpDate(followUpGapDays),

@@ -128,9 +128,28 @@ export function TimelineSidePanel({ entry, isOpen, onClose }: TimelineSidePanelP
             <div className="grid grid-cols-2 md:grid-cols-4 bg-white/[0.03] border border-wire/10 rounded-2xl overflow-hidden divide-x divide-white/5 shadow-inner">
               <MetaTile label="Physician" value={entry.doctor} />
               <MetaTile label="Specialty" value={entry.specialty} border />
-              <MetaTile label="Follow-up" value={entry.endDate ? new Date(entry.endDate).toLocaleDateString('en-GB') : 'N/A'} border />
-              <MetaTile label="Duration" value={entry.durationDays ? `${entry.durationDays} Days` : 'N/A'} border />
+              {entry.isNote ? (
+                <>
+                  <MetaTile label="Type" value="Clinical Note" border />
+                  <MetaTile label="Date" value={entry.date} border />
+                </>
+              ) : (
+                <>
+                  <MetaTile label="Follow-up" value={entry.endDate ? new Date(entry.endDate).toLocaleDateString('en-GB') : 'N/A'} border />
+                  <MetaTile label="Duration" value={entry.durationDays ? `${entry.durationDays} Days` : 'N/A'} border />
+                </>
+              )}
             </div>
+
+            {/* Note Content */}
+            {entry.isNote && entry.noteText && (
+              <section className="bg-amber-400/5 border border-amber-400/20 rounded-2xl p-6">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-400 mb-4 flex items-center gap-2">
+                    <Stethoscope className="w-4 h-4" /> Clinical Note Content
+                </h3>
+                <p className="text-sm font-medium text-white/90 leading-relaxed font-outfit whitespace-pre-wrap">{entry.noteText}</p>
+              </section>
+            )}
 
             {/* Medications Table */}
             {entry.prescriptions.length > 0 && (
@@ -183,29 +202,31 @@ export function TimelineSidePanel({ entry, isOpen, onClose }: TimelineSidePanelP
             )}
 
             {/* Vitals Grid */}
-            <section>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-white mb-6 flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-sky" /> Consultation Vitals
-                </h3>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                    {[
-                        { label: 'BP', value: entry.vitals?.bloodPressure, icon: 'Pulse' },
-                        { label: 'HR', value: entry.vitals?.pulse, icon: 'Beats' },
-                        { label: 'TMP', value: entry.vitals?.temperature, icon: 'Thermo' },
-                        { label: 'O2', value: entry.vitals?.spo2, icon: 'Oxy' },
-                        { label: 'HT', value: entry.vitals?.height, icon: 'Cm' },
-                        { label: 'WT', value: entry.vitals?.weight, icon: 'Kg' },
-                    ].map(v => (
-                        <div key={v.label} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col items-center">
-                            <p className="text-[9px] font-semibold text-mist/40 uppercase mb-2">{v.label}</p>
-                            <p className="text-sm font-bold text-white">{v.value || 'NIL'}</p>
-                        </div>
-                    ))}
-                </div>
-            </section>
+            {!entry.isNote && (
+              <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-white mb-6 flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-sky" /> Consultation Vitals
+                  </h3>
+                  <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                      {[
+                          { label: 'BP', value: entry.vitals?.bloodPressure, icon: 'Pulse' },
+                          { label: 'HR', value: entry.vitals?.pulse, icon: 'Beats' },
+                          { label: 'TMP', value: entry.vitals?.temperature, icon: 'Thermo' },
+                          { label: 'O2', value: entry.vitals?.spo2, icon: 'Oxy' },
+                          { label: 'HT', value: entry.vitals?.height, icon: 'Cm' },
+                          { label: 'WT', value: entry.vitals?.weight, icon: 'Kg' },
+                      ].map(v => (
+                          <div key={v.label} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col items-center">
+                              <p className="text-[9px] font-semibold text-mist/40 uppercase mb-2">{v.label}</p>
+                              <p className="text-sm font-bold text-white">{v.value || 'NIL'}</p>
+                          </div>
+                      ))}
+                  </div>
+              </section>
+            )}
 
             {/* Deep Clinical Analysis */}
-            {(entry.chiefComplaint || entry.notes || entry.plan) && (
+            {!entry.isNote && (entry.chiefComplaint || entry.notes || entry.plan) && (
               <section className="bg-white/[0.02] border border-wire/10 rounded-2xl p-6">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-2 flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-neon" /> Clinical Context
@@ -230,13 +251,15 @@ export function TimelineSidePanel({ entry, isOpen, onClose }: TimelineSidePanelP
 
           {/* Action Buttons */}
           <div className="modal-actions p-6 border-t border-white/5 bg-white/[0.02] shrink-0 flex gap-4">
-            <button 
-              onClick={handleDownloadPDF}
-              disabled={isGenerating}
-              className="flex-1 bg-neon text-[#0A1118] font-semibold uppercase tracking-wider text-[10px] py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-neon/90 transition-all disabled:opacity-50"
-            >
-              {isGenerating ? 'Generating...' : <><Download className="w-4 h-4" /> Download Digital Rx</>}
-            </button>
+            {!entry.isNote && (
+              <button 
+                onClick={handleDownloadPDF}
+                disabled={isGenerating}
+                className="flex-1 bg-neon text-[#0A1118] font-semibold uppercase tracking-wider text-[10px] py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-neon/90 transition-all disabled:opacity-50"
+              >
+                {isGenerating ? 'Generating...' : <><Download className="w-4 h-4" /> Download Digital Rx</>}
+              </button>
+            )}
             <button onClick={onClose} className="flex-1 bg-white/5 text-white font-semibold uppercase tracking-wider text-[10px] py-4 rounded-2xl hover:bg-white/10 transition-all">
               Close Record
             </button>

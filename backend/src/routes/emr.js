@@ -40,6 +40,7 @@ router.post('/', asyncHandler(async (req, res) => {
     symptomCode,
     abdmCareContextId,
     advice,
+    simpleNote,
     prescriptionRows = [],
     labTests,
     followUpDate,
@@ -104,6 +105,7 @@ router.post('/', asyncHandler(async (req, res) => {
     patientInfo   && `Chief Complaint: ${patientInfo}`,
     symptoms      && `Subjective: ${symptoms}`,
     diagnosis     && `Assessment: ${diagnosis}`,
+    simpleNote    && `Added Note: ${simpleNote}`,
     severity      && `Severity: ${severity}`,
     advice        && `Plan: ${advice}`,
     (() => {

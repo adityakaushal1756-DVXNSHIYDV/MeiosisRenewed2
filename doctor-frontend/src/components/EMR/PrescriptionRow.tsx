@@ -57,6 +57,12 @@ export function PrescriptionRow({ row, onChange, onRemove }: PrescriptionRowProp
   // noteExpanded: whether the full textarea+tags editor is shown (vs compact pill)
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteExpanded, setNoteExpanded] = useState(false);
+
+  const [fusedMode, setFusedMode] = useState(false);
+  const [fusedText, setFusedText] = useState("");
+  const fusedInputRef = useRef<HTMLInputElement>(null);
+  const noteBtnRef = useRef<HTMLButtonElement>(null);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const noteAreaRef = useRef<HTMLDivElement>(null);
 
@@ -147,71 +153,111 @@ export function PrescriptionRow({ row, onChange, onRemove }: PrescriptionRowProp
             if (med.iupac_name) onChange(row.id, 'iupac_name', med.iupac_name);
             if (med.molecular_formula) onChange(row.id, 'molecular_formula', med.molecular_formula);
           }}
+          onKeyDown={(e) => {
+            if (e.key === "Tab") {
+              e.preventDefault();
+              setFusedMode(true);
+              setTimeout(() => fusedInputRef.current?.focus(), 0);
+            }
+          }}
           placeholder="Medicine name"
         />
-        <input
-          className="input-shell"
-          value={row.dose}
-          onChange={(e) => onChange(row.id, 'dose', e.target.value)}
-          placeholder="Dose"
-        />
-
-        {/* Frequency: count selector + pattern dropdown */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex overflow-hidden rounded-xl border border-wire/10">
-            {[1, 2, 3, 4].map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => handleCountChange(n)}
-                className={`flex-1 py-1.5 text-xs font-semibold transition ${
-                  currentCount === n
-                    ? 'bg-neon/20 text-neon'
-                    : 'bg-transparent text-mist hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                {n}×
-              </button>
-            ))}
+        {fusedMode ? (
+          <div className="col-span-2 lg:col-span-2 flex">
+            <input
+              ref={fusedInputRef}
+              className="input-shell w-full py-1.5 text-sm"
+              value={fusedText}
+              onChange={(e) => setFusedText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === "Tab") {
+                  e.preventDefault();
+                  const text = fusedText.trim();
+                  const freqMatch = text.match(/[01]{4}/);
+                  if (freqMatch) {
+                    onChange(row.id, "frequency", freqMatch[0]);
+                  }
+                  const duration = text.replace(/[01]{4}/, "").trim();
+                  if (duration) {
+                    onChange(row.id, "duration", duration);
+                  }
+                  setFusedMode(false);
+                  setTimeout(() => noteBtnRef.current?.focus(), 0);
+                } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                  e.stopPropagation();
+                }
+              }}
+              placeholder="Type code (e.g. 1101 5 Days)"
+            />
           </div>
-          <div className="relative" ref={dropdownRef}>
-            <button
-              type="button"
-              aria-label="Dose timing pattern"
-              onClick={() => setDropdownOpen((v) => !v)}
-              className="input-shell flex w-full items-center justify-between gap-2 py-1.5 text-left text-xs"
-            >
-              <span className="flex items-center gap-1.5 truncate">
-                <span className="shrink-0 font-mono text-[10px] tracking-widest opacity-50">{currentPattern}</span>
-                <span className="truncate">{patternLabel(currentPattern)}</span>
-              </span>
-              <ChevronDown
-                size={13}
-                className={`shrink-0 text-mist transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
-              />
-            </button>
-            {dropdownOpen && (
-              <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-xl shadow-black/60 backdrop-blur-sm">
-                {patternOptions.map((p) => (
+        ) : (
+          <>
+            <input
+              className="input-shell"
+              value={row.dose}
+              onChange={(e) => onChange(row.id, 'dose', e.target.value)}
+              placeholder="Dose"
+            />
+
+            {/* Frequency: count selector + pattern dropdown */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex overflow-hidden rounded-xl border border-wire/10">
+                {[1, 2, 3, 4].map((n) => (
                   <button
-                    key={p}
+                    key={n}
                     type="button"
-                    onClick={() => handlePatternChange(p)}
-                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-xs transition-colors ${
-                      p === currentPattern ? 'bg-neon/15 text-neon' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    onClick={() => handleCountChange(n)}
+                    className={`flex-1 py-1.5 text-xs font-semibold transition ${
+                      currentCount === n
+                        ? 'bg-neon/20 text-neon'
+                        : 'bg-transparent text-mist hover:bg-white/5 hover:text-white'
                     }`}
                   >
-                    <span className="w-[34px] shrink-0 font-mono text-[10px] tracking-widest opacity-50">{p}</span>
-                    <span>{patternLabel(p)}</span>
+                    {n}×
                   </button>
                 ))}
               </div>
-            )}
-          </div>
-        </div>
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  aria-label="Dose timing pattern"
+                  onClick={() => setDropdownOpen((v) => !v)}
+                  className="input-shell flex w-full items-center justify-between gap-2 py-1.5 text-left text-xs"
+                >
+                  <span className="flex items-center gap-1.5 truncate">
+                    <span className="shrink-0 font-mono text-[10px] tracking-widest opacity-50">{currentPattern}</span>
+                    <span className="truncate">{patternLabel(currentPattern)}</span>
+                  </span>
+                  <ChevronDown
+                    size={13}
+                    className={`shrink-0 text-mist transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {dropdownOpen && (
+                  <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-xl shadow-black/60 backdrop-blur-sm">
+                    {patternOptions.map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => handlePatternChange(p)}
+                        className={`flex w-full items-center gap-2.5 px-3 py-2 text-xs transition-colors ${
+                          p === currentPattern ? 'bg-neon/15 text-neon' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                        }`}
+                      >
+                        <span className="w-[34px] shrink-0 font-mono text-[10px] tracking-widest opacity-50">{p}</span>
+                        <span>{patternLabel(p)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Note toggle button */}
         <button
+          ref={noteBtnRef}
           type="button"
           onClick={handleNoteToggle}
           title={noteOpen ? 'Hide note' : "Add doctor's note"}
@@ -225,12 +271,14 @@ export function PrescriptionRow({ row, onChange, onRemove }: PrescriptionRowProp
           {noteOpen ? '−' : '+'}
         </button>
 
-        <input
-          className="input-shell"
-          value={row.duration}
-          onChange={(e) => onChange(row.id, 'duration', e.target.value)}
-          placeholder="Duration"
-        />
+        {!fusedMode && (
+          <input
+            className="input-shell"
+            value={row.duration}
+            onChange={(e) => onChange(row.id, 'duration', e.target.value)}
+            placeholder="Duration"
+          />
+        )}
         <button
           type="button"
           aria-label="Remove medicine row"
