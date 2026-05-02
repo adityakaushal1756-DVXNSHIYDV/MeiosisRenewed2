@@ -74,7 +74,7 @@ router.post('/login', asyncHandler(async (req, res) => {
   const token = jwt.sign(
     { id: account.id, role: account.role, meiosisId: account.meiosisId },
     JWT_SECRET,
-    { expiresIn: '24h' }
+    { expiresIn: '7d' }
   );
 
   res.json({
@@ -215,7 +215,7 @@ router.post('/signup', asyncHandler(async (req, res) => {
   const token = jwt.sign(
     { id: created.id, role: created.role, meiosisId: created.meiosisId },
     JWT_SECRET,
-    { expiresIn: '24h' }
+    { expiresIn: '7d' }
   );
 
   res.status(201).json({

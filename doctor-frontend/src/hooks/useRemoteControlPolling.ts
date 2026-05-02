@@ -1,22 +1,10 @@
 import { useEffect, useRef } from 'react';
 import axios from 'axios';
+import { apiUrl, getAuthHeader, handleAuthError } from '../lib/api';
 
 interface RemoteControlProps {
   doctorId: string | null;
   onRemoteHighlight: (patientId: string) => void;
-}
-
-const API_URL = 'http://' + window.location.hostname + ':5002/api';
-
-function getAuthHeader(): Record<string, string> {
-  try {
-    const session = localStorage.getItem('meiosis_auth_session_v1');
-    if (!session) return {};
-    const { token } = JSON.parse(session);
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
-  } catch {
-    return {};
-  }
 }
 
 export function useRemoteControlPolling({ doctorId, onRemoteHighlight }: RemoteControlProps) {
@@ -34,12 +22,15 @@ export function useRemoteControlPolling({ doctorId, onRemoteHighlight }: RemoteC
     const sendHeartbeat = async () => {
       try {
         await axios.post(
-          `${API_URL}/gateway/heartbeat`,
+          apiUrl('/gateway/heartbeat'),
           {},
           { headers: getAuthHeader() }
         );
         console.log('[RemoteControl] Heartbeat sent ✓');
-      } catch (err) {
+      } catch (err: any) {
+        if (err.response?.status === 401) {
+          handleAuthError();
+        }
         console.warn('[RemoteControl] Heartbeat failed', err);
       }
     };
@@ -52,14 +43,17 @@ export function useRemoteControlPolling({ doctorId, onRemoteHighlight }: RemoteC
     const pollCommands = async () => {
       try {
         const res = await axios.get(
-          `${API_URL}/gateway/remote-commands`,
+          apiUrl('/gateway/remote-commands'),
           { headers: getAuthHeader() }
         );
         if (res.data.command === 'OPEN_PATIENT' && res.data.payload?.patientId) {
           console.log('[RemoteControl] Command received → opening patient:', res.data.payload.patientId);
           onRemoteHighlightRef.current(res.data.payload.patientId);
         }
-      } catch (err) {
+      } catch (err: any) {
+        if (err.response?.status === 401) {
+          handleAuthError();
+        }
         // Silently swallow; transient network errors shouldn't spam the console
       }
     };

@@ -20,7 +20,7 @@ import { CURRENT_DOCTOR, type DoctorProfile } from './config/doctorProfile';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { enqueueEMR } from './utils/offlineQueue';
 import { OfflineSyncBar } from './components/OfflineSyncBar';
-import { apiUrl, assetUrl, getAuthHeader } from './lib/api';
+import { apiUrl, assetUrl, getAuthHeader, handleAuthError } from './lib/api';
 import {
   PATIENT_HIGHLIGHT_CHANNEL,
   PATIENT_HIGHLIGHT_EVENT,
@@ -242,6 +242,10 @@ function DoctorWorkspace() {
         apiUrl(`/doctors/${encodeURIComponent(CURRENT_DOCTOR.id)}`),
         { headers: getAuthHeader() }
       );
+      if (res.status === 401) {
+        handleAuthError();
+        return;
+      }
       if (!res.ok) return;
       const data = await res.json();
       setDoctorProfile({
@@ -306,6 +310,10 @@ function DoctorWorkspace() {
         apiUrl(`/network/patients/${encodeURIComponent(CURRENT_DOCTOR.id)}`),
         { headers: getAuthHeader() }
       );
+      if (res.status === 401) {
+        handleAuthError();
+        return;
+      }
       if (!res.ok) return;
       const networkData: any[] = await res.json();
       if (!networkData.length) return;
@@ -351,6 +359,10 @@ function DoctorWorkspace() {
         apiUrl(`/emr?patientId=${encodeURIComponent(patientId)}`),
         { headers: getAuthHeader() }
       );
+      if (res.status === 401) {
+        handleAuthError();
+        return;
+      }
       if (res.status === 403) {
         // Doctor not in network — show access denied
         setAccessLevel(null);
@@ -803,6 +815,8 @@ function DoctorWorkspace() {
           ...getAuthHeader()
         },
         body: JSON.stringify(payload),
+      }).then(res => {
+        if (res.status === 401) handleAuthError();
       }).catch((err) => {
         console.error("[Meiosis] Failed to sync preferences to backend:", err);
       });
@@ -817,6 +831,8 @@ function DoctorWorkspace() {
           ...getAuthHeader()
         },
         body: JSON.stringify({ slotDuration }),
+      }).then(res => {
+        if (res.status === 401) handleAuthError();
       }).catch((err) => {
         console.error("[Meiosis] Failed to sync slot duration:", err);
       });
@@ -1732,6 +1748,21 @@ function DoctorWorkspace() {
   const clinicStatus = scheduleDays.some((day) => day.open) ? 'Clinic Open' : 'Clinic Closed';
   const notifications = (queue || []).filter((item) => item?.status === 'LATE' || item?.status === 'NO_SHOW').length + (emrShareRequests || []).length;
 
+  useEffect(() => {
+    // Global fetch interceptor for 401 handling
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      if (response.status === 401) {
+        handleAuthError();
+      }
+      return response;
+    };
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, []);
+
   return (
     <LanguageContext.Provider value={{ lang, setLang, t: createT(lang) }}>
       <>
@@ -2014,7 +2045,22 @@ export default function App() {
   const isTempAccessRoute = typeof window !== 'undefined' && window.location.pathname === '/temp-access';
 
   if (isTempAccessRoute) {
-    return (
+    useEffect(() => {
+    // Global fetch interceptor for 401 handling
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      if (response.status === 401) {
+        handleAuthError();
+      }
+      return response;
+    };
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, []);
+
+  return (
       <Suspense fallback={<LoadingFallback />}>
         <LazyTempAccessPage />
       </Suspense>

@@ -77,7 +77,8 @@ export function getAuthHeader(): Record<string, string> {
     const session = localStorage.getItem('meiosis_auth_session_v1');
     if (!session) return {};
     
-    const { token } = JSON.parse(session);
+    const parsed = JSON.parse(session);
+    const token = parsed?.token;
     if (!token) return {};
     
     return { 'Authorization': `Bearer ${token}` };
@@ -85,4 +86,26 @@ export function getAuthHeader(): Record<string, string> {
     console.error("[Meiosis API] Failed to parse auth session for token:", err);
     return {};
   }
+}
+
+/**
+ * Clears the session and redirects to login when an auth error occurs.
+ */
+export function handleAuthError() {
+  console.warn("[Meiosis API] Auth error detected. Clearing session and redirecting...");
+  localStorage.removeItem('meiosis_auth_session_v1');
+  
+  // Try to find the login URL from root links
+  try {
+    const links = JSON.parse(localStorage.getItem('meiosis_root_links_v1') || '{}');
+    if (links.login) {
+      window.location.href = links.login;
+      return;
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  // Fallback: go to login.html at the root of the current origin
+  window.location.href = '/login.html';
 }

@@ -74,3 +74,23 @@ export function getAuthHeader(): Record<string, string> {
     return {};
   }
 }
+
+/**
+ * Clears the session and redirects to login when an auth error occurs.
+ */
+export function handleAuthError() {
+  console.warn("[Meiosis API] Auth error detected. Clearing session and redirecting...");
+  localStorage.removeItem('meiosis_auth_session_v1');
+  
+  try {
+    const links = JSON.parse(localStorage.getItem('meiosis_root_links_v1') || '{}');
+    if (links.login) {
+      window.location.href = links.login;
+      return;
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  window.location.href = '/login.html';
+}
