@@ -78,7 +78,7 @@ async function getLinkedDoctorAccessLevel({ patient, doctorId }) {
 }
 
 async function buildPatientEmrPayload({ patient, accessLevel = 'full' }) {
-  const [prescriptions, labReports, appointments] = await Promise.all([
+  const [prescriptions, labReports, appointments, hpNotes] = await Promise.all([
     prisma.prescription.findMany({
       where: { patientId: patient.id },
       include: { doctor: true, items: accessLevel !== 'lab' },
@@ -94,6 +94,11 @@ async function buildPatientEmrPayload({ patient, accessLevel = 'full' }) {
       include: { doctor: true },
       orderBy: { scheduledDate: 'desc' },
     }),
+    prisma.hPNote.findMany({
+      where: { patientId: patient.id },
+      include: { doctor: true },
+      orderBy: { noteDate: 'desc' },
+    }).catch(() => []),
   ]);
 
   let prescriptionsOut = prescriptions;
@@ -125,6 +130,7 @@ async function buildPatientEmrPayload({ patient, accessLevel = 'full' }) {
     prescriptions: prescriptionsOut,
     labReports,
     appointments,
+    hpNotes,
     accessLevel,
   };
 }

@@ -1,3 +1,5 @@
+import type { HPNoteSnapshot } from '../../types/Patient';
+
 export interface LabEntry {
   id: string;
   label: string;
@@ -51,4 +53,7 @@ export interface AppointmentEntry {
   prescriptions: PrescriptionEntry[];
   medications: MedicationEntry[];
   documentPath?: string;
+  isHPNote?: boolean;
+  hpNoteData?: HPNoteSnapshot;
 }
+

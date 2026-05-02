@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { ShieldOff, X, Activity } from 'lucide-react';
 import { SpacetimeSingularity } from './SpacetimeSingularity';
 import { AdmissionRecord, AdmissionCard } from '../Shared/AdmissionStatus';
@@ -19,6 +20,18 @@ export function AccessDeniedOverlay({
   singularityModern = false,
   admissionRecord
 }: AccessDeniedOverlayProps) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [onClose]);
+
   return (
     <div
       className={`fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm ${

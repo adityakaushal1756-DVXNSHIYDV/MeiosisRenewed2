@@ -6,11 +6,14 @@ import {
   Check, User, Plus, Trash2, Heart, Wind, Brain, Eye, 
   Thermometer, Scaling, Weight, Info, Minus, Search, ChevronDown
 } from 'lucide-react';
+import type { HPNoteSnapshot } from '../types/Patient';
 
 interface HPProps {
   onClose: () => void;
+  patientId?: string | null;
   patientName?: string;
   darkMode?: boolean;
+  onSaveDraft?: (snapshot: HPNoteSnapshot) => void;
 }
 
 type TabType = 'history' | 'ros' | 'physical' | 'plan';
@@ -69,7 +72,7 @@ const createInitialSectionState = (config: Record<string, string[]>) => {
   return sections;
 };
 
-export const HistoryAndPhysicalUniversal: React.FC<HPProps> = ({ onClose, patientName, darkMode }) => {
+export const HistoryAndPhysicalUniversal: React.FC<HPProps> = ({ onClose, patientId, patientName, darkMode, onSaveDraft }) => {
   const [activeTab, setActiveTab] = useState<TabType>('history');
   const [expandedTabs, setExpandedTabs] = useState<Record<string, boolean>>({ history: true });
 
@@ -117,6 +120,40 @@ export const HistoryAndPhysicalUniversal: React.FC<HPProps> = ({ onClose, patien
   ];
   const [isSaved, setIsSaved] = useState(false);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+
+  const handleSaveDraft = () => {
+    const snapshot: HPNoteSnapshot = {
+      savedAt: new Date().toISOString(),
+      vitals: {
+        temp: form.vitals.temp,
+        hr: form.vitals.hr,
+        rr: form.vitals.rr,
+        bpSupine: form.vitals.bpSupine,
+        bpSeated: form.vitals.bpSeated,
+        height: form.vitals.height,
+        weight: form.vitals.weight,
+        pulseOx: form.vitals.pulseOx,
+        pain: form.vitals.pain,
+      },
+      medicalHistory: form.medicalHistory,
+      surgicalHistory: form.surgicalHistory,
+      social: {
+        tobacco: form.social.tobacco,
+        tobaccoPkYrs: form.social.tobaccoPkYrs,
+        illicitDrugsTypes: form.social.illicitDrugsTypes,
+        alcoholFreq: form.social.alcoholFreq,
+        occupation: form.social.occupation,
+        other: form.social.other,
+      },
+      ros: form.ros,
+      pe: form.pe,
+      findings: form.findings,
+      impressions: form.impressions,
+      plan: form.plan,
+    };
+    onSaveDraft?.(snapshot);
+    onClose();
+  };
 
   const activeItems = useMemo(() => {
     if (activeTab !== 'ros' && activeTab !== 'physical') return [];
@@ -228,7 +265,9 @@ export const HistoryAndPhysicalUniversal: React.FC<HPProps> = ({ onClose, patien
   const isAutoScrolling = React.useRef(false);
   const TABS: TabType[] = ['history', 'ros', 'physical', 'plan'];
 
-  const sectionRefs = {
+  const sectionRefs: Record<TabType, React.RefObject<HTMLDivElement>> = {
+    history: React.useRef<HTMLDivElement>(null),
+    ros: React.useRef<HTMLDivElement>(null),
     physical: React.useRef<HTMLDivElement>(null),
     plan: React.useRef<HTMLDivElement>(null),
   };
@@ -280,7 +319,7 @@ export const HistoryAndPhysicalUniversal: React.FC<HPProps> = ({ onClose, patien
         if (bestSub && bestSub !== activeSubSection) {
           setActiveSubSection(bestSub);
           // Auto-expand the parent if it's a sub-item being viewed
-          const parentId = bestSub.split('_')[0];
+          const parentId = String(bestSub).split('_')[0];
           if (parentId && (parentId === 'history' || parentId === 'ros' || parentId === 'pe' || parentId === 'plan')) {
             const tabId = parentId === 'pe' ? 'physical' : parentId;
             setExpandedTabs(prev => ({ ...prev, [tabId]: true }));
@@ -640,7 +679,7 @@ export const HistoryAndPhysicalUniversal: React.FC<HPProps> = ({ onClose, patien
                 <X size={12} color={darkMode ? '#94a3b8' : '#64748b'} />
               </button>
             )}
-            <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 16px', borderRadius: 100, border: 'none', background: '#52ff9d', color: '#0f172a', fontSize: 12, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(82,255,157,0.2)' }}>
+            <button onClick={handleSaveDraft} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 16px', borderRadius: 100, border: 'none', background: '#52ff9d', color: '#0f172a', fontSize: 12, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(82,255,157,0.2)' }}>
               <Save size={14} /> Save Draft
             </button>
             <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', color: darkMode ? '#94a3b8' : '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -741,14 +780,14 @@ export const HistoryAndPhysicalUniversal: React.FC<HPProps> = ({ onClose, patien
                   <div id="history_vitals">
                     <SectionHeader title="Patient Vitals" icon={<Activity size={20} />} />
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-                      {matchesSearch('temp') && <VitalInput label="Temp (°F)" value={form.vitals.temp} onChange={v => updateVitals('temp', v)} icon={<Thermometer size={14} />} />}
-                      {matchesSearch('heart') || matchesSearch('hr') && <VitalInput label="Heart Rate" value={form.vitals.hr} onChange={v => updateVitals('hr', v)} icon={<Heart size={14} />} />}
-                      {matchesSearch('resp') || matchesSearch('rr') && <VitalInput label="Resp. Rate" value={form.vitals.rr} onChange={v => updateVitals('rr', v)} icon={<Wind size={14} />} />}
-                      {matchesSearch('bp') && <VitalInput label="BP (Supine)" value={form.vitals.bpSupine} onChange={v => updateVitals('bpSupine', v)} placeholder="120/80" />}
-                      {matchesSearch('bp') && <VitalInput label="BP (Seated)" value={form.vitals.bpSeated} onChange={v => updateVitals('bpSeated', v)} placeholder="122/82" />}
-                      {matchesSearch('height') && <VitalInput label="Height" value={form.vitals.height} onChange={v => updateVitals('height', v)} icon={<Scaling size={14} />} />}
-                      {matchesSearch('weight') && <VitalInput label="Weight" value={form.vitals.weight} onChange={v => updateVitals('weight', v)} icon={<Weight size={14} />} />}
-                      {matchesSearch('pulse') || matchesSearch('ox') && <VitalInput label="Pulse Ox (%)" value={form.vitals.pulseOx} onChange={v => updateVitals('pulseOx', v)} />}
+                      {matchesSearch('temp') && <VitalInput label="Temp (°F)" value={form.vitals.temp} onChange={(v: string) => updateVitals('temp', v)} icon={<Thermometer size={14} />} />}
+                      {matchesSearch('heart') || matchesSearch('hr') && <VitalInput label="Heart Rate" value={form.vitals.hr} onChange={(v: string) => updateVitals('hr', v)} icon={<Heart size={14} />} />}
+                      {matchesSearch('resp') || matchesSearch('rr') && <VitalInput label="Resp. Rate" value={form.vitals.rr} onChange={(v: string) => updateVitals('rr', v)} icon={<Wind size={14} />} />}
+                      {matchesSearch('bp') && <VitalInput label="BP (Supine)" value={form.vitals.bpSupine} onChange={(v: string) => updateVitals('bpSupine', v)} placeholder="120/80" />}
+                      {matchesSearch('bp') && <VitalInput label="BP (Seated)" value={form.vitals.bpSeated} onChange={(v: string) => updateVitals('bpSeated', v)} placeholder="122/82" />}
+                      {matchesSearch('height') && <VitalInput label="Height" value={form.vitals.height} onChange={(v: string) => updateVitals('height', v)} icon={<Scaling size={14} />} />}
+                      {matchesSearch('weight') && <VitalInput label="Weight" value={form.vitals.weight} onChange={(v: string) => updateVitals('weight', v)} icon={<Weight size={14} />} />}
+                      {matchesSearch('pulse') || matchesSearch('ox') && <VitalInput label="Pulse Ox (%)" value={form.vitals.pulseOx} onChange={(v: string) => updateVitals('pulseOx', v)} />}
                     </div>
                   </div>
                 )}
@@ -756,8 +795,8 @@ export const HistoryAndPhysicalUniversal: React.FC<HPProps> = ({ onClose, patien
                   <div id="history_medical">
                     <SectionHeader title="Medical & Surgical History" icon={<HistoryIcon size={20} />} />
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                      {matchesSearch('medical') && <TextArea label="Past Medical History" value={form.medicalHistory} onChange={v => setForm(f => ({ ...f, medicalHistory: v }))} placeholder="Chronic conditions, hospitalizations..." />}
-                      {matchesSearch('surgical') && <TextArea label="Past Surgical History" value={form.surgicalHistory} onChange={v => setForm(f => ({ ...f, surgicalHistory: v }))} placeholder="Surgeries, dates, surgeons..." />}
+                      {matchesSearch('medical') && <TextArea label="Past Medical History" value={form.medicalHistory} onChange={(v: string) => setForm(f => ({ ...f, medicalHistory: v }))} placeholder="Chronic conditions, hospitalizations..." />}
+                      {matchesSearch('surgical') && <TextArea label="Past Surgical History" value={form.surgicalHistory} onChange={(v: string) => setForm(f => ({ ...f, surgicalHistory: v }))} placeholder="Surgeries, dates, surgeons..." />}
                     </div>
                   </div>
                 )}
@@ -771,18 +810,18 @@ export const HistoryAndPhysicalUniversal: React.FC<HPProps> = ({ onClose, patien
                             label="Tobacco Use" 
                             options={['Never', 'Daily', 'Occasional', 'Former']} 
                             value={form.social.tobacco} 
-                            onChange={v => setForm(f => ({ ...f, social: { ...f.social, tobacco: v } }))} 
+                            onChange={(v: string) => setForm(f => ({ ...f, social: { ...f.social, tobacco: v } }))} 
                             darkMode={darkMode}
                           />
                         )}
-                        {matchesSearch('tobacco') && <Input label="PK / YRS" value={form.social.tobaccoPkYrs} onChange={v => setForm(f => ({ ...f, social: { ...f.social, tobaccoPkYrs: v } }))} />}
-                        {matchesSearch('drugs') && <Input label="Illicit Drugs" value={form.social.illicitDrugsTypes} onChange={v => setForm(f => ({ ...f, social: { ...f.social, illicitDrugsTypes: v } }))} />}
+                        {matchesSearch('tobacco') && <Input label="PK / YRS" value={form.social.tobaccoPkYrs} onChange={(v: string) => setForm(f => ({ ...f, social: { ...f.social, tobaccoPkYrs: v } }))} />}
+                        {matchesSearch('drugs') && <Input label="Illicit Drugs" value={form.social.illicitDrugsTypes} onChange={(v: string) => setForm(f => ({ ...f, social: { ...f.social, illicitDrugsTypes: v } }))} />}
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-                        {matchesSearch('alcohol') && <Input label="Alcohol Frequency" value={form.social.alcoholFreq} onChange={v => setForm(f => ({ ...f, social: { ...f.social, alcoholFreq: v } }))} />}
-                        {matchesSearch('occupation') && <Input label="Occupation" value={form.social.occupation} onChange={v => setForm(f => ({ ...f, social: { ...f.social, occupation: v } }))} />}
+                        {matchesSearch('alcohol') && <Input label="Alcohol Frequency" value={form.social.alcoholFreq} onChange={(v: string) => setForm(f => ({ ...f, social: { ...f.social, alcoholFreq: v } }))} />}
+                        {matchesSearch('occupation') && <Input label="Occupation" value={form.social.occupation} onChange={(v: string) => setForm(f => ({ ...f, social: { ...f.social, occupation: v } }))} />}
                       </div>
-                      {matchesSearch('other') && <TextArea label="Other Social (Living, Diet, Exercise)" value={form.social.other} onChange={v => setForm(f => ({ ...f, social: { ...f.social, other: v } }))} />}
+                      {matchesSearch('other') && <TextArea label="Other Social (Living, Diet, Exercise)" value={form.social.other} onChange={(v: string) => setForm(f => ({ ...f, social: { ...f.social, other: v } }))} />}
                     </div>
                   </div>
                 )}
@@ -834,23 +873,23 @@ export const HistoryAndPhysicalUniversal: React.FC<HPProps> = ({ onClose, patien
                   <div id="plan_findings">
                     <SectionHeader title="Diagnostic Findings" icon={<Brain size={20} />} />
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-                      {matchesSearch('ua') && <Input label="UA (Urinalysis)" value={form.findings.ua} onChange={v => setForm(f => ({ ...f, findings: { ...f.findings, ua: v } }))} />}
-                      {matchesSearch('ekg') && <Input label="EKG / ECG" value={form.findings.ekg} onChange={v => setForm(f => ({ ...f, findings: { ...f.findings, ekg: v } }))} />}
-                      {matchesSearch('rad') && <Input label="RAD (Imaging)" value={form.findings.rad} onChange={v => setForm(f => ({ ...f, findings: { ...f.findings, rad: v } }))} />}
+                      {matchesSearch('ua') && <Input label="UA (Urinalysis)" value={form.findings.ua} onChange={(v: string) => setForm(f => ({ ...f, findings: { ...f.findings, ua: v } }))} />}
+                      {matchesSearch('ekg') && <Input label="EKG / ECG" value={form.findings.ekg} onChange={(v: string) => setForm(f => ({ ...f, findings: { ...f.findings, ekg: v } }))} />}
+                      {matchesSearch('rad') && <Input label="RAD (Imaging)" value={form.findings.rad} onChange={(v: string) => setForm(f => ({ ...f, findings: { ...f.findings, rad: v } }))} />}
                     </div>
-                    {matchesSearch('other') && <TextArea label="Other Findings" value={form.findings.other} onChange={v => setForm(f => ({ ...f, findings: { ...f.findings, other: v } }))} />}
+                    {matchesSearch('other') && <TextArea label="Other Findings" value={form.findings.other} onChange={(v: string) => setForm(f => ({ ...f, findings: { ...f.findings, other: v } }))} />}
                   </div>
                 )}
                 {matchesSearch('impressions') && (
                   <div id="plan_impressions">
                     <SectionHeader title="Impressions & Assessment" icon={<AlertCircle size={20} />} />
-                    <TextArea label="Impressions" value={form.impressions} onChange={v => setForm(f => ({ ...f, impressions: v }))} minHeight={120} />
+                    <TextArea label="Impressions" value={form.impressions} onChange={(v: string) => setForm(f => ({ ...f, impressions: v }))} minHeight={120} />
                   </div>
                 )}
                 {matchesSearch('plan') && (
                   <div id="plan_treatment">
                     <SectionHeader title="Treatment Plan" icon={<CheckCircle2 size={20} />} />
-                    <TextArea label="Plan" value={form.plan} onChange={v => setForm(f => ({ ...f, plan: v }))} minHeight={150} />
+                    <TextArea label="Plan" value={form.plan} onChange={(v: string) => setForm(f => ({ ...f, plan: v }))} minHeight={150} />
                   </div>
                 )}
               </div>

@@ -35,6 +35,7 @@ model Patient {
   prescriptions    Prescription[]
   account          UserAccount?
   doctorLinks      PatientDoctor[]
+  hpNotes          HPNote[]
 
   // Lifestyle & Habits
   breakfastTime    String?
@@ -85,6 +86,7 @@ model Doctor {
   patientLinks       PatientDoctor[]
   queueSessions      QueueSession[]
   remoteCommands     RemoteCommand[]
+  hpNotes            HPNote[]
 }
 
 model RemoteCommand {
@@ -390,6 +392,22 @@ model PatientDoctor {
 
 /// Compliance audit trail for every AI-Scribe transcription sent to Gemini.
 /// Stores the raw original_transcript before any extraction so it can never be altered.
+model HPNote {
+  id          String   @id @default(cuid())
+  patientId   String
+  doctorId    String
+  noteDate    DateTime @default(now())
+  title       String   @default("H&P Note")
+  noteData    Json     // Full HPNoteSnapshot blob
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor      Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, noteDate])
+  @@index([doctorId])
+}
+
 model AiTranscriptLog {
   id                 String   @id @default(cuid())
   originalTranscript String

@@ -10,6 +10,8 @@ import type { TimelineEvent } from '../EMR/EMRTimeline';
 import type { Patient } from '../../types/Patient';
 import { AdmissionRecord, AdmissionCard } from '../Shared/AdmissionStatus';
 import { DocumentBuilderOverlay } from './DocumentBuilderOverlay';
+import { HPNotePanel } from './HPNotePanel';
+
 
 
 
@@ -66,7 +68,8 @@ const ACCENT: Record<string, string> = {
 };
 // Palette for unknown specialties (deterministic by name hash)
 const ACCENT_PALETTE = ['#E7F36E','#93C5FD','#6EE7B7','#F9A8D4','#FCA5A5','#FDBA74','#A78BFA','#34D399'];
-function getAccent(specialty: string, severity?: string, isLab?: boolean): string {
+function getAccent(specialty: string, severity?: string, isLab?: boolean, isHPNote?: boolean): string {
+  if (isHPNote) return SEVERITY_CLR.hp_note;
   if (isLab) return SEVERITY_CLR.lab;
   if (severity && SEVERITY_CLR[severity.toLowerCase()]) return SEVERITY_CLR[severity.toLowerCase()];
   if (ACCENT[specialty]) return ACCENT[specialty];
@@ -84,6 +87,7 @@ const SEVERITY_CLR: Record<string, string> = {
   mild:     '#F97316', // Orange
   low:      '#22C55E', // Green
   lab:      '#D946EF', // Purple/Pink
+  hp_note:  '#818CF8', // Indigo/Purple-blue for H&P
 };
 
 const BG_PARTICLES = [
@@ -282,8 +286,37 @@ function buildTimelineData(data: any): AppointmentEntry[] {
     } as any);
   });
 
+  // Add HP notes from the payload
+  const hpNotes = Array.isArray(data.hpNotes) ? data.hpNotes : [];
+  hpNotes.forEach((note: any) => {
+    let displayDate = 'Unknown Date';
+    try {
+      const d = new Date(note.noteDate);
+      if (!isNaN(d.getTime())) {
+        displayDate = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      }
+    } catch {}
+
+    results.push({
+      id: note.id,
+      date: displayDate,
+      type: note.title || 'H&P Note',
+      specialty: note.doctor?.specialty || 'General Practice',
+      doctor: note.doctor?.name || 'Unknown',
+      metrics: 'H&P',
+      startDate: note.noteDate,
+      status: 'COMPLETED',
+      isHPNote: true,
+      hpNoteData: note.noteData || {},
+      labs: [],
+      prescriptions: [],
+      medications: [],
+    } as any);
+  });
+
   return results.sort((a, b) => new Date(b.startDate || b.date).getTime() - new Date(a.startDate || a.date).getTime());
 }
+
 
 // -- Secondary item union -----------------------------------------
 type SItem =
@@ -502,6 +535,16 @@ const PCard = forwardRef<HTMLDivElement, PCardProps>(
 
         <div style={{ position: 'relative', zIndex: 1, display: 'inline-flex', alignItems: 'center', gap: Math.max(4, Math.round(4 * scale)), background: timelineTheme === 'beige-light' ? 'rgba(255,255,255,0.26)' : 'color-mix(in srgb, rgba(255,255,255,0.12) 72%, transparent)', border: timelineTheme === 'beige-light' ? '1px solid rgba(116,92,68,0.10)' : '1px solid rgba(255,255,255,0.09)', borderRadius: 999, padding: `${Math.max(3, Math.round(3 * scale))}px ${Math.max(8, Math.round(9 * scale))}px`, marginBottom: Math.max(10, Math.round(12 * scale)), boxShadow: timelineTheme === 'beige-light' ? 'inset 0 1px 0 rgba(255,255,255,0.22)' : 'inset 0 1px 0 rgba(255,255,255,0.06)' }}>
           {(() => {
+            if ((apt as any).isHPNote) {
+              return (
+                <>
+                  <span style={{ width: 4, height: 4, borderRadius: '50%', background: accent }} />
+                  <span style={{ fontSize: Math.max(9, 9 * scale), fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: accent }}>
+                    H&amp;P Note
+                  </span>
+                </>
+              );
+            }
             const hasMeds = (apt.prescriptions?.length ?? 0) > 0 && accessLevel === 'full';
             const hasActiveMed = hasMeds && apt.prescriptions!.some(p => p.isActive);
             // Active → accent color; Inactive → grey (no meds or all expired)
@@ -518,7 +561,7 @@ const PCard = forwardRef<HTMLDivElement, PCardProps>(
           })()}
         </div>
         <div style={{ position: 'relative', zIndex: 1, fontSize: Math.max(15, 16 * scale), fontWeight: 800, color: timelineTheme === 'beige-light' ? '#2e2418' : '#FFFFFF', lineHeight: 1.3, marginBottom: 5, textShadow: timelineTheme === 'beige-light' ? '0 1px 0 rgba(255,255,255,0.18)' : '0 1px 0 rgba(0,0,0,0.16)' }}>
-          Consultation, {apt.date}
+          {(apt as any).isHPNote ? 'H&P Documentation' : 'Consultation'}, {apt.date}
         </div>
         <div style={{ position: 'relative', zIndex: 1, fontSize: Math.max(10.5, 11 * scale), color: timelineTheme === 'beige-light' ? 'rgba(72,56,38,0.78)' : 'rgba(240,247,255,0.72)', marginBottom: Math.max(14, Math.round(16 * scale)), fontWeight: 500 }}>
           {apt.date} · {apt.doctor}
@@ -572,7 +615,7 @@ function TimelineGroup({ apt, side, baseDelay, floatDelay, primaryCardWidth, sec
     if (accessLevel === 'summary') return false; // Secondary cards (pills/labs) hidden in summary-only
     return false;
   });
-  const accent = getAccent(apt.specialty, apt.severity, (apt as any).isLab);
+  const accent = getAccent(apt.specialty, apt.severity, (apt as any).isLab, (apt as any).isHPNote);
   const hi     = hiId === apt.id;
   const isLeft = side === 'left';
 
@@ -1307,17 +1350,21 @@ function IntelligenceOverlay({
       if (e.key.toLowerCase() === 'o' && !isInput) {
         setMode('overview');
         e.preventDefault();
+        e.stopPropagation();
       } else if (e.key.toLowerCase() === 'i' && !isInput) {
         setMode('ai');
         e.preventDefault();
+        e.stopPropagation();
       }
 
       if (e.key === 'ArrowDown' && mode === 'overview') {
         setMode('ai');
         e.preventDefault();
+        e.stopPropagation();
       } else if (e.key === 'ArrowUp' && mode === 'ai') {
         setMode('overview');
         e.preventDefault();
+        e.stopPropagation();
       }
 
       if (e.key === ' ') {
@@ -1327,22 +1374,25 @@ function IntelligenceOverlay({
             if (!chatMessage.trim()) {
               onClose();
               e.preventDefault();
+              e.stopPropagation();
             }
           } else {
             onClose();
             e.preventDefault();
+            e.stopPropagation();
           }
         } 
         // In Overview mode, space always closes (no chat input)
         else {
           onClose();
           e.preventDefault();
+          e.stopPropagation();
         }
       }
     };
 
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
   }, [mode, chatMessage, onClose]);
 
   const handleSend = () => {
@@ -2504,7 +2554,7 @@ function SimpleListView({
         {filtered.map((apt, idx) => {
           const isExpanded  = expandedId === apt.id;
           const isLast      = idx === filtered.length - 1;
-          const aptAccent   = getAccent(apt.specialty, apt.severity, (apt as any).isLab);
+          const aptAccent   = getAccent(apt.specialty, apt.severity, (apt as any).isLab, (apt as any).isHPNote);
           const isActive    = (apt.status ?? '').toUpperCase() === 'ACTIVE';
           
           const hasLabs     = (apt.labs?.length ?? 0) > 0 && (accessLevel === 'full' || accessLevel === 'lab');
@@ -3093,13 +3143,47 @@ export function TimelineView({
   const serpPathRef  = useRef<SVGPathElement>(null);
   const serpAnimDone = useRef(false);
 
+  const mergedAptData = useMemo(() => {
+    if (!patient?.pastAppointments) return aptData;
+    
+    const existingIds = new Set(aptData.map(a => a.id));
+    const newApts = patient.pastAppointments.filter(pa => !existingIds.has(pa.id)).map(pa => {
+      let displayDate = 'Unknown Date';
+      try {
+        const d = new Date(pa.date);
+        if (!isNaN(d.getTime())) {
+          displayDate = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+      } catch {}
+
+      return {
+        id: pa.id,
+        date: displayDate,
+        type: pa.purpose || 'Consultation',
+        specialty: pa.specialty || 'General Practice',
+        doctor: pa.doctorName || 'Unknown',
+        metrics: pa.isHPNote ? 'H&P' : 'Review',
+        status: 'COMPLETED',
+        startDate: pa.date,
+        isHPNote: pa.isHPNote,
+        hpNoteData: pa.hpNoteData,
+        labs: [],
+        prescriptions: [],
+        medications: []
+      } as any;
+    });
+
+    const combined = [...newApts, ...aptData];
+    return combined.sort((a, b) => new Date(b.startDate || b.date).getTime() - new Date(a.startDate || a.date).getTime());
+  }, [aptData, patient?.pastAppointments]);
+
   const filteredData = useMemo(() => {
     if (!accessLevel) return [];
-    if (accessLevel === 'full') return aptData;
-    if (accessLevel === 'lab') return aptData.filter(apt => apt.labs.length > 0);
-    if (accessLevel === 'summary') return aptData; // Show all visits but gate clinical details inside cards
+    if (accessLevel === 'full') return mergedAptData;
+    if (accessLevel === 'lab') return mergedAptData.filter(apt => apt.labs.length > 0);
+    if (accessLevel === 'summary') return mergedAptData; // Show all visits but gate clinical details inside cards
     return [];
-  }, [aptData, accessLevel]);
+  }, [mergedAptData, accessLevel]);
 
   const [serpPath,    setSerpPath]     = useState('');
   const [svgH,        setSvgH]         = useState(0);
@@ -3906,7 +3990,9 @@ export function TimelineView({
       </div>{/* end timeline column */}
       {/* -- Side panel or Wide Modal -- */}
       {selApt && (
-        prescriptionLayout === 'wide' ? (
+        selApt.isHPNote ? (
+          <HPNotePanel appointment={selApt} onClose={() => setSelApt(null)} />
+        ) : prescriptionLayout === 'wide' ? (
           <PrescriptionModal
             event={{
               kind: 'appointment',

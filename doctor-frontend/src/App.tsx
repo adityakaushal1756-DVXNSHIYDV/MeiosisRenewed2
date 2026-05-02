@@ -14,6 +14,7 @@ import { mockPrescriptionTemplates } from './mock/mockAppointments';
 import { EMRState, PrescriptionRow, PrescriptionTemplate, PdfTemplate } from './types/EMR';
 import { Appointment } from './types/Appointment';
 import type { PatientMedicalReport, PatientPastAppointment } from './types/Patient';
+import type { HPNoteSnapshot } from './types/Patient';
 import { DailySchedule } from './components/Schedule/ScheduleDayEditor';
 import { CURRENT_DOCTOR, type DoctorProfile } from './config/doctorProfile';
 import { useOfflineSync } from './hooks/useOfflineSync';
@@ -1913,7 +1914,7 @@ function DoctorWorkspace() {
                       patients?.find((p) => p.id === accessDeniedPatientId)?.name ||
                       'Patient'
                     }
-                    onClose={closeViewRecords}
+                    onClose={handleBackToPatientSearch}
                     onBuildEMR={handleBuildEMRFromRecords}
                     singularityModern={singularityModern}
                     isClosing={isClosingRecords}
@@ -1954,8 +1955,54 @@ function DoctorWorkspace() {
         {hpUniversalOpen && (
           <HistoryAndPhysicalUniversal 
             onClose={() => setHpUniversalOpen(false)}
+            patientId={effectivePatient?.id}
             patientName={effectivePatient?.name}
             darkMode={darkMode}
+            onSaveDraft={async (snapshot: HPNoteSnapshot) => {
+              const patient = effectivePatient;
+              if (!patient) return;
+
+              const now = new Date();
+              const nowDate = now.toISOString().slice(0, 10);
+              const nowTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+              // Optimistic update — appears in the timeline immediately
+              const hpEntry: PatientPastAppointment = {
+                id: `hp-draft-${Date.now()}`,
+                date: `${nowDate} ${nowTime}`,
+                doctorName: CURRENT_DOCTOR.name,
+                specialty: CURRENT_DOCTOR.specialty,
+                mode: 'In-person',
+                status: 'Completed',
+                purpose: 'H&P Note',
+                isHPNote: true,
+                hpNoteData: snapshot,
+              };
+              updatePatient(patient.id, (p) => ({
+                ...p,
+                pastAppointments: [hpEntry, ...p.pastAppointments],
+              }));
+
+              // Persist to backend (same pipeline as EMR)
+              try {
+                const res = await fetch(apiUrl('/hp-notes'), {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+                  body: JSON.stringify({
+                    patientId: patient.id,
+                    doctorId: CURRENT_DOCTOR.id,
+                    title: `H&P Note — ${nowDate}`,
+                    noteData: snapshot,
+                  }),
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                setEmrToast({ ok: true, msg: `H&P Note saved to ${patient.name}'s timeline.` });
+              } catch (err) {
+                console.error('[Meiosis] Failed to persist H&P note:', err);
+                setEmrToast({ ok: false, msg: 'H&P note saved locally but failed to sync to the server.' });
+              }
+              window.setTimeout(() => setEmrToast(null), 4000);
+            }}
           />
         )}
       </>

@@ -1,3 +1,43 @@
+export interface HPNoteItemState {
+  status: 'not_checked' | 'normal' | 'abnormal';
+  note: string;
+}
+
+export interface HPNoteSnapshot {
+  savedAt: string;           // ISO timestamp
+  vitals: {
+    temp?: string;
+    hr?: string;
+    rr?: string;
+    bpSupine?: string;
+    bpSeated?: string;
+    height?: string;
+    weight?: string;
+    pulseOx?: string;
+    pain?: string;
+  };
+  medicalHistory?: string;
+  surgicalHistory?: string;
+  social?: {
+    tobacco?: string;
+    tobaccoPkYrs?: string;
+    illicitDrugsTypes?: string;
+    alcoholFreq?: string;
+    occupation?: string;
+    other?: string;
+  };
+  ros?: Record<string, Record<string, HPNoteItemState>>;
+  pe?: Record<string, Record<string, HPNoteItemState>>;
+  findings?: {
+    ua?: string;
+    ekg?: string;
+    rad?: string;
+    other?: string;
+  };
+  impressions?: string;
+  plan?: string;
+}
+
 export interface HistoryEntry {
   id: string;
   date: string;
@@ -52,6 +92,8 @@ export interface PatientPastAppointment {
   followUp?: string;
   notes?: string;
   documentPath?: string;
+  isHPNote?: boolean;
+  hpNoteData?: HPNoteSnapshot;
 }
 
 export interface PatientPrescriptionRecord {

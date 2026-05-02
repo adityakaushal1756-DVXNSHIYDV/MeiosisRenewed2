@@ -18,6 +18,7 @@ const extractRoutes = require('./routes/extract');
 const networkRoutes = require('./routes/network');
 const queueRoutes = require('./routes/queue');
 const gatewayRoutes = require('./routes/gateway');
+const hpNotesRoutes = require('./routes/hp-notes');
 const { getDatabaseErrorPayload, isDatabaseUnavailableError } = require('./lib/database-errors');
 const { authMiddleware } = require('./middleware/auth-middleware');
 
@@ -127,6 +128,7 @@ apiRouter.use('/analytics', authMiddleware, analyticsRoutes);
 apiRouter.use('/extract', authMiddleware, extractRoutes);
 apiRouter.use('/network', authMiddleware, networkRoutes);
 apiRouter.use('/queue', authMiddleware, queueRoutes);
+apiRouter.use('/hp-notes', authMiddleware, hpNotesRoutes);
 
 // Helper for root path behavior on serverless functions.
 // If someone hits /api/ directly (common in tests/health checks), return a status.

@@ -89,23 +89,30 @@ export function PatientSearch({
       const isTyping = tag === 'INPUT' || tag === 'TEXTAREA';
 
       if (e.key === 'ArrowDown') {
+        if (viewRecordsPatientIdRef.current) return;
         e.preventDefault();
         setFocusedIndex((prev) => (prev < pts.length - 1 ? prev + 1 : prev));
       } else if (e.key === 'ArrowUp') {
+        if (viewRecordsPatientIdRef.current) return;
         e.preventDefault();
         setFocusedIndex((prev) => (prev > 0 ? prev - 1 : 0));
       } else if (e.key === ' ' && !isTyping) {
         e.preventDefault();
+        
+        // If a timeline is already open, space bar should strictly close it.
+        // This prevents the "double function" where it might open a different 
+        // patient if focus shifted in the background.
+        if (viewRecordsPatientIdRef.current) {
+          onCloseRecordsRef.current();
+          return;
+        }
+
         const idx = focusedIndexRef.current >= 0
           ? focusedIndexRef.current
           : pts.findIndex((p) => p.id === selectedPatientIdRef.current);
         if (idx < 0 || idx >= pts.length) return;
         const patient = pts[idx];
-        if (viewRecordsPatientIdRef.current === patient.id) {
-          onCloseRecordsRef.current();
-        } else {
-          onViewRecordsRef.current(patient.id);
-        }
+        onViewRecordsRef.current(patient.id);
       }
     };
     document.addEventListener('keydown', onKey);
