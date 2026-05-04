@@ -13,6 +13,7 @@ import {
   Download,
   FileText,
   FlaskConical,
+  Heart,
   HeartPulse,
   LayoutList,
   Pill,
@@ -20,8 +21,12 @@ import {
   Stethoscope,
   StickyNote,
   Shield,
+  Thermometer,
   User,
   UserCheck,
+  Weight,
+  Wind,
+  ArrowUp,
   X,
   XCircle,
   Zap
@@ -945,173 +950,188 @@ export function PrescriptionModal({
           </div>
         ) : (
           <>
-            {/* ── Meta tiles (4-up) ── */}
+            {/* ── Meta tiles (top row) ── */}
             {appt && (
-              <div className="grid grid-cols-4 border-b border-white/[0.07]">
+              <div className="grid grid-cols-4 border-b border-white/[0.07] bg-white/[0.02]">
                 {[
-                  { label: 'DOCTOR',       value: appt.doctorName },
-                  { label: 'SPECIALTY',    value: appt.specialty  },
-                  { label: 'FOLLOW-UP',    value: appt.followUp ?? '—' },
-                  { label: 'MODE',         value: appt.mode       },
-                ].map(({ label: l, value }, i) => (
-                  <div key={l} className={`bg-white/[0.02] px-4 py-3 ${i > 0 ? 'border-l border-white/[0.07]' : ''}`}>
-                    <p className="text-[9px] font-medium uppercase tracking-[0.16em] text-mist/55">{l}</p>
-                    <p className="mt-1 text-[13px] font-semibold text-white">{value || '—'}</p>
+                  { label: 'ATTENDING PHYSICIAN', value: appt.doctorName, icon: <User size={12} /> },
+                  { label: 'CLINICAL SPECIALTY',  value: appt.specialty,  icon: <Stethoscope size={12} /> },
+                  { label: 'ENCOUNTER DATE',     value: label.top,       icon: <CalendarClock size={12} /> },
+                  { label: 'FOLLOW-UP',          value: appt.followUp ?? '—', icon: <Clock size={12} /> },
+                ].map(({ label: l, value, icon }, i) => (
+                  <div key={l} className={`px-5 py-4 ${i > 0 ? 'border-l border-white/[0.07]' : ''}`}>
+                    <div className="flex items-center gap-1.5 mb-1.5 text-mist/40">
+                      {icon}
+                      <p className="text-[9px] font-bold uppercase tracking-[0.16em]">{l}</p>
+                    </div>
+                    <p className="text-[14px] font-bold text-white">{value || '—'}</p>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* ── Medications table ── */}
-            {appt && (
-              <div className="border-b border-white/[0.07] px-5 py-4">
-                <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80">
-                  💊 Medications
-                </p>
-                {meds.length === 0 ? (
-                  <p className="text-[13px] italic text-mist/50">No medicines prescribed.</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-[12px]">
-                      <thead>
-                        <tr>
-                          {['MEDICINE', 'DOSE', 'TIMING CODE', 'DURATION', ''].map((h) => (
-                            <th
-                              key={h}
-                              className="pb-2 pr-3 text-left text-[9px] font-semibold uppercase tracking-[0.14em] text-mist/55 last:w-7 last:pr-0"
-                            >
-                              {h}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {meds.map((med, i) => {
-                          const noteKey = String(i);
-                          return (
-                            <Fragment key={noteKey}>
-                              <tr className="border-t border-white/[0.05]">
-                                <td className="py-2 pr-3 font-semibold text-neon">{med.name}</td>
-                                <td className="py-2 pr-3 text-white/75">{med.dose || '—'}</td>
-                                <td className="py-2 pr-3 text-white/75">
-                                  {/^[01]{4}$/.test(med.frequency ?? '') ? (
-                                    <span>
-                                      <span className="mr-1 font-mono text-[10px] text-white/35">{med.frequency}</span>
-                                      {emrPatternLabel(med.frequency)}
-                                    </span>
-                                  ) : (med.frequency || '—')}
-                                </td>
-                                <td className="py-2 pr-3 text-white/75">{med.duration || '—'}</td>
-                                <td className="py-2 text-right">
-                                  {med.notes && (
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleNote(noteKey)}
-                                      title={expandedNotes.has(noteKey) ? 'Hide note' : 'Show note'}
-                                      aria-expanded={expandedNotes.has(noteKey)}
-                                      className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/[0.15] text-[13px] font-bold leading-none text-mist/50 transition-colors hover:border-neon/40 hover:text-neon"
-                                    >
-                                      {expandedNotes.has(noteKey) ? '−' : '+'}
-                                    </button>
-                                  )}
-                                </td>
-                              </tr>
-                              {expandedNotes.has(noteKey) && med.notes && (
-                                <tr>
-                                  <td colSpan={5} className="pb-3 pt-0">
-                                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2">
-                                      <p className="text-[11px] leading-5 text-mist/70">{med.notes}</p>
-                                    </div>
-                                  </td>
-                                </tr>
+            <div className="flex flex-col md:flex-row divide-x divide-white/[0.07]">
+              {/* ── Left Column: Medications & Clinical Notes ── */}
+              <div className="flex-1 min-w-0 px-6 py-6">
+                
+                {/* Medications section */}
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-5">
+                    <div className="p-2 rounded-xl bg-neon/10 text-neon border border-neon/20">
+                      <Pill size={16} />
+                    </div>
+                    <h4 className="text-[14px] font-bold uppercase tracking-[0.15em] text-white/90">
+                      Medications
+                    </h4>
+                  </div>
+
+                  {meds.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center">
+                      <p className="text-[14px] italic text-mist/30">No medicines prescribed for this encounter.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {meds.map((med, i) => {
+                        const noteKey = String(i);
+                        return (
+                          <div key={noteKey} className="group rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5 transition-all hover:bg-white/[0.03] hover:border-white/10">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <h5 className="text-[18px] font-bold text-neon group-hover:text-neon transition-colors">
+                                  {med.name}
+                                </h5>
+                                <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                  <div className="space-y-1">
+                                    <p className="text-[10px] font-bold text-mist/40 uppercase tracking-widest">Dose</p>
+                                    <p className="text-[14px] font-semibold text-white/90">{med.dose || '—'}</p>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <p className="text-[10px] font-bold text-mist/40 uppercase tracking-widest">Timing Code</p>
+                                    <p className="text-[14px] font-semibold text-white/90">
+                                      {/^[01]{4}$/.test(med.frequency ?? '') ? (
+                                        <span className="flex items-center gap-2">
+                                          <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-white/5 text-white/40">{med.frequency}</span>
+                                          {emrPatternLabel(med.frequency)}
+                                        </span>
+                                      ) : (med.frequency || '—')}
+                                    </p>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <p className="text-[10px] font-bold text-mist/40 uppercase tracking-widest">Duration</p>
+                                    <p className="text-[14px] font-semibold text-white/90">{med.duration || '—'}</p>
+                                  </div>
+                                </div>
+                              </div>
+                              {med.notes && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleNote(noteKey)}
+                                  className={`mt-1 flex h-9 w-9 items-center justify-center rounded-xl border transition-all ${
+                                    expandedNotes.has(noteKey)
+                                      ? 'border-neon/40 bg-neon/10 text-neon'
+                                      : 'border-white/10 bg-white/5 text-mist/40 hover:text-mist'
+                                  }`}
+                                >
+                                  <StickyNote size={16} />
+                                </button>
                               )}
-                            </Fragment>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── Vitals ── */}
-            <div className="border-b border-white/[0.07] px-5 py-4">
-              <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80">
-                🩺 Vitals
-              </p>
-              <div className="grid grid-cols-3 gap-2.5">
-                {([
-                  { label: 'BLOOD PRESSURE', value: vitals.bloodPressure },
-                  { label: 'HEART RATE',     value: vitals.pulse         },
-                  { label: 'TEMPERATURE',    value: vitals.temperature   },
-                  { label: 'SPO2',           value: vitals.spo2          },
-                  { label: 'HEIGHT',         value: vitals.height        },
-                  { label: 'WEIGHT',         value: vitals.weight        },
-                ] as const).map(({ label: vl, value }) => (
-                  <div key={vl} className="rounded-2xl border border-white/[0.07] bg-white/[0.025] px-4 py-3">
-                    <p className="text-[9px] font-medium uppercase tracking-[0.16em] text-mist/55">{vl}</p>
-                    <p className={`mt-1 text-[13px] font-semibold ${value ? 'text-white' : 'text-mist/35'}`}>
-                      {value || 'N/A'}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* ── Clinical Notes ── */}
-            {hasNotes && (
-              <div className="border-b border-white/[0.07] px-5 py-4">
-                <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80">
-                  📋 Clinical Notes
-                </p>
-                <div className="space-y-3">
-                  {appt!.symptoms && (
-                    <div className="flex gap-3">
-                      <span className="w-[160px] flex-shrink-0 pt-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-mist/55">Chief Complaint</span>
-                      <p className="flex-1 text-[13px] leading-6 text-white/80">{appt!.symptoms}</p>
-                    </div>
-                  )}
-                  {appt!.diagnosis && (
-                    <div className="flex gap-3">
-                      <span className="w-[160px] flex-shrink-0 pt-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-mist/55">Diagnosis / Assessment</span>
-                      <p className="flex-1 text-[13px] leading-6 text-white/80">{appt!.diagnosis}</p>
-                    </div>
-                  )}
-                  {appt!.notes && (
-                    <div className="flex gap-3">
-                      <span className="w-[160px] flex-shrink-0 pt-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-mist/55">Treatment Plan</span>
-                      <p className="flex-1 text-[13px] leading-6 text-white/80">{appt!.notes}</p>
+                            </div>
+                            {expandedNotes.has(noteKey) && med.notes && (
+                              <div className="mt-4 rounded-xl border border-white/[0.04] bg-black/30 p-4">
+                                <p className="text-[13px] leading-relaxed italic text-mist/80">
+                                  <span className="text-neon/50 not-italic font-bold mr-2">Note:</span>
+                                  {med.notes}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
-              </div>
-            )}
 
-            {/* ── Lab report (when event is a lab) ── */}
-            {lab && (
-              <div className="border-b border-white/[0.07] px-5 py-4 space-y-3">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-white/80">🔬 Lab Report</p>
-                <div className="grid grid-cols-3 gap-2.5">
-                  {[
-                    { label: 'CATEGORY', value: lab.category   },
-                    { label: 'DOCTOR',   value: lab.doctorName },
-                    { label: 'FILE',     value: lab.fileLabel  },
-                  ].map(({ label: l, value }) => (
-                    <div key={l} className="rounded-2xl border border-white/[0.07] bg-white/[0.025] px-4 py-3">
-                      <p className="text-[9px] font-medium uppercase tracking-[0.16em] text-mist/55">{l}</p>
-                      <p className="mt-1 text-[13px] font-semibold text-white">{value || '—'}</p>
+                {/* Clinical Notes */}
+                {hasNotes && (
+                  <div className="pt-6 border-t border-white/[0.07]">
+                    <div className="flex items-center gap-2 mb-5">
+                      <div className="p-2 rounded-xl bg-sky/10 text-sky border border-sky/20">
+                        <LayoutList size={16} />
+                      </div>
+                      <h4 className="text-[14px] font-bold uppercase tracking-[0.15em] text-white/90">
+                        Clinical Notes
+                      </h4>
+                    </div>
+                    <div className="space-y-4">
+                      {appt?.symptoms && <NoteRow label="Chief Complaint" value={appt.symptoms} />}
+                      {appt?.diagnosis && <NoteRow label="Diagnosis / Assessment" value={appt.diagnosis} />}
+                      {appt?.notes && <NoteRow label="Treatment Plan" value={appt.notes} />}
+                    </div>
+                  </div>
+                )}
+
+                {/* Lab Findings */}
+                {lab && (
+                  <div className="pt-6 border-t border-white/[0.07] space-y-5">
+                    <div className="flex items-center gap-2 mb-5">
+                      <div className="p-2 rounded-xl bg-violet-400/10 text-violet-400 border border-violet-400/20">
+                        <FlaskConical size={16} />
+                      </div>
+                      <h4 className="text-[14px] font-bold uppercase tracking-[0.15em] text-white/90">
+                        Lab Findings
+                      </h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <MetaTile label="CATEGORY" value={lab.category} />
+                      <MetaTile label="FILE" value={lab.fileLabel} />
+                    </div>
+                    {lab.summary && (
+                      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5">
+                        <p className="text-[14px] leading-[1.7] text-white/80">{lab.summary}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* ── Right Column: Vitals Stack ── */}
+              <div className="w-full md:w-[280px] flex-shrink-0 bg-white/[0.01] px-6 py-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="p-2 rounded-xl bg-white/5 text-white/60 border border-white/10">
+                    <Activity size={16} />
+                  </div>
+                  <h4 className="text-[14px] font-bold uppercase tracking-[0.15em] text-white/80">
+                    Vitals
+                  </h4>
+                </div>
+                <div className="space-y-3">
+                  {([
+                    { label: 'BLOOD PRESSURE', value: vitals.bloodPressure, icon: <Activity size={14} />, color: 'text-rose-400' },
+                    { label: 'HEART RATE',     value: vitals.pulse,         icon: <Heart size={14} />,     color: 'text-rose-400' },
+                    { label: 'TEMPERATURE',    value: vitals.temperature,   icon: <Thermometer size={14} />,color: 'text-amber-400' },
+                    { label: 'SPO2',           value: vitals.spo2,          icon: <Wind size={14} />,      color: 'text-sky-400' },
+                    { label: 'HEIGHT',         value: vitals.height,        icon: <ArrowUp size={14} />,   color: 'text-emerald-400' },
+                    { label: 'WEIGHT',         value: vitals.weight,        icon: <Weight size={14} />,    color: 'text-emerald-400' },
+                  ] as const).map(({ label: vl, value, icon, color }) => (
+                    <div key={vl} className="group rounded-2xl border border-white/[0.06] bg-slate-950/40 p-4 transition-all hover:border-white/20 hover:bg-slate-900/60 shadow-lg">
+                      <div className="flex items-center gap-2 mb-2 text-mist/40 group-hover:text-mist/60 transition-colors">
+                        <span className={`${color}/80`}>{icon}</span>
+                        <p className="text-[9px] font-bold uppercase tracking-[0.2em]">{vl}</p>
+                      </div>
+                      <p className={`text-[18px] font-bold ${value ? 'text-white' : 'text-mist/10'}`}>
+                        {value || '—'}
+                      </p>
                     </div>
                   ))}
                 </div>
-                {lab.summary && (
-                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-mist/50">Summary</p>
-                    <p className="text-[13px] leading-[1.65] text-white/80">{lab.summary}</p>
-                  </div>
-                )}
+                
+                <div className="mt-8 rounded-2xl border border-white/[0.05] bg-neon/[0.02] p-4">
+                  <p className="text-[10px] leading-relaxed text-mist/40 text-center italic">
+                    All vitals are recorded at the time of consultation.
+                  </p>
+                </div>
+              </div>
             </div>
-            )}
           </>
         )}
 

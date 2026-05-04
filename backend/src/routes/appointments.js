@@ -44,9 +44,22 @@ function normalizeMode(mode) {
 async function recalculateQueueNumbers(tx, appointmentSlotId) {
   if (!appointmentSlotId) return;
 
+  const slot = await tx.appointmentSlot.findUnique({
+    where: { id: appointmentSlotId }
+  });
+  if (!slot) return;
+
+  const dayStart = new Date(slot.startAt);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(slot.startAt);
+  dayEnd.setHours(23, 59, 59, 999);
+
   const queueEntries = await tx.appointmentQueue.findMany({
     where: {
-      doctorSlotId: appointmentSlotId,
+      appointmentSlot: {
+        doctorId: slot.doctorId,
+        startAt: { gte: dayStart, lte: dayEnd }
+      },
       status: { not: QueueStatus.CANCELLED }
     },
     orderBy: [

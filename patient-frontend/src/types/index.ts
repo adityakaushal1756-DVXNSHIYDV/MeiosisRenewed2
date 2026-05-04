@@ -77,6 +77,7 @@ export interface PatientProfile {
   prescriptions: Prescription[];
   labReports: LabReport[];
   hpNotes?: any[];
+  doctorLinks?: DoctorLink[];
   
   // Lifestyle & Habits
   breakfastTime?: string | null;
@@ -93,4 +94,23 @@ export interface PatientProfile {
   smokingStatus?: string | null;
   alcoholConsumption?: string | null;
   lifestyleNotes?: string | null;
+}
+
+export interface AppointmentSlot {
+  id: string;
+  doctorId: string;
+  startAt: string;
+  endAt: string;
+  mode: AppointmentMode;
+  location: string;
+  available: boolean;
+  slotDuration?: number;
+}
+
+export interface DoctorLink {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  doctor: Doctor;
+  linkedAt: string;
 }

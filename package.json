@@ -3,11 +3,24 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "install:all": "npm install --prefix backend && npm install --prefix doctor-frontend",
+    "install:all": "npm install --prefix backend && npm install --prefix doctor-frontend && npm install --prefix patient-frontend && npm install --prefix companion-app",
     "build": "npm run build --prefix doctor-frontend",
     "build:frontend": "npm run build --prefix backend && npm run build --prefix doctor-frontend && node -e \"const fs=require('fs'); const path=require('path'); const files=['patient.html','signup.html','login.html','auth.js','auth.css','app.js','styles.css','config.js','doctor-launch.html','meiosis-setup.html','scan.html','icon.svg','manifest.webmanifest','sw.js']; files.forEach(f=>{ if(fs.existsSync(f)) fs.copyFileSync(f, path.join('doctor-frontend/dist', f)) })\"",
 
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix doctor-frontend"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "@prisma/client": "^6.5.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
+    "pdf-parse": "^2.4.5",
+    "puppeteer": "^24.40.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.5.0"
   }
 }

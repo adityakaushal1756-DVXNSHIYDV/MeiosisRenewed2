@@ -26,7 +26,7 @@ function App() {
   const mainRef = useRef<HTMLElement>(null);
 
   const { session, isLoading: authLoading } = useAuth();
-  const { data, isLoading: dataLoading, error } = usePatientProfile(session?.patientId);
+  const { data, isLoading: dataLoading, error, refresh } = usePatientProfile(session?.patientId);
 
   // Syncing logic: We are loading if auth is loading OR if we have a session but data isn't here yet
   const isSyncing = authLoading || (session && dataLoading && !data);
@@ -143,7 +143,7 @@ function App() {
           <Suspense fallback={<LoadingFallback />}>
             {currentSection === 'home' && <DashboardPage onNavigate={setCurrentSection} data={data} patientId={session.patientId} />}
             {currentSection === 'records' && <RecordsPage data={data} />}
-            {currentSection === 'appointments' && <AppointmentsPage data={data} />}
+            {currentSection === 'appointments' && <AppointmentsPage data={data} refresh={refresh} />}
             {currentSection === 'medicines' && <MedicinesPage data={data} />}
             {currentSection === 'prescriptions' && <PrescriptionsPage data={data} />}
             {currentSection === 'network' && <NetworkPage />}

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
+
 import type { ReactNode } from "react";
 import {
   BookmarkPlus,
@@ -554,15 +556,6 @@ function Panel({
 
 /* ── Severity picker with iOS pop + neon glow ────────────── */
 
-/* Active: same neon theme as Save EMR / action-btn */
-const SEVERITY_ACTIVE_CLS = "border-neon/40 bg-neon/[0.12] text-neon";
-const SEVERITY_ACTIVE_GLOW =
-  "0 0 10px rgba(82,255,157,0.35), 0 0 24px rgba(82,255,157,0.15)";
-
-/* Idle: plain ghost, no colour tinting */
-const SEVERITY_IDLE_CLS =
-  "border-wire/10 bg-transparent text-mist/70 hover:border-wire/20 hover:bg-white/[0.04] hover:text-white/80";
-
 function SeverityPicker({
   value,
   onChange,
@@ -570,33 +563,40 @@ function SeverityPicker({
   value: Severity;
   onChange: (v: Severity) => void;
 }) {
-  const [popping, setPopping] = useState<Severity | null>(null);
   const opts: Severity[] = ["LOW", "MILD", "SEVERE"];
-
-  function handleClick(o: Severity) {
-    onChange(o);
-    setPopping(o);
-    setTimeout(() => setPopping(null), 400);
-  }
+  const colors = {
+    LOW: "#22C55E",
+    MILD: "#F97316",
+    SEVERE: "#EF4444",
+  };
 
   return (
-    <div className="flex gap-2">
+    <div className="flex p-1 rounded-full bg-white/[0.03] border border-white/10 h-9 relative w-[220px]">
       {opts.map((o) => {
         const isActive = value === o;
         return (
-          <button
-            key={o}
-            type="button"
-            onClick={() => handleClick(o)}
-            className={[
-              "rounded-2xl border px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150",
-              isActive ? SEVERITY_ACTIVE_CLS : SEVERITY_IDLE_CLS,
-              popping === o ? "severity-btn-popping" : "",
-            ].join(" ")}
-            style={isActive ? { boxShadow: SEVERITY_ACTIVE_GLOW } : undefined}
-          >
-            {o}
-          </button>
+          <div key={o} className="relative flex-1 flex">
+            {isActive && (
+              <motion.div
+                layoutId="severity-pill-bg"
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background: colors[o],
+                  boxShadow: `0 0 15px ${colors[o]}44`,
+                }}
+                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+            <button
+              type="button"
+              onClick={() => onChange(o)}
+              className={`flex-1 z-10 relative border-none cursor-pointer text-[10px] font-bold transition-all duration-200 ${
+                isActive ? "text-[#06111d]" : "text-mist/60 hover:text-white/80"
+              }`}
+            >
+              {o}
+            </button>
+          </div>
         );
       })}
     </div>

@@ -83,6 +83,8 @@ const STATUS_CLR: Record<string, string> = {
 };
 
 const SEVERITY_CLR: Record<string, string> = {
+  severe:   '#EF4444', // Red
+  high:     '#EF4444', // Red
   critical: '#EF4444', // Red
   mild:     '#F97316', // Orange
   low:      '#22C55E', // Green
@@ -500,10 +502,10 @@ const PCard = forwardRef<HTMLDivElement, PCardProps>(
         style={{
           position: 'relative',
           background: timelineTheme === 'dashboard-dark'
-            ? 'color-mix(in srgb, var(--doctor-bg-end, #0d2239) 86%, var(--doctor-card-tint, rgba(23,50,77,0.88)) 14%)'
+            ? `color-mix(in srgb, ${accent} 7%, var(--doctor-bg-end, #0d2239))`
             : timelineTheme === 'beige-light'
-            ? '#FAF7F2'
-            : '#132434',
+            ? `color-mix(in srgb, ${accent} 4%, #FAF7F2)`
+            : `color-mix(in srgb, ${accent} 8%, #132434)`,
           backdropFilter: 'blur(18px) saturate(135%)',
           WebkitBackdropFilter: 'blur(18px) saturate(135%)',
           borderRadius: Math.max(18, Math.round(20 * scale)),
@@ -3714,9 +3716,9 @@ export function TimelineView({
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            border: '1px solid var(--wire-color, rgba(255,255,255,0.1))',
-            background: 'var(--card-bg, rgba(255,255,255,0.02))',
-            color: 'var(--mist-color, rgba(255,255,255,0.6))',
+            border: '1px solid #fbbf24',
+            background: '#fbbf24',
+            color: '#06111d',
             borderRadius: 99,
             padding: '10px 22px',
             cursor: 'pointer',
@@ -3724,17 +3726,18 @@ export function TimelineView({
             fontWeight: 800,
             letterSpacing: '0.04em',
             textTransform: 'uppercase',
-            transition: 'all 0.2s ease',
+            boxShadow: '0 8px 32px rgba(251, 191, 36, 0.22), 0 0 15px rgba(251, 191, 36, 0.3)',
+            transition: 'all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'var(--text-color, #ffffff)';
-            e.currentTarget.style.borderColor = 'rgba(251, 191, 36, 0.4)';
-            e.currentTarget.style.background = 'rgba(251, 191, 36, 0.05)';
+            e.currentTarget.style.transform = 'translateY(-1px) scale(1.02)';
+            e.currentTarget.style.boxShadow = '0 12px 40px rgba(251, 191, 36, 0.35), 0 0 20px rgba(251, 191, 36, 0.4)';
+            e.currentTarget.style.filter = 'brightness(1.05)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'var(--mist-color, rgba(255,255,255,0.6))';
-            e.currentTarget.style.borderColor = 'var(--wire-color, rgba(255,255,255,0.1))';
-            e.currentTarget.style.background = 'var(--card-bg, rgba(255,255,255,0.02))';
+            e.currentTarget.style.transform = 'translateY(0) scale(1)';
+            e.currentTarget.style.boxShadow = '0 8px 32px rgba(251, 191, 36, 0.22), 0 0 15px rgba(251, 191, 36, 0.3)';
+            e.currentTarget.style.filter = 'brightness(1)';
           }}
         >
           <StickyNote size={18} />

@@ -1,14 +1,18 @@
 import { useState } from 'react';
-import { Calendar, Clock, MapPin, Video, User } from 'lucide-react';
+import { Calendar, Clock, MapPin, Video, User, PlusCircle } from 'lucide-react';
 import { cn } from '../components/Sidebar';
+import { AppointmentBookingOverlay } from '../components/AppointmentBookingOverlay';
+import { AnimatePresence } from 'framer-motion';
 import type { PatientProfile } from '../types';
 
 interface AppointmentsPageProps {
   data: PatientProfile;
+  refresh: () => void;
 }
 
-export function AppointmentsPage({ data }: AppointmentsPageProps) {
+export function AppointmentsPage({ data, refresh }: AppointmentsPageProps) {
   const [filter, setFilter] = useState<'upcoming' | 'past' | 'cancelled'>('upcoming');
+  const [showBooking, setShowBooking] = useState(false);
 
   const now = new Date();
   
@@ -39,8 +43,17 @@ export function AppointmentsPage({ data }: AppointmentsPageProps) {
           <h1 className="text-3xl font-bold text-white tracking-tight">Appointments</h1>
           <p className="text-mist mt-1 text-sm font-medium">Manage clinical visits & video consultations.</p>
         </div>
+
+        <button 
+          onClick={() => setShowBooking(true)}
+          className="action-btn gap-2 shadow-[0_8px_32px_rgba(82,255,157,0.2)]"
+        >
+          <PlusCircle size={18} strokeWidth={3} />
+          Book New Appointment
+        </button>
         
         <div className="flex bg-white/[0.03] p-1.5 rounded-full border border-white/5 backdrop-blur-3xl shadow-2xl">
+
           <button 
             onClick={() => setFilter('upcoming')}
             className={cn("px-8 py-2.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-all duration-300", 
@@ -71,8 +84,9 @@ export function AppointmentsPage({ data }: AppointmentsPageProps) {
             <Calendar className="w-12 h-12 text-mist mb-4" />
             <h3 className="text-xl font-medium text-white mb-2">No {filter} appointments found</h3>
             <p className="text-mist">You do not have any {filter} appointments at this time.</p>
-            {filter !== 'past' && <button className="action-btn mt-6">Book New Appointment</button>}
+            {filter !== 'past' && <button className="action-btn mt-6" onClick={() => setShowBooking(true)}>Book New Appointment</button>}
           </div>
+
         ) : (
           filtered.map(apt => (
             <div key={apt.id} className="glass-card p-6 border border-wire/10 flex flex-col group hover:border-wire/20 transition-all cursor-pointer">
@@ -111,6 +125,16 @@ export function AppointmentsPage({ data }: AppointmentsPageProps) {
           ))
         )}
       </div>
+
+      <AnimatePresence>
+        {showBooking && (
+          <AppointmentBookingOverlay 
+            patient={data} 
+            onClose={() => setShowBooking(false)} 
+            onSuccess={refresh}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

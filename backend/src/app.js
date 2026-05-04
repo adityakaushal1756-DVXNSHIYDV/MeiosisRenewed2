@@ -69,6 +69,14 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/uploads', express.static(uploadsRoot));
 
+// Serve Frontend Static Files (for ngrok/Monolith deployment)
+const ROOT_DIR = path.resolve(__dirname, '../../');
+const DOCTOR_DIST = path.join(ROOT_DIR, 'doctor-frontend/dist');
+const PATIENT_DIST = path.join(ROOT_DIR, 'patient-frontend/dist');
+
+app.use(express.static(DOCTOR_DIST));
+app.use('/patient-frontend', express.static(PATIENT_DIST));
+
 const prisma = require('./lib/prisma');
 
 app.get('/health', async (req, res) => {
@@ -142,7 +150,31 @@ app.use('/', apiRouter);
 
 
 app.get('/patient-record', (_req, res) => {
+  const scanPath = path.join(DOCTOR_DIST, 'scan.html');
+  if (fs.existsSync(scanPath)) {
+    return res.sendFile(scanPath);
+  }
   res.sendFile(path.join(__dirname, '../public/scan.html'));
+});
+
+// Catch-all for Frontend Routing (React Router)
+app.get('/doctor-frontend*', (req, res) => {
+  res.sendFile(path.join(DOCTOR_DIST, 'index.html'));
+});
+
+app.get('/patient-frontend*', (req, res) => {
+  res.sendFile(path.join(PATIENT_DIST, 'index.html'));
+});
+
+// Default to login.html if nothing else matches
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
+  const loginPath = path.join(DOCTOR_DIST, 'login.html');
+  if (fs.existsSync(loginPath)) {
+    res.sendFile(loginPath);
+  } else {
+    next();
+  }
 });
 
 app.use((err, _req, res, _next) => {
