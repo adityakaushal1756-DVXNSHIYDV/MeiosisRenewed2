@@ -24,6 +24,10 @@ function appendQueryParam(url, key, value) {
 // Prisma's default pool = num_cpus * 2 + 1, which can exceed that limit.
 // We append connection_limit to the URL to keep the pool well within bounds.
 const base = process.env.DATABASE_URL ?? '';
+if (!base) {
+  console.error("[Prisma] CRITICAL: DATABASE_URL is not set. Check your Vercel Environment Variables.");
+}
+
 const url = appendQueryParam(
   appendQueryParam(
     appendQueryParam(base, 'connection_limit', 5),

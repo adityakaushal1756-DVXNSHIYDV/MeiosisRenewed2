@@ -152,7 +152,7 @@ async function checkBackendHealth() {
 
   for (let attempt = 1; attempt <= 4; attempt += 1) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3500);
+    const timer = setTimeout(() => controller.abort(), 8000); // Increased to 8s for Vercel cold starts
     try {
       const response = await fetch(`${BACKEND_ORIGIN}/health`, {
         method: "GET",
@@ -160,8 +160,10 @@ async function checkBackendHealth() {
         cache: "no-store",
       });
       clearTimeout(timer);
-      if (!response.ok)
-        throw new Error(`Health endpoint failed with ${response.status}`);
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Health check failed: ${response.status} ${text}`);
+      }
       const health = await response.json().catch(() => null);
       backendReachable = true;
       badge.className =
@@ -178,8 +180,8 @@ async function checkBackendHealth() {
       backendReachable = false;
       if (attempt < 4) {
         badge.className = "auth-backend-pill auth-backend-pill-pending";
-        badge.textContent = `Checking backend... (${attempt + 1}/4)`;
-        await delay(1200);
+        badge.textContent = `Waking up backend... (${attempt + 1}/4)`;
+        await delay(2000); // Slightly longer delay between retries
         continue;
       }
     }

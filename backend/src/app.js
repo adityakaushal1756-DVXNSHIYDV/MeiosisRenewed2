@@ -23,6 +23,8 @@ const { getDatabaseErrorPayload, isDatabaseUnavailableError } = require('./lib/d
 const { authMiddleware } = require('./middleware/auth-middleware');
 
 const app = express();
+console.log(`[Backend] Initializing Meiosis Backend (Vercel: ${!!process.env.VERCEL})`);
+
 app.use((req, res, next) => {
   console.log(`[HTTP] ${req.method} ${req.url}`);
   next();

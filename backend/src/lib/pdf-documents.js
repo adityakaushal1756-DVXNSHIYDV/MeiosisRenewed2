@@ -32,15 +32,21 @@ function safeName(value, fallback = 'document') {
 
 async function renderPdfToFile(html, absolutePath) {
   await fs.mkdir(path.dirname(absolutePath), { recursive: true });
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-gpu',
-      '--disable-dev-shm-usage',
-    ],
-  });
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-gpu',
+        '--disable-dev-shm-usage',
+      ],
+    });
+  } catch (err) {
+    console.error("[PDF] Failed to launch Puppeteer:", err.message);
+    throw new Error("PDF generation is currently unavailable in this environment (Puppeteer/Chromium not found).");
+  }
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'load', timeout: 30000 });
