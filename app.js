@@ -1788,7 +1788,8 @@ function getChipClassFromLabStatus(status) {
 }
 
 async function apiGet(path) {
-  const response = await fetch(`${API_BASE_URL}${path}`);
+  const headers = authSession?.token ? { "Authorization": `Bearer ${authSession.token}` } : {};
+  const response = await fetch(`${API_BASE_URL}${path}`, { headers });
   if (!response.ok) throw new Error(`API request failed: ${path}`);
   return response.json();
 }
@@ -1798,6 +1799,7 @@ async function apiRequest(path, options = {}) {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       headers: {
         "Content-Type": "application/json",
+        ...(authSession?.token ? { "Authorization": `Bearer ${authSession.token}` } : {}),
         ...(options.headers || {}),
       },
       ...options,
@@ -4923,8 +4925,10 @@ async function pollOtpStatus() {
   const patientId = authSession && authSession.patientId;
   if (!patientId) return;
   try {
+    const headers = authSession?.token ? { "Authorization": `Bearer ${authSession.token}` } : {};
     const res = await fetch(
       `${API_BASE_URL}/otp/current?patientId=${encodeURIComponent(patientId)}`,
+      { headers }
     );
     if (!res.ok) return;
     const data = await res.json();

@@ -146,8 +146,9 @@ router.get('/', asyncHandler(async (req, res) => {
   const isDoctor = account && account.role === 'DOCTOR' && account.doctorId;
 
   if (wantsHtml(req)) {
-    const doctorUrl = process.env.DOCTOR_APP_URL || "http://localhost:5173";
-    const tempUrl = `/patient-record?token=${encodeURIComponent(temp.token)}&code=${encodeURIComponent(patient.universalCode || patient.id)}`;
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const durMins = Math.max(1, Math.floor((qrPayload.exp - nowSeconds) / 60));
+    const tempUrl = `/patient-record?token=${encodeURIComponent(temp.token)}&code=${encodeURIComponent(patient.universalCode || patient.id)}&dur=${durMins}`;
 
     return res.send(`
 <!DOCTYPE html>

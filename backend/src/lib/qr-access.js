@@ -49,14 +49,48 @@ function safeEqual(a, b) {
   return crypto.timingSafeEqual(left, right);
 }
 
+function encryptPatientId(patientId) {
+  const secret = getQrSigningSecret();
+  const key = crypto.createHash('sha256').update(secret).digest();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  
+  let encrypted = cipher.update(String(patientId), 'utf8', 'base64');
+  encrypted += cipher.final('base64');
+  const authTag = cipher.getAuthTag().toString('base64');
+  
+  return {
+    iv: iv.toString('base64'),
+    data: encrypted,
+    tag: authTag
+  };
+}
+
+function decryptPatientId(encryptedPayload) {
+  const secret = getQrSigningSecret();
+  const key = crypto.createHash('sha256').update(secret).digest();
+  const iv = Buffer.from(encryptedPayload.iv, 'base64');
+  const authTag = Buffer.from(encryptedPayload.tag, 'base64');
+  
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+  decipher.setAuthTag(authTag);
+  
+  let decrypted = decipher.update(encryptedPayload.data, 'base64', 'utf8');
+  decrypted += decipher.final('utf8');
+  
+  return decrypted;
+}
+
 function createQrPayload({ patientId, ttlSeconds, now = Date.now(), nonce }) {
   if (!patientId) {
     throw new Error('patientId is required');
   }
 
   const ttl = clampTtlSeconds(ttlSeconds);
+  const enc = encryptPatientId(patientId);
+
   return {
-    p_id: String(patientId),
+    p_enc: enc,
     exp: Math.floor(now / 1000) + ttl,
     nonce: nonce || crypto.randomBytes(16).toString('hex'),
   };
@@ -102,9 +136,21 @@ function verifySignedQrPayload({ data, sig }) {
     throw err;
   }
 
-  if (!payload || typeof payload !== 'object' || !payload.p_id || !Number.isFinite(Number(payload.exp)) || !payload.nonce) {
+  if (!payload || typeof payload !== 'object' || !Number.isFinite(Number(payload.exp)) || !payload.nonce) {
     const err = new Error('QR payload is missing required claims.');
     err.statusCode = 400;
+    throw err;
+  }
+
+  try {
+    if (payload.p_enc) {
+      payload.p_id = decryptPatientId(payload.p_enc);
+    } else if (!payload.p_id) {
+      throw new Error('Missing patient identification.');
+    }
+  } catch (decErr) {
+    const err = new Error('Failed to decrypt secure QR payload.');
+    err.statusCode = 401;
     throw err;
   }
 

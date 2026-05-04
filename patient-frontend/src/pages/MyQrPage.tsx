@@ -71,6 +71,7 @@ export function MyQrPage({ data }: MyQrPageProps) {
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [activeOtp, setActiveOtp] = useState<{ otp: string; expiresAt: number } | null>(null);
 
   const selectedDuration = durationOptions[duration];
   const patientCode = data.universalCode || data.meiosisId || data.id;
@@ -143,6 +144,32 @@ export function MyQrPage({ data }: MyQrPageProps) {
     };
   }, [qrResponse?.gatewayUrl]);
 
+  // Live OTP Polling
+  useEffect(() => {
+    let timer: number;
+    const poll = async () => {
+      try {
+        const res = await fetch(apiUrl(`/otp/current?patientId=${data.id}`), {
+          headers: getAuthHeader(),
+        });
+        if (res.ok) {
+          const body = await res.json();
+          if (body.active) {
+            setActiveOtp({ otp: body.otp, expiresAt: body.expiresAt });
+          } else {
+            setActiveOtp(null);
+          }
+        }
+      } catch (err) {
+        console.error('OTP Polling failed', err);
+      }
+    };
+
+    poll();
+    timer = window.setInterval(poll, 4000);
+    return () => window.clearInterval(timer);
+  }, [data.id]);
+
   const copyLink = async () => {
     if (!qrResponse?.gatewayUrl) return;
     try {
@@ -183,6 +210,23 @@ export function MyQrPage({ data }: MyQrPageProps) {
                 )}
                 {qrImage && <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-400/20 to-transparent h-12 w-full animate-[panel-float_3s_ease-in-out_infinite]" />}
               </div>
+
+              {/* OTP Overlay for Active Scans */}
+              {activeOtp && (
+                <div className="absolute inset-x-8 bottom-8 animate-[page-enter_0.3s_ease-out_forwards]">
+                  <div className="glass-card !bg-ink/90 border-neon/30 shadow-[0_0_30px_rgba(82,255,157,0.2)] p-4 text-center">
+                    <p className="text-[10px] uppercase tracking-widest text-neon mb-2 font-bold">Verification Code</p>
+                    <div className="flex justify-center gap-2 mb-2">
+                      {activeOtp.otp.split('').map((char, i) => (
+                        <div key={i} className="w-10 h-12 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-2xl font-bold text-white font-mono">
+                          {char}
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-mist">Provide this to the doctor for access</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="p-6 text-center border-b border-wire/10">

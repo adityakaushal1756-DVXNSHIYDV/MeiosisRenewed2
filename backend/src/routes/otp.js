@@ -1,6 +1,7 @@
 const express = require('express');
 const prisma = require('../lib/prisma');
 const asyncHandler = require('../lib/async-handler');
+const { authMiddleware } = require('../middleware/auth-middleware');
 
 const router = express.Router();
 
@@ -80,9 +81,14 @@ router.post('/verify', asyncHandler(async (req, res) => {
 
 // GET /api/otp/current?patientId=XXX
 // Called by the patient's app to show them their current OTP (if a scan is in progress)
-router.get('/current', asyncHandler(async (req, res) => {
+router.get('/current', authMiddleware, asyncHandler(async (req, res) => {
   const { patientId } = req.query;
   if (!patientId) return res.status(400).json({ error: 'patientId is required' });
+
+  // Security: Ensure the caller is either the patient themselves or a linked doctor
+  if (req.user.role === 'PATIENT' && req.user.patientId !== String(patientId)) {
+    return res.status(403).json({ error: 'unauthorized', message: 'You can only fetch your own OTP.' });
+  }
 
   purgeExpired();
 
