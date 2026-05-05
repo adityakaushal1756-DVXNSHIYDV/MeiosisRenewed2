@@ -833,9 +833,7 @@ body[data-doctor-theme]:not(.theme-light) .hover\:border-wire\/20:hover {
 
 /* ── iOS-style bottom sheet ── */
 .emr-backdrop {
-  background: rgba(2, 13, 26, 0.60);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
+  background: rgba(2, 13, 26, 0.40);
   animation: backdropIn 0.22s ease both;
 }
 

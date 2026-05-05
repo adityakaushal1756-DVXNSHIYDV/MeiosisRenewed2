@@ -87,6 +87,7 @@ model Doctor {
   queueSessions      QueueSession[]
   remoteCommands     RemoteCommand[]
   hpNotes            HPNote[]
+  staff              Staff[]
 }
 
 model RemoteCommand {
@@ -136,10 +137,24 @@ model UserAccount {
   password  String
   patientId String?  @unique
   doctorId  String?  @unique
+  staffId   String?  @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   doctor    Doctor?  @relation(fields: [doctorId], references: [id])
   patient   Patient? @relation(fields: [patientId], references: [id])
+  staff     Staff?   @relation(fields: [staffId], references: [id])
+}
+
+model Staff {
+  id        String       @id @default(cuid())
+  name      String
+  email     String       @unique
+  role      UserRole
+  doctorId  String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  account   UserAccount?
+  doctor    Doctor       @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 }
 
 model Appointment {
@@ -482,6 +497,11 @@ enum SenderRole {
 enum UserRole {
   PATIENT
   DOCTOR
+  RECEPTION
+  NURSE
+  REGISTRAR
+  RESIDENT
+  INTERN
 }
 
 enum EmrShareStatus {

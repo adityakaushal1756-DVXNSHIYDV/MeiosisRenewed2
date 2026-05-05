@@ -15,7 +15,8 @@ function sanitizeUser(account) {
     email: account.email,
     meiosisId: account.meiosisId,
     patientId: account.patientId || null,
-    doctorId: account.doctorId || null
+    doctorId: account.doctorId || null,
+    staffId: account.staffId || null
   };
 }
 
@@ -79,7 +80,7 @@ router.post('/login', asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    redirect: account.role === 'DOCTOR' ? 'doctor' : 'patient',
+    redirect: account.role === 'DOCTOR' ? 'doctor' : (account.role === 'PATIENT' ? 'patient' : 'staff'),
     user: sanitizeUser(account),
     token
   });

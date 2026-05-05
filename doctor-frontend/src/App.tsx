@@ -1919,7 +1919,7 @@ function DoctorWorkspace() {
               )}
 
               {viewRecordsPatientId && (
-                <div className="fixed inset-0 z-[60] bg-ink/95 backdrop-blur-xl">
+                <div className="fixed inset-0 z-[60] bg-ink/60">
                   <Suspense fallback={<LoadingFallback />}>
                     <EMRv2
                       patient={effectivePatient}
@@ -2043,6 +2043,24 @@ function DoctorWorkspace() {
 }
 
 export default function App() {
+  useEffect(() => {
+    // 1. Check for session handover via URL (cross-port login support)
+    const url = new URL(window.location.href);
+    const sessionParam = url.searchParams.get('session');
+    if (sessionParam) {
+      localStorage.setItem('meiosis_auth_session_v1', sessionParam);
+      // Clean the URL
+      url.searchParams.delete('session');
+      window.history.replaceState({}, '', url.toString());
+    }
+
+    const session = localStorage.getItem('meiosis_auth_session_v1');
+    const isTempAccess = window.location.pathname === '/temp-access';
+    if (!session && !isTempAccess) {
+      window.location.href = 'http://localhost:5002/login.html';
+    }
+  }, []);
+
   const isTempAccessRoute = typeof window !== 'undefined' && window.location.pathname === '/temp-access';
 
   if (isTempAccessRoute) {

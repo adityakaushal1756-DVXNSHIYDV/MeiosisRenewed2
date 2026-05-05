@@ -379,20 +379,20 @@ const SCard = forwardRef<HTMLDivElement, SCardProps>(
     const iconRadius = Math.max(7, Math.round(8 * scale));
     const dot    = item.kind === 'lab' && item.status ? STATUS_CLR[item.status] : undefined;
     const cardBg = useDashboardTheme
-      ? 'color-mix(in srgb, var(--doctor-bg-end, #10253d) 84%, var(--doctor-card-tint, rgba(28,56,78,0.9)) 16%)'
+      ? 'var(--doctor-bg-end, #10253d)'
       : isBeigeTheme
       ? '#FAF7F2'
       : '#1d384c';
     const groupedBorder = useDashboardTheme
-      ? '1px solid color-mix(in srgb, rgba(255,255,255,0.18) 54%, var(--doctor-border, rgba(108, 156, 204, 0.22)) 46%)'
+      ? '1px solid rgba(255,255,255,0.12)'
       : isBeigeTheme
       ? '1px solid rgba(120, 95, 70, 0.16)'
-      : '1px solid color-mix(in srgb, rgba(255,255,255,0.30) 62%, var(--doctor-border, rgba(108, 156, 204, 0.08)) 38%)';
+      : '1px solid rgba(255,255,255,0.18)';
     const idleBorder = useDashboardTheme
-      ? '1px solid color-mix(in srgb, rgba(255,255,255,0.16) 48%, var(--doctor-border, rgba(108, 156, 204, 0.2)) 52%)'
+      ? '1px solid rgba(255,255,255,0.06)'
       : isBeigeTheme
       ? '1px solid rgba(120, 95, 70, 0.12)'
-      : '1px solid color-mix(in srgb, rgba(255,255,255,0.24) 58%, var(--doctor-border, rgba(108, 156, 204, 0.08)) 42%)';
+      : '1px solid rgba(255,255,255,0.10)';
 
     return (
       <div
@@ -502,10 +502,10 @@ const PCard = forwardRef<HTMLDivElement, PCardProps>(
         style={{
           position: 'relative',
           background: timelineTheme === 'dashboard-dark'
-            ? `color-mix(in srgb, ${accent} 7%, var(--doctor-bg-end, #0d2239))`
+            ? 'var(--doctor-bg-end, #0d2239)'
             : timelineTheme === 'beige-light'
-            ? `color-mix(in srgb, ${accent} 4%, #FAF7F2)`
-            : `color-mix(in srgb, ${accent} 8%, #132434)`,
+            ? '#FAF7F2'
+            : '#132434',
           backdropFilter: 'blur(18px) saturate(135%)',
           WebkitBackdropFilter: 'blur(18px) saturate(135%)',
           borderRadius: Math.max(18, Math.round(20 * scale)),
@@ -515,12 +515,12 @@ const PCard = forwardRef<HTMLDivElement, PCardProps>(
           maxWidth: '100%',
           flexShrink: 0,
           border: hi
-            ? `1px solid color-mix(in srgb, ${accent} 34%, rgba(255,255,255,0.30))`
+            ? `1px solid color-mix(in srgb, ${accent} 40%, rgba(255,255,255,0.40))`
             : timelineTheme === 'dashboard-dark'
-            ? '1px solid color-mix(in srgb, rgba(255,255,255,0.16) 48%, var(--doctor-border, rgba(108, 156, 204, 0.22)) 52%)'
+            ? '1px solid rgba(255,255,255,0.08)'
             : timelineTheme === 'beige-light'
             ? '1px solid rgba(118, 94, 70, 0.14)'
-            : '1px solid color-mix(in srgb, rgba(255,255,255,0.28) 64%, var(--doctor-border, rgba(108, 156, 204, 0.08)) 36%)',
+            : '1px solid rgba(255,255,255,0.12)',
           boxShadow: hi
             ? timelineTheme === 'beige-light'
               ? `0 18px 36px rgba(94,72,50,0.14), 0 0 0 1px color-mix(in srgb, ${accent} 10%, transparent), inset 0 1px 0 rgba(255,255,255,0.24)`

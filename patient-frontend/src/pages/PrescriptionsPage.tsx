@@ -124,51 +124,72 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
               </div>
             </section>
 
-            {/* 2. Active Care Pipeline */}
-            {activePrescriptions.length > 0 && (
+            {/* 2. Pipeline (Shows all treatments, greyscale if inactive) */}
+            {prescriptions.length > 0 && (
               <section>
                 <div className="flex items-center justify-between mb-4 px-1">
                   <h3 className="text-[10px] font-semibold uppercase tracking-wider text-white flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-neon animate-pulse"></span>
-                    Active Pipeline
+                    Care Pipeline
                   </h3>
                 </div>
                 
                 <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {activePrescriptions.map(p => {
+                  {[...prescriptions].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).map(p => {
                     const startDate = parseISO(p.startDate);
                     const expiryDate = addDays(startDate, p.durationDays);
                     const daysPassed = Math.max(0, differenceInDays(today, startDate));
                     const totalDays = p.durationDays || 1;
                     const progress = Math.min(100, Math.max(0, (daysPassed / totalDays) * 100));
                     const daysLeft = Math.max(0, totalDays - daysPassed);
+                    
+                    const isActive = typeof p.isActive === 'boolean' 
+                      ? p.isActive 
+                      : (p.status === 'ACTIVE' && !isAfter(today, expiryDate));
 
                     return (
                       <div 
                         key={p.id} 
-                        className="glass-card p-5 border border-neon/20 hover:border-neon/50 bg-[#0A1118]/80 hover:bg-[#0A1118] transition-all relative overflow-hidden group flex flex-col h-full"
+                        className={cn(
+                          "glass-card p-5 border transition-all relative overflow-hidden group flex flex-col h-full",
+                          isActive 
+                            ? "border-neon/20 hover:border-neon/50 bg-[#0A1118]/80 hover:bg-[#0A1118]" 
+                            : "border-wire/10 bg-[#0A1118]/40 grayscale opacity-70 hover:grayscale-0 hover:opacity-100"
+                        )}
                       >
                         <div className="absolute top-0 inset-x-0 h-1 bg-white/5">
-                           <div className="h-full bg-neon shadow-[0_0_10px_#52FF9D]" style={{ width: `${progress}%` }}></div>
+                           <div className={cn("h-full shadow-[0_0_10px_#52FF9D]", isActive ? "bg-neon" : "bg-mist/30")} style={{ width: `${progress}%` }}></div>
                         </div>
 
                         <div className="flex justify-between items-start mb-4 mt-2">
-                           <div className="w-10 h-10 rounded-xl bg-neon/10 border border-neon/20 flex items-center justify-center text-neon shrink-0">
+                           <div className={cn(
+                             "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
+                             isActive ? "bg-neon/10 border-neon/20 text-neon" : "bg-mist/5 border-wire/10 text-mist/40"
+                           )}>
                              <FileText className="w-5 h-5" />
                            </div>
                            <div className="text-right">
-                              <span className="text-[10px] font-semibold uppercase tracking-wider text-mist block mb-0.5">Remaining</span>
-                              <span className="text-lg font-bold text-white">{daysLeft} Days</span>
+                              <span className="text-[10px] font-semibold uppercase tracking-wider text-mist block mb-0.5">
+                                {isActive ? 'Remaining' : 'Concluded'}
+                              </span>
+                              <span className={cn("text-lg font-bold", isActive ? "text-white" : "text-mist/50")}>
+                                {isActive ? `${daysLeft} Days` : '0 Days'}
+                              </span>
                            </div>
                         </div>
 
-                        <h4 className="text-xl font-bold text-white mb-1 truncate">{p.title}</h4>
+                        <h4 className={cn("text-xl font-bold mb-1 truncate", isActive ? "text-white" : "text-mist/60")}>{p.title}</h4>
                         <p className="text-xs font-medium text-mist/80 mb-6 truncate">{p.doctor?.name} • {p.doctor?.specialty}</p>
 
                         <div className="mt-auto">
                            <button 
                              onClick={() => openPanel(p)}
-                             className="w-full bg-white/5 hover:bg-neon/10 border border-white/5 hover:border-neon/30 text-white hover:text-neon py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all flex justify-center items-center gap-2 group/btn"
+                             className={cn(
+                               "w-full py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all flex justify-center items-center gap-2 group/btn border",
+                               isActive 
+                                 ? "bg-white/5 hover:bg-neon/10 border-white/5 hover:border-neon/30 text-white hover:text-neon"
+                                 : "bg-white/2 border-wire/10 text-mist/50 hover:bg-white/5 hover:text-white"
+                             )}
                            >
                              View Digital Rx
                              <ChevronRight className="w-3.5 h-3.5 opacity-40 group-hover/btn:opacity-100 group-hover/btn:translate-x-1 transition-all" />

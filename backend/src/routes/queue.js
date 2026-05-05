@@ -75,43 +75,160 @@ router.patch('/session/:sessionCode/close', asyncHandler(async (req, res) => {
 }));
 
 /**
- * PATCH /api/queue/batch
- * Body: { updates: [{ appointmentId, status, sessionCode? }] }
- * Updates AppointmentQueue entries in bulk. Only provided fields are changed.
- * This is the low-cost dirty-sync endpoint — only changed items are sent.
+ * GET /api/queue/entries
+ * Query: doctorId=... & sessionCode=... (optional)
+ * Returns all active queue entries for the doctor/session.
  */
-router.patch('/batch', asyncHandler(async (req, res) => {
-  const { updates } = req.body;
+router.get('/entries', asyncHandler(async (req, res) => {
+  const { doctorId, sessionCode } = req.query;
+  if (!doctorId) return res.status(400).json({ error: 'doctorId is required' });
 
-  if (!Array.isArray(updates) || updates.length === 0) {
-    return res.status(400).json({ error: 'updates array is required' });
+  let where = {
+    appointment: { doctorId },
+    status: { notIn: ['COMPLETED', 'NO_SHOW'] }
+  };
+
+  if (sessionCode) {
+    where.sessionCode = sessionCode;
   }
 
-  const results = await Promise.allSettled(
-    updates.map(async ({ appointmentId, status, sessionCode }) => {
-      if (!appointmentId) return null;
+  const entries = await prisma.appointmentQueue.findMany({
+    where,
+    orderBy: { queueNo: 'asc' },
+    include: {
+      appointment: {
+        include: {
+          patient: true
+        }
+      }
+    }
+  });
 
+  // Flatten the response for the frontend
+  res.json(entries.map(e => ({
+    id: e.id,
+    sequenceNumber: e.queueNo,
+    status: e.status,
+    checkInTime: e.createdAt,
+    patient: e.appointment.patient,
+    appointmentId: e.appointmentId
+  })));
+}));
+
+/**
+ * PATCH /api/queue/batch
+ * Body: { entries: [{ id, sequenceNumber, status? }] }
+ * Updates sequence and/or status for multiple queue entries.
+ */
+router.patch('/batch', asyncHandler(async (req, res) => {
+  const { entries } = req.body;
+
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return res.status(400).json({ error: 'entries array is required' });
+  }
+
+  const results = await prisma.$transaction(
+    entries.map(({ id, sequenceNumber, status }) => {
       const data = {};
+      if (sequenceNumber !== undefined) data.queueNo = sequenceNumber;
       if (status) data.status = status;
-      if (sessionCode !== undefined) data.sessionCode = sessionCode;
-
-      if (Object.keys(data).length === 0) return null;
 
       return prisma.appointmentQueue.update({
-        where: { appointmentId },
+        where: { id },
         data
       });
     })
   );
 
-  const succeeded = results.filter(r => r.status === 'fulfilled').length;
-  const failed = results.filter(r => r.status === 'rejected').length;
-
-  res.json({ succeeded, failed, total: updates.length });
+  res.json({ success: true, count: results.length });
 }));
 
 /**
- * POST /api/queue/walkin
+ * POST /api/queue/entries
+ * Body: { patientId, doctorId, status?, sessionCode? }
+ * Checks in an existing patient into the live queue.
+ */
+router.post('/entries', asyncHandler(async (req, res) => {
+  const { patientId, doctorId, status, sessionCode } = req.body;
+  if (!patientId || !doctorId) {
+    return res.status(400).json({ error: 'patientId and doctorId are required' });
+  }
+
+  // Find most recent appointment for today or create a virtual one
+  let appointment = await prisma.appointment.findFirst({
+    where: { 
+      patientId, 
+      doctorId,
+      status: 'CONFIRMED',
+      scheduledDate: {
+        gte: new Date(new Date().setHours(0, 0, 0, 0)),
+        lte: new Date(new Date().setHours(23, 59, 59, 999))
+      }
+    },
+    orderBy: { scheduledDate: 'desc' }
+  });
+
+  if (!appointment) {
+    // Create a virtual appointment for this check-in if none exists today
+    const doctor = await prisma.doctor.findUnique({ where: { id: doctorId } });
+    appointment = await prisma.appointment.create({
+      data: {
+        patientId,
+        doctorId,
+        title: 'Walk-in / Check-in',
+        purpose: 'Clinical Consultation',
+        scheduledDate: new Date(),
+        status: 'CONFIRMED',
+        mode: 'IN_PERSON',
+        doctorFee: doctor?.consultFee || 0
+      }
+    });
+  }
+
+  // Find max queueNo for today
+  const lastEntry = await prisma.appointmentQueue.findFirst({
+    where: { appointment: { doctorId } },
+    orderBy: { queueNo: 'desc' }
+  });
+  const nextQueueNo = (lastEntry?.queueNo || 0) + 1;
+
+  // Find a slot for this appointment if none linked
+  let slotId = appointment.appointmentSlotId;
+  if (!slotId) {
+    const slot = await prisma.appointmentSlot.findFirst({
+      where: { doctorId, status: 'AVAILABLE' }
+    });
+    slotId = slot?.id;
+  }
+
+  const entry = await prisma.appointmentQueue.create({
+    data: {
+      appointmentId: appointment.id,
+      doctorSlotId: slotId || 'placeholder-slot', // Fallback for demo
+      appointmentTime: new Date(),
+      queueNo: nextQueueNo,
+      status: status || 'WAITING',
+      sessionCode: sessionCode || null
+    },
+    include: {
+      appointment: {
+        include: {
+          patient: true
+        }
+      }
+    }
+  });
+
+  res.status(201).json({
+    id: entry.id,
+    sequenceNumber: entry.queueNo,
+    status: entry.status,
+    checkInTime: entry.createdAt,
+    patient: entry.appointment.patient,
+    appointmentId: entry.appointmentId
+  });
+}));
+/**
  * Body: { doctorId, meiosisId, visitReason?, sessionCode? }
  * Looks up the patient by Meiosis ID, creates a real Appointment + AppointmentQueue entry.
  * Returns the full appointment so the frontend can merge it into the live queue.

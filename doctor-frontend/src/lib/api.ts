@@ -22,9 +22,8 @@ function getDefaultApiUrl(): string {
      window.location.port === "5173" ||
      import.meta.env.DEV)
   ) {
-    const protocol = window.location.protocol;
-    const host = window.location.hostname || 'localhost';
-    return `${protocol}//${host}:5002`;
+    // Use relative path to leverage Vite proxy
+    return "";
   }
 
   // For same-origin deployments (frontend and backend on same domain)
@@ -106,6 +105,6 @@ export function handleAuthError() {
     // ignore
   }
 
-  // Fallback: go to login.html at the root of the current origin
-  window.location.href = '/login.html';
+  // Fallback: go to login.html at the backend origin
+  window.location.href = 'http://localhost:5002/login.html';
 }

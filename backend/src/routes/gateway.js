@@ -58,6 +58,7 @@ async function getAccountFromRequest(req) {
       name: true,
       patientId: true,
       doctorId: true,
+      staffId: true,
       meiosisId: true,
     },
   });
@@ -379,6 +380,31 @@ router.post('/remote-scan', authMiddleware, asyncHandler(async (req, res) => {
     message: 'Command queued', 
     doctorStatus: isActive ? 'active_doc' : 'inactive_doc' 
   });
+}));
+
+// Generic Remote Command (Allows Staff to send commands)
+router.post('/remote-command', authMiddleware, asyncHandler(async (req, res) => {
+  const { command, payload, targetDoctorId } = req.body;
+  const account = await getAccountFromRequest(req);
+  
+  if (!['DOCTOR', 'RECEPTION', 'NURSE', 'REGISTRAR', 'RESIDENT', 'INTERN'].includes(account?.role)) {
+    return res.status(403).json({ error: 'unauthorized_role' });
+  }
+
+  if (!command || !targetDoctorId) {
+    return res.status(400).json({ error: 'command_and_targetDoctorId_required' });
+  }
+
+  await prisma.remoteCommand.create({
+    data: {
+      doctorId: targetDoctorId,
+      command,
+      payload: payload || {},
+      isRead: false
+    }
+  });
+
+  res.json({ status: 'OK', message: 'Command queued' });
 }));
 
 // 3. Poll Remote Commands (from Doctor Dashboard)

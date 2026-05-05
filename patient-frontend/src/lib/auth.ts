@@ -42,7 +42,7 @@ export function loadAuthSession(): AuthSession | null {
 export function logout() {
   if (typeof window !== "undefined") {
     localStorage.removeItem(AUTH_SESSION_KEY);
-    window.location.href = "http://localhost:5173/login.html"; // Central login portal
+    window.location.href = "http://localhost:5002/login.html"; // Central login portal
   }
 }
 
@@ -55,10 +55,8 @@ export function useAuth() {
     if (currentSession && currentSession.role === "PATIENT") {
       setSession(currentSession);
     } else {
-      // If we're fully in production and have no session, redirect.
-      if (!import.meta.env.DEV) {
-        window.location.href = "http://localhost:5173/login.html";
-      }
+      // Redirect to unified gateway if no session is found
+      window.location.href = "http://localhost:5002/login.html";
     }
     setIsLoading(false);
   }, []);

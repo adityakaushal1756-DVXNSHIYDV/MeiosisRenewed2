@@ -18,10 +18,12 @@ const extractRoutes = require('./routes/extract');
 const networkRoutes = require('./routes/network');
 const queueRoutes = require('./routes/queue');
 const gatewayRoutes = require('./routes/gateway');
+const staffRoutes = require('./routes/staff');
 const hpNotesRoutes = require('./routes/hp-notes');
 const { getDatabaseErrorPayload, isDatabaseUnavailableError } = require('./lib/database-errors');
 const { authMiddleware } = require('./middleware/auth-middleware');
 
+const fs = require('fs');
 const app = express();
 app.use((req, res, next) => {
   console.log(`[HTTP] ${req.method} ${req.url}`);
@@ -73,9 +75,18 @@ app.use('/uploads', express.static(uploadsRoot));
 const ROOT_DIR = path.resolve(__dirname, '../../');
 const DOCTOR_DIST = path.join(ROOT_DIR, 'doctor-frontend/dist');
 const PATIENT_DIST = path.join(ROOT_DIR, 'patient-frontend/dist');
+const STAFF_DIST = path.join(ROOT_DIR, 'staff-frontend/dist');
 
 app.use(express.static(DOCTOR_DIST));
 app.use('/patient-frontend', express.static(PATIENT_DIST));
+app.use('/staff-frontend', express.static(STAFF_DIST));
+
+// Serve Unified Gateway files from Root
+app.get('/login.html', (req, res) => res.sendFile(path.join(ROOT_DIR, 'login.html')));
+app.get('/auth.js', (req, res) => res.sendFile(path.join(ROOT_DIR, 'auth.js')));
+app.get('/auth.css', (req, res) => res.sendFile(path.join(ROOT_DIR, 'auth.css')));
+app.get('/config.js', (req, res) => res.sendFile(path.join(ROOT_DIR, 'config.js')));
+app.get('/signup.html', (req, res) => res.sendFile(path.join(ROOT_DIR, 'signup.html')));
 
 const prisma = require('./lib/prisma');
 
@@ -136,6 +147,7 @@ apiRouter.use('/analytics', authMiddleware, analyticsRoutes);
 apiRouter.use('/extract', authMiddleware, extractRoutes);
 apiRouter.use('/network', authMiddleware, networkRoutes);
 apiRouter.use('/queue', authMiddleware, queueRoutes);
+apiRouter.use('/staff', authMiddleware, staffRoutes);
 apiRouter.use('/hp-notes', authMiddleware, hpNotesRoutes);
 
 // Helper for root path behavior on serverless functions.
@@ -164,6 +176,10 @@ app.get('/doctor-frontend*', (req, res) => {
 
 app.get('/patient-frontend*', (req, res) => {
   res.sendFile(path.join(PATIENT_DIST, 'index.html'));
+});
+
+app.get('/staff-frontend*', (req, res) => {
+  res.sendFile(path.join(STAFF_DIST, 'index.html'));
 });
 
 // Default to login.html if nothing else matches

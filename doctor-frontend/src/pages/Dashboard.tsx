@@ -25,10 +25,12 @@ import {
   Building2,
   LayoutGrid,
   LayoutList,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BedLidarView } from "../components/BedLidarView";
 import ClinicFeatureOverlay from "../components/ClinicFeatureOverlay";
+import { StaffConsole } from "../components/StaffConsole";
 import {
   lazy,
   ReactNode,
@@ -3916,15 +3918,18 @@ export default function Dashboard(props: DashboardProps) {
         accentHex="#60A5FA"
       />
 
-      <ClinicFeatureOverlay 
-        isOpen={staffV2Open} 
-        onClose={() => setStaffV2Open(false)} 
-        title="Staff Console"
-        subtitle="Next-generation healthcare workforce orchestration and roster intelligence."
-        icon={Users}
-        accentColor="purple-400"
-        accentHex="#A855F7"
-      />
+      <AnimatePresence>
+        {staffV2Open && (
+          <StaffConsoleOverlay 
+            isOpen={staffV2Open} 
+            onClose={() => setStaffV2Open(false)} 
+            doctorId={CURRENT_DOCTOR.meiosisId}
+            showToast={showToast}
+          />
+        )}
+      </AnimatePresence>
+
+
 
       <ClinicFeatureOverlay 
         isOpen={patientListV2Open} 
@@ -3935,6 +3940,58 @@ export default function Dashboard(props: DashboardProps) {
         accentColor="amber-400"
         accentHex="#F59E0B"
       />
+    </div>
+  );
+}
+
+interface StaffConsoleOverlayProps {
+  isOpen: boolean;
+  onClose: () => void;
+  doctorId: string;
+  showToast: (success: boolean, message: string) => void;
+}
+
+function StaffConsoleOverlay({ isOpen, onClose, doctorId, showToast }: StaffConsoleOverlayProps) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-[#0A0A0B]/60 backdrop-blur-3xl"
+        onClick={onClose}
+      />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative w-full h-full max-w-6xl bg-[#0A0F1E]/95 border border-white/10 rounded-[48px] shadow-2xl overflow-hidden flex flex-col"
+        style={{ backdropFilter: 'blur(40px)' }}
+      >
+        {/* Accent Glows */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div 
+            className="absolute -top-[20%] -left-[10%] w-[70%] h-[70%] rounded-full opacity-20 blur-[120px]"
+            style={{ background: 'radial-gradient(circle, #A855F7 0%, transparent 70%)' }}
+          />
+          <div 
+            className="absolute -bottom-[20%] -right-[10%] w-[70%] h-[70%] rounded-full opacity-10 blur-[120px]"
+            style={{ background: 'radial-gradient(circle, #3B82F6 0%, transparent 70%)' }}
+          />
+        </div>
+        <StaffConsole 
+          doctorId={doctorId}
+          onClose={onClose}
+          showToast={showToast}
+        />
+        
+        <button 
+          onClick={onClose}
+          className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-mist hover:text-white hover:bg-white/10 transition-all"
+        >
+          <X size={20} />
+        </button>
+      </motion.div>
     </div>
   );
 }

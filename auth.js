@@ -46,9 +46,10 @@ function saveSession(user, token) {
 
 async function isDoctorFrontendReady() {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 1500); // give Vite 1.5 s max
+  const timer = setTimeout(() => controller.abort(), 2500); // Give Vite 2.5s
   try {
-    await fetch(DOCTOR_FRONTEND_URL, {
+    // Try root first
+    const res = await fetch(DOCTOR_FRONTEND_URL, {
       method: "GET",
       mode: "no-cors",
       cache: "no-store",
@@ -58,7 +59,21 @@ async function isDoctorFrontendReady() {
     return true;
   } catch {
     clearTimeout(timer);
-    return false;
+    // Secondary check: try /health which is defined in vite.config.ts
+    try {
+      const controller2 = new AbortController();
+      const timer2 = setTimeout(() => controller2.abort(), 1500);
+      const res2 = await fetch(`${DOCTOR_FRONTEND_URL}/health`, {
+        method: "GET",
+        mode: "no-cors",
+        cache: "no-store",
+        signal: controller2.signal,
+      });
+      clearTimeout(timer2);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -76,6 +91,21 @@ async function redirectAfterLogin(role, isNewSignup = false) {
   })();
   
   const rawRole = (savedSession?.role || role || "").toUpperCase();
+  const staffRoles = ["RECEPTION", "NURSE", "REGISTRAR", "RESIDENT", "INTERN"];
+  
+  if (staffRoles.includes(rawRole)) {
+    const isLocalSession = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    // For local dev, staff frontend might be on a different port, e.g. 5175
+    const staffBase = isLocalSession ? "http://localhost:5175/" : new URL("/staff-frontend/", window.location.href).href;
+    const url = new URL(staffBase);
+    const sessionData = localStorage.getItem(AUTH_SESSION_KEY);
+    if (sessionData) {
+      url.searchParams.set("session", sessionData);
+    }
+    window.location.href = url.toString();
+    return;
+  }
+
   const effectiveRole = rawRole === "DOCTOR" ? "doctor" : "patient";
 
   if (effectiveRole === "doctor") {
@@ -83,7 +113,14 @@ async function redirectAfterLogin(role, isNewSignup = false) {
       window.location.protocol === "file:" ||
       window.location.hostname === "localhost" ||
       window.location.hostname === "127.0.0.1";
-    const doctorUrl = `${DOCTOR_FRONTEND_URL}/?localSession=${isLocalSession}`;
+
+    const sessionData = localStorage.getItem(AUTH_SESSION_KEY);
+    const doctorUrl = new URL(`${DOCTOR_FRONTEND_URL}/`);
+    doctorUrl.searchParams.set("localSession", String(isLocalSession));
+    if (sessionData) {
+      doctorUrl.searchParams.set("session", sessionData);
+    }
+
     if (isLocalSession) {
       const ready = await isDoctorFrontendReady();
       if (!ready) {
@@ -91,7 +128,7 @@ async function redirectAfterLogin(role, isNewSignup = false) {
         return;
       }
     }
-    window.location.href = doctorUrl;
+    window.location.href = doctorUrl.toString();
     return;
   }
   
