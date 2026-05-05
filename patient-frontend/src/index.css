@@ -46,6 +46,14 @@ body {
   background-image: linear-gradient(180deg, var(--doctor-bg-start) 0%, var(--doctor-bg-end) 100%);
 }
 
+body.panel-open .sidebar-container,
+body.panel-open .radial-menu-container {
+  filter: blur(12px);
+  opacity: 0.6;
+  pointer-events: none;
+  transition: filter 0.4s ease, opacity 0.4s ease;
+}
+
 body[data-doctor-theme="super-dark"] {
   --doctor-accent: #5dffb4;
   --doctor-accent-soft: rgba(93, 255, 180, 0.12);

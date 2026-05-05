@@ -42,6 +42,11 @@ export function AppointmentBookingOverlay({ patient, onClose, onSuccess }: Appoi
   );
 
   useEffect(() => {
+    document.body.classList.add('panel-open');
+    return () => document.body.classList.remove('panel-open');
+  }, []);
+
+  useEffect(() => {
     if (step === 'DOCTOR_SELECTION') {
       fetchDoctors();
     }

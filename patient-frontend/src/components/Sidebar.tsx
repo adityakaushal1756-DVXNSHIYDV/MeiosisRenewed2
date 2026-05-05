@@ -61,7 +61,7 @@ export function Sidebar({ currentSection, onSectionChange, isOpen, onClose }: Si
       )}
       
       <aside className={cn(
-        "fixed z-50 w-[280px] glass-card flex flex-col transition-all duration-300",
+        "sidebar-container fixed z-50 w-[280px] glass-card flex flex-col transition-all duration-300",
         "inset-y-0 left-0 border-r border-wire/10 lg:rounded-none", 
         "xl:top-4 xl:bottom-4 xl:left-4 xl:rounded-[32px] xl:border xl:border-white/10 xl:bg-[#060D15]/95 xl:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_20px_50px_rgba(0,0,0,0.5)] xl:h-[calc(100vh-2rem)]",
         isOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"

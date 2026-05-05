@@ -6,9 +6,9 @@
     "install:all": "npm install --prefix backend && npm install --prefix doctor-frontend && npm install --prefix patient-frontend && npm install --prefix companion-app",
     "build": "npm run build --prefix doctor-frontend",
     "build:frontend": "npm run build --prefix backend && npm run build --prefix doctor-frontend && node -e \"const fs=require('fs'); const path=require('path'); const files=['patient.html','signup.html','login.html','auth.js','auth.css','app.js','styles.css','config.js','doctor-launch.html','meiosis-setup.html','scan.html','icon.svg','manifest.webmanifest','sw.js']; files.forEach(f=>{ if(fs.existsSync(f)) fs.copyFileSync(f, path.join('doctor-frontend/dist', f)) })\"",
-
     "dev:backend": "npm run dev --prefix backend",
-    "dev:frontend": "npm run dev --prefix doctor-frontend"
+    "dev:frontend": "npm run dev --prefix doctor-frontend",
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix doctor-frontend\" \"npm run dev --prefix patient-frontend\" \"npm run dev --prefix companion-app\""
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.0",
@@ -21,6 +21,7 @@
     "puppeteer": "^24.40.0"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "prisma": "^6.5.0"
   }
 }

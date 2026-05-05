@@ -122,7 +122,7 @@ export function RadialMenu({ currentSection, onSectionChange }: RadialMenuProps)
           y: isOpen ? -130 : 0 
         }}
         transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-        className="fixed bottom-10 right-10 z-[100] flex items-center justify-center touch-none select-none"
+        className="radial-menu-container fixed bottom-10 right-10 z-[100] flex items-center justify-center touch-none select-none"
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}

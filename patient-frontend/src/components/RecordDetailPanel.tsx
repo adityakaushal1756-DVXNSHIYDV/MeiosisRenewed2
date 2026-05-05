@@ -39,8 +39,18 @@ const NilField = ({ label, value, icon: Icon, isCritical }: { label: string; val
 };
 
 import { apiUrl } from '../lib/api';
+import { useEffect } from 'react';
 
 export function RecordDetailPanel({ prescription, isOpen, onClose }: RecordDetailPanelProps) {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('panel-open');
+    } else {
+      document.body.classList.remove('panel-open');
+    }
+    return () => document.body.classList.remove('panel-open');
+  }, [isOpen]);
+
   if (!prescription) return null;
 
   const today = startOfDay(new Date());

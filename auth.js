@@ -74,17 +74,15 @@ async function redirectAfterLogin(role, isNewSignup = false) {
       return null;
     }
   })();
-  const effectiveRole =
-    savedSession?.role === "DOCTOR"
-      ? "doctor"
-      : savedSession?.role === "PATIENT"
-        ? "patient"
-        : role;
+  
+  const rawRole = (savedSession?.role || role || "").toUpperCase();
+  const effectiveRole = rawRole === "DOCTOR" ? "doctor" : "patient";
 
   if (effectiveRole === "doctor") {
     const isLocalSession =
       window.location.protocol === "file:" ||
-      window.location.hostname === "localhost";
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
     const doctorUrl = `${DOCTOR_FRONTEND_URL}/?localSession=${isLocalSession}`;
     if (isLocalSession) {
       const ready = await isDoctorFrontendReady();
@@ -96,6 +94,7 @@ async function redirectAfterLogin(role, isNewSignup = false) {
     window.location.href = doctorUrl;
     return;
   }
+  
   if (isNewSignup) {
     window.location.href = new URL(
       "./meiosis-setup.html",

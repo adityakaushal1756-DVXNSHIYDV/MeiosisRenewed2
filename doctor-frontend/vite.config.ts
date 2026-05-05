@@ -152,6 +152,7 @@ export default defineConfig({
   },
 
   server: {
+    port: 5173,
     // Pre-transform only the critical render-path files so they're cached
     // before the browser requests them.  Warming up all 1600+ modules slows
     // the dev server startup; warming up just the entry chain keeps it fast.
