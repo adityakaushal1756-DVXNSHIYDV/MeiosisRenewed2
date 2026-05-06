@@ -711,8 +711,7 @@ export default function Dashboard(props: DashboardProps) {
 
   // Load doctor profile on mount
   useEffect(() => {
-    const meiosisId = (props as any).doctorMeiosisId ||
-      (() => { try { const s = localStorage.getItem('meiosis_auth_session_v1'); return s ? JSON.parse(s).meiosisId : ''; } catch { return ''; } })();
+    const meiosisId = CURRENT_DOCTOR.meiosisId;
     if (!meiosisId) return;
     fetch(apiUrl(`/doctors/${meiosisId}/profile`), { headers: getAuthHeader() })
       .then(r => r.ok ? r.json() : null)
@@ -731,8 +730,12 @@ export default function Dashboard(props: DashboardProps) {
   }, []);
 
   const saveClinicIdentity = async () => {
-    const meiosisId = (() => { try { const s = localStorage.getItem('meiosis_auth_session_v1'); return s ? JSON.parse(s).meiosisId : ''; } catch { return ''; } })();
-    if (!meiosisId) return;
+    const meiosisId = CURRENT_DOCTOR.meiosisId;
+    if (!meiosisId) {
+      setClinicIdentityToast({ ok: false, msg: 'Could not identify your doctor profile. Please re-login.' });
+      window.setTimeout(() => setClinicIdentityToast(null), 4500);
+      return;
+    }
     setClinicIdentitySaving(true);
     try {
       const res = await fetch(apiUrl(`/doctors/${meiosisId}/profile`), {
@@ -743,7 +746,8 @@ export default function Dashboard(props: DashboardProps) {
       if (res.ok) {
         setClinicIdentityToast({ ok: true, msg: 'Clinic identity saved. New EMR PDFs will use these details.' });
       } else {
-        setClinicIdentityToast({ ok: false, msg: 'Failed to save. Please try again.' });
+        const errBody = await res.json().catch(() => ({}));
+        setClinicIdentityToast({ ok: false, msg: `Failed to save: ${errBody.error || res.status}` });
       }
     } catch {
       setClinicIdentityToast({ ok: false, msg: 'Network error. Please try again.' });

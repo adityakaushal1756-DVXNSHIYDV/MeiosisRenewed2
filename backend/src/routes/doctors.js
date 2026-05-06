@@ -159,6 +159,11 @@ router.get('/:meiosisId/profile', asyncHandler(async (req, res) => {
 // PATCH /api/doctors/:meiosisId/profile — update clinic identity fields
 router.patch('/:meiosisId/profile', asyncHandler(async (req, res) => {
   const { meiosisId } = req.params;
+
+  if (!meiosisId || meiosisId === 'undefined') {
+    return res.status(400).json({ error: 'Valid meiosisId is required.' });
+  }
+
   const {
     clinicName,
     phone,
@@ -168,9 +173,6 @@ router.patch('/:meiosisId/profile', asyncHandler(async (req, res) => {
     qualification,
   } = req.body;
 
-  const doctor = await prisma.doctor.findUnique({ where: { meiosisId } });
-  if (!doctor) return res.status(404).json({ error: 'Doctor not found' });
-
   const updateData = {};
   if (clinicName        !== undefined) updateData.clinicName        = clinicName;
   if (phone             !== undefined) updateData.phone             = phone;
@@ -179,18 +181,27 @@ router.patch('/:meiosisId/profile', asyncHandler(async (req, res) => {
   if (clinicAddress     !== undefined) updateData.clinicAddress     = clinicAddress;
   if (qualification     !== undefined) updateData.qualification     = qualification;
 
-  const updated = await prisma.doctor.update({
-    where: { meiosisId },
-    data: updateData,
-    select: {
-      id: true, name: true, specialty: true, hospital: true,
-      clinicName: true, phone: true, email: true,
-      registrationNumber: true, clinicAddress: true, qualification: true,
-      meiosisId: true,
-    }
-  });
+  console.log(`[Doctor Profile PATCH] meiosisId=${meiosisId} updating:`, Object.keys(updateData));
 
-  res.json(updated);
+  try {
+    const updated = await prisma.doctor.update({
+      where: { meiosisId },
+      data: updateData,
+      select: {
+        id: true, name: true, specialty: true, hospital: true,
+        clinicName: true, phone: true, email: true,
+        registrationNumber: true, clinicAddress: true, qualification: true,
+        meiosisId: true,
+      }
+    });
+    res.json(updated);
+  } catch (err) {
+    console.error('[Doctor Profile PATCH] DB error:', err.message);
+    if (err.code === 'P2025') {
+      return res.status(404).json({ error: 'Doctor not found for this meiosisId.' });
+    }
+    return res.status(500).json({ error: err.message });
+  }
 }));
 
 module.exports = router;

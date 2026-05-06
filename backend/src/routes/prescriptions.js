@@ -72,7 +72,15 @@ router.get('/:prescriptionId/pdf', asyncHandler(async (req, res) => {
   let prescription = await prisma.prescription.findUnique({
     where: { id: req.params.prescriptionId },
     include: {
-      doctor: { include: { preferences: true } },
+      doctor: {
+        select: {
+          id: true, name: true, specialty: true, hospital: true,
+          clinicName: true, phone: true, email: true,
+          registrationNumber: true, clinicAddress: true, qualification: true,
+          meiosisId: true,
+          preferences: { select: { pdfTemplates: true } }
+        }
+      },
       patient: true,
       items: true,
       labReports: true
@@ -84,39 +92,36 @@ router.get('/:prescriptionId/pdf', asyncHandler(async (req, res) => {
     return;
   }
 
-  // ── Resolve active PDF template (if any) ────────────────────────────────────
+  // ── Resolve active PDF template (doctor-specific, from their DoctorPreferences) ──
   const prefs = prescription.doctor?.preferences;
   const activeTemplate = resolveActiveDoctorTemplate(prefs?.pdfTemplates);
 
-  // ── Serve cached PDF if it already exists on disk ───────────────────────────
-  // Note: custom-template PDFs are always regenerated (no caching) because
-  // the template itself may have changed. Only default PDFs are cached.
-  if (!activeTemplate && prescription.documentPath) {
-    const cached = resolveUploadPath(prescription.documentPath);
-    if (require('fs').existsSync(cached)) {
-      if (req.query.download === '1') { res.download(cached); return; }
-      res.sendFile(cached);
-      return;
-    }
-  }
-
-  // ── Generate PDF ─────────────────────────────────────────────────────────────
+  // ── Always regenerate PDF (never serve stale cached file) ────────────────────
+  // This ensures clinic identity changes in Settings immediately reflect in PDFs.
   try {
     let result;
 
     if (activeTemplate) {
       // Custom template path — substitutes live data into the doctor's HTML template
       result = await createTemplatedPdf(prescription, activeTemplate.htmlTemplate);
-      // Custom PDFs are not cached to disk via documentPath intentionally —
-      // they are always freshly generated so template edits take immediate effect.
     } else {
-      // Default Meiosis template
+      // Default Meiosis template — passes fresh doctor clinic identity
       result = await createPrescriptionPdf(prescription);
-      // Cache the path for future fast-serve
+      // Update stored path so other systems can reference it
       prescription = await prisma.prescription.update({
         where: { id: prescription.id },
         data: { documentPath: result.publicPath },
-        include: { doctor: { include: { preferences: true } }, patient: true, items: true, labReports: true }
+        include: {
+          doctor: {
+            select: {
+              id: true, name: true, specialty: true, hospital: true,
+              clinicName: true, phone: true, email: true,
+              registrationNumber: true, clinicAddress: true, qualification: true,
+              meiosisId: true
+            }
+          },
+          patient: true, items: true, labReports: true
+        }
       });
     }
 
