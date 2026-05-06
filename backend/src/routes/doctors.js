@@ -133,11 +133,14 @@ router.post('/:meiosisId/staff', asyncHandler(async (req, res) => {
 
 // ── Doctor Clinic Identity (Profile) ────────────────────────────────────────
 
-// GET /api/doctors/:meiosisId/profile — fetch clinic identity fields
-router.get('/:meiosisId/profile', asyncHandler(async (req, res) => {
-  const { meiosisId } = req.params;
+// GET /api/doctors/:doctorId/profile — fetch clinic identity fields (by DB primary key)
+router.get('/:doctorId/profile', asyncHandler(async (req, res) => {
+  const { doctorId } = req.params;
+  if (!doctorId || doctorId === 'undefined') {
+    return res.status(400).json({ error: 'Valid doctorId is required.' });
+  }
   const doctor = await prisma.doctor.findUnique({
-    where: { meiosisId },
+    where: { id: doctorId },
     select: {
       id: true,
       name: true,
@@ -152,16 +155,19 @@ router.get('/:meiosisId/profile', asyncHandler(async (req, res) => {
       meiosisId: true,
     }
   });
-  if (!doctor) return res.status(404).json({ error: 'Doctor not found' });
+  if (!doctor) {
+    console.error(`[Doctor Profile GET] No doctor found for id=${doctorId}`);
+    return res.status(404).json({ error: 'Doctor not found' });
+  }
   res.json(doctor);
 }));
 
-// PATCH /api/doctors/:meiosisId/profile — update clinic identity fields
-router.patch('/:meiosisId/profile', asyncHandler(async (req, res) => {
-  const { meiosisId } = req.params;
+// PATCH /api/doctors/:doctorId/profile — update clinic identity fields (by DB primary key)
+router.patch('/:doctorId/profile', asyncHandler(async (req, res) => {
+  const { doctorId } = req.params;
 
-  if (!meiosisId || meiosisId === 'undefined') {
-    return res.status(400).json({ error: 'Valid meiosisId is required.' });
+  if (!doctorId || doctorId === 'undefined') {
+    return res.status(400).json({ error: 'Valid doctorId is required.' });
   }
 
   const {
@@ -181,11 +187,11 @@ router.patch('/:meiosisId/profile', asyncHandler(async (req, res) => {
   if (clinicAddress     !== undefined) updateData.clinicAddress     = clinicAddress;
   if (qualification     !== undefined) updateData.qualification     = qualification;
 
-  console.log(`[Doctor Profile PATCH] meiosisId=${meiosisId} updating:`, Object.keys(updateData));
+  console.log(`[Doctor Profile PATCH] doctorId=${doctorId} updating:`, Object.keys(updateData));
 
   try {
     const updated = await prisma.doctor.update({
-      where: { meiosisId },
+      where: { id: doctorId },
       data: updateData,
       select: {
         id: true, name: true, specialty: true, hospital: true,
@@ -196,9 +202,9 @@ router.patch('/:meiosisId/profile', asyncHandler(async (req, res) => {
     });
     res.json(updated);
   } catch (err) {
-    console.error('[Doctor Profile PATCH] DB error:', err.message);
+    console.error('[Doctor Profile PATCH] DB error:', err.message, '| doctorId:', doctorId);
     if (err.code === 'P2025') {
-      return res.status(404).json({ error: 'Doctor not found for this meiosisId.' });
+      return res.status(404).json({ error: `Doctor not found for id: ${doctorId}` });
     }
     return res.status(500).json({ error: err.message });
   }

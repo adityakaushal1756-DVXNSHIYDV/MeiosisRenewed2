@@ -711,9 +711,9 @@ export default function Dashboard(props: DashboardProps) {
 
   // Load doctor profile on mount
   useEffect(() => {
-    const meiosisId = CURRENT_DOCTOR.meiosisId;
-    if (!meiosisId) return;
-    fetch(apiUrl(`/doctors/${meiosisId}/profile`), { headers: getAuthHeader() })
+    const doctorId = CURRENT_DOCTOR.id;
+    if (!doctorId) return;
+    fetch(apiUrl(`/doctors/${doctorId}/profile`), { headers: getAuthHeader() })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data) return;
@@ -730,15 +730,15 @@ export default function Dashboard(props: DashboardProps) {
   }, []);
 
   const saveClinicIdentity = async () => {
-    const meiosisId = CURRENT_DOCTOR.meiosisId;
-    if (!meiosisId) {
+    const doctorId = CURRENT_DOCTOR.id;
+    if (!doctorId) {
       setClinicIdentityToast({ ok: false, msg: 'Could not identify your doctor profile. Please re-login.' });
       window.setTimeout(() => setClinicIdentityToast(null), 4500);
       return;
     }
     setClinicIdentitySaving(true);
     try {
-      const res = await fetch(apiUrl(`/doctors/${meiosisId}/profile`), {
+      const res = await fetch(apiUrl(`/doctors/${doctorId}/profile`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
         body: JSON.stringify(clinicIdentity),
