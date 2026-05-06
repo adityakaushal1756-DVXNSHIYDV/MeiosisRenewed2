@@ -187,7 +187,18 @@ router.post('/', asyncHandler(async (req, res) => {
         }
       })
     },
-    include: { patient: true, doctor: true, items: true }
+    include: {
+      patient: true,
+      items: true,
+      doctor: {
+        select: {
+          id: true, name: true, specialty: true, hospital: true,
+          clinicName: true, phone: true, email: true,
+          registrationNumber: true, clinicAddress: true, qualification: true,
+          meiosisId: true,
+        }
+      }
+    }
   });
 
   /* ── Generate PDF ── */
@@ -197,11 +208,22 @@ router.post('/', asyncHandler(async (req, res) => {
     saved.prescription = await prisma.prescription.update({
       where: { id: saved.prescription.id },
       data: { documentPath: publicPath },
-      include: { items: true }
+      include: {
+        patient: true,
+        items: true,
+        doctor: {
+          select: {
+            id: true, name: true, specialty: true, hospital: true,
+            clinicName: true, phone: true, email: true,
+            registrationNumber: true, clinicAddress: true, qualification: true,
+            meiosisId: true,
+          }
+        }
+      }
     });
   } catch (pdfError) {
     console.error('[EMR] Prescription PDF generation failed:', pdfError);
-    // Non-fatal, let the request continue
+    // Non-fatal — let the request continue without PDF
   }
 
   /* ── Create LabReport entries (one per ordered test) ── */
