@@ -429,7 +429,7 @@ function parseVitalsFromNote(note) {
   return _VITAL_DEFS.map(def => ({ ...def, value: found[def.key] || null }));
 }
 
-async function createPrescriptionPdf(prescription, customHtmlTemplate = null) {
+async function createPrescriptionPdf(prescription) {
   const patient   = prescription.patient || {};
   const doctor    = prescription.doctor  || {};
   const items     = prescription.items   || [];
@@ -591,55 +591,7 @@ async function createPrescriptionPdf(prescription, customHtmlTemplate = null) {
     </div>
   `);
 
-  let finalHtml = html;
-
-  if (customHtmlTemplate) {
-    // Clinic identity for custom template token substitution
-    const _clinicName   = doctor.clinicName || doctor.hospital || 'Medical Clinic';
-    const _drName       = doctor.name ? `Dr. ${doctor.name.replace(/^Dr\.?\s*/i, '')}` : 'Physician';
-    const _credLine     = [doctor.qualification, doctor.specialty || 'General Medicine'].filter(Boolean).join(' · ');
-    const tokens = {
-      '{{clinic_name}}':       escapeHtml(_clinicName),
-      '{{clinic_phone}}':      escapeHtml(doctor.phone || ''),
-      '{{clinic_email}}':      escapeHtml(doctor.email || ''),
-      '{{clinic_address}}':    escapeHtml(doctor.clinicAddress || ''),
-      '{{doctor_hospital}}':   escapeHtml(_clinicName),
-      '{{doctor_name}}':       escapeHtml(_drName),
-      '{{doctor_specialty}}':  escapeHtml(doctor.specialty || 'General Medicine'),
-      '{{doctor_qualification}}': escapeHtml(doctor.qualification || ''),
-      '{{doctor_reg_no}}':     escapeHtml(doctor.registrationNumber || ''),
-      '{{doctor_credentials}}': escapeHtml(_credLine),
-      '{{prescription_date}}': formatDate(new Date()),
-      '{{prescription_id}}':   escapeHtml(prescription.id.slice(0, 8).toUpperCase()),
-      '{{patient_name}}':      escapeHtml(patient.name || 'N/A'),
-      '{{patient_id}}':        escapeHtml(patient.meiosisId || patient.universalCode || 'N/A'),
-      '{{follow_up_date}}':    formatDate(prescription.endDate),
-      '{{medication_table}}':  `
-        <table>
-          <thead><tr><th>Medicine</th><th>Dose</th><th>Frequency</th><th>Duration</th></tr></thead>
-          <tbody>${itemRows}</tbody>
-        </table>`,
-      '{{medication_name}}': items[0] ? escapeHtml(items[0].medicine || 'N/A') : 'N/A',
-      '{{dose}}':            items[0] ? escapeHtml(items[0].dose || 'N/A') : 'N/A',
-      '{{frequency}}':       items[0] ? escapeHtml(pdfPatternLabel(items[0].frequency)) : 'N/A',
-      '{{duration}}':        items[0] ? escapeHtml(items[0].timing || 'N/A') : 'N/A',
-      '{{vitals}}': vitals.filter(v => v.value).map(v => `${v.label}: ${v.value} ${v.unit}`).join(' | ') || 'N/A',
-      '{{diagnosis}}': escapeHtml(prescription.title || 'N/A'),
-      '{{advice}}':    escapeHtml(prescription.doctorNote.split('\n').find(l => l.startsWith('Plan: '))?.slice(6) || 'N/A'),
-      '{{doctor_note}}': escapeHtml(prescription.doctorNote),
-      '{{added_note}}':  escapeHtml((prescription.doctorNote || '').split('\n').find(l => l.startsWith('Added Note: '))?.replace('Added Note: ', '') || ''),
-      '{{lab_orders}}': labOrders.length ? labOrders.map(l => `${l.testName} (${l.status})`).join(', ') : 'None',
-      '{{adherence}}': String(prescription.adherenceScore || 0) + '%'
-    };
-
-    let processed = customHtmlTemplate;
-    for (const [token, value] of Object.entries(tokens)) {
-      processed = processed.split(token).join(value);
-    }
-    finalHtml = processed;
-  }
-
-  await renderPdfToFile(finalHtml, absolutePath);
+  await renderPdfToFile(html, absolutePath);
   return { absolutePath, publicPath };
 }
 
