@@ -368,6 +368,15 @@ function baseHtml(title, body) {
       border-top: 1px solid #cde6d8;
     }
     .footer-brand { font-weight: 700; color: #1a7a48; letter-spacing: 0.12em; }
+    .meiosis-calligraphy {
+      font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, 'Georgia', serif;
+      font-size: 15px;
+      font-weight: 700;
+      font-style: italic;
+      letter-spacing: 0.22em;
+      color: #1a7a48;
+      opacity: 0.85;
+    }
     ul { padding-left: 18px; }
     li { margin-bottom: 6px; line-height: 1.5; font-size: 13px; }
   </style>
@@ -429,6 +438,16 @@ async function createPrescriptionPdf(prescription, customHtmlTemplate = null) {
   const absolutePath = path.join(uploadsRoot, 'prescriptions', fileName);
   const publicPath   = `/uploads/prescriptions/${fileName}`;
 
+  // Clinic identity — use actual doctor fields, fall back gracefully
+  const clinicName        = doctor.clinicName || doctor.hospital || 'Medical Clinic';
+  const doctorDisplayName = doctor.name ? `Dr. ${doctor.name.replace(/^Dr\.?\s*/i, '')}` : 'Physician';
+  const doctorSpecialty   = doctor.specialty || 'General Medicine';
+  const doctorPhone       = doctor.phone || '';
+  const doctorEmail       = doctor.email || '';
+  const doctorRegNo       = doctor.registrationNumber || '';
+  const doctorAddress     = doctor.clinicAddress || '';
+  const doctorQual        = doctor.qualification || '';
+
   const statusLabel = (prescription.status || 'ACTIVE').toUpperCase() === 'ACTIVE' ? 'Active' : 'Completed';
   const chipClass   = statusLabel === 'Active' ? 'chip-green' : 'chip-gray';
   const adherence   = Number(prescription.adherenceScore || 0);
@@ -473,15 +492,38 @@ async function createPrescriptionPdf(prescription, customHtmlTemplate = null) {
       </div>`).join('')}
     </div>` : '';
 
+  // Parse "Added Note" field from doctorNote
+  const addedNoteLine = (prescription.doctorNote || '').split('\n').find(l => l.startsWith('Added Note: '));
+  const addedNoteHtml = addedNoteLine ? `
+    <div class="section">
+      <p class="section-title">Added Note</p>
+      <div class="note-row">
+        <span class="note-val" style="font-style:italic;color:#1a2e22;">${escapeHtml(addedNoteLine.replace('Added Note: ', ''))}</span>
+      </div>
+    </div>` : '';
+
+  // Build contact block for the top-right header
+  const contactParts = [
+    doctorPhone && `📞 ${doctorPhone}`,
+    doctorEmail && `✉ ${doctorEmail}`,
+    doctorRegNo && `Reg: ${doctorRegNo}`,
+    doctorAddress && doctorAddress,
+  ].filter(Boolean);
+
+  const credLine = [doctorQual, doctorSpecialty].filter(Boolean).join(' · ');
+
   const html = baseHtml(prescription.title || 'Prescription', `
+    <!-- CLINIC HEADER -->
     <div class="topbar">
       <div>
-        <div class="brand">MEIOSIS</div>
-        <div class="brand-sub">Clinical Prescription</div>
+        <div class="brand">${escapeHtml(clinicName)}</div>
+        <div class="brand-sub">${escapeHtml(doctorDisplayName)}${credLine ? ` · ${escapeHtml(credLine)}` : ''}</div>
+        ${doctorAddress ? `<div class="brand-sub" style="margin-top:1px;">${escapeHtml(doctorAddress)}</div>` : ''}
       </div>
       <div class="doc-meta">
-        Issued: ${formatDate(new Date())}<br/>
-        Ref: ${escapeHtml(prescription.id.slice(0, 8).toUpperCase())}
+        ${contactParts.map(c => `<div>${escapeHtml(c)}</div>`).join('')}
+        <div style="margin-top:6px;">Issued: ${formatDate(new Date())}</div>
+        <div>Ref: ${escapeHtml(prescription.id.slice(0, 8).toUpperCase())}</div>
       </div>
     </div>
 
@@ -496,8 +538,8 @@ async function createPrescriptionPdf(prescription, customHtmlTemplate = null) {
 
     <div class="meta-grid">
       <div class="meta-card"><p class="meta-label">Patient</p><p class="meta-value">${escapeHtml(patient.name || 'N/A')}</p></div>
-      <div class="meta-card"><p class="meta-label">Doctor</p><p class="meta-value">${escapeHtml(doctor.name || 'N/A')}</p></div>
-      <div class="meta-card"><p class="meta-label">Specialty</p><p class="meta-value">${escapeHtml(doctor.specialty || 'General Medicine')}</p></div>
+      <div class="meta-card"><p class="meta-label">Patient ID</p><p class="meta-value" style="font-size:11.5px;">${escapeHtml(patient.meiosisId || patient.universalCode || 'N/A')}</p></div>
+      <div class="meta-card"><p class="meta-label">Physician</p><p class="meta-value">${escapeHtml(doctorDisplayName)}</p></div>
       <div class="meta-card"><p class="meta-label">Follow-up Date</p><p class="meta-value">${formatDate(prescription.endDate)}</p></div>
       <div class="meta-card"><p class="meta-label">Duration</p><p class="meta-value">${prescription.durationDays || 'N/A'} days</p></div>
       <div class="meta-card"><p class="meta-label">Pharmacy</p><p class="meta-value" style="${prescription.pharmacy ? '' : 'color:#9ab5a8;font-style:italic;'}">${escapeHtml(prescription.pharmacy || 'N/A')}</p></div>
@@ -523,6 +565,8 @@ async function createPrescriptionPdf(prescription, customHtmlTemplate = null) {
       ${noteRows}
     </div>` : ''}
 
+    ${addedNoteHtml}
+
     ${labOrdersSection}
 
     <div class="section">
@@ -531,19 +575,40 @@ async function createPrescriptionPdf(prescription, customHtmlTemplate = null) {
       <div class="adhere-track"><div class="adhere-fill" style="width:${adherence}%"></div></div>
     </div>
 
+    <!-- DOCTOR SIGNATURE -->
+    <div style="margin-top:28px;display:flex;justify-content:flex-end;">
+      <div style="text-align:center;border-top:2px solid #0b3d25;padding-top:10px;min-width:200px;">
+        <p style="font-size:13px;font-weight:800;color:#0b3d25;">${escapeHtml(doctorDisplayName)}</p>
+        ${credLine ? `<p style="font-size:10px;color:#4a9068;margin-top:2px;">${escapeHtml(credLine)}</p>` : ''}
+        ${doctorRegNo ? `<p style="font-size:9px;color:#5a7d6c;margin-top:2px;letter-spacing:0.1em;">Reg. No: ${escapeHtml(doctorRegNo)}</p>` : ''}
+        <p style="font-size:9px;color:#5a7d6c;letter-spacing:0.1em;text-transform:uppercase;margin-top:4px;">Physician Signature</p>
+      </div>
+    </div>
+
     <div class="footer">
-      <span>MEIOSIS Health Platform · Confidential Medical Record</span>
-      <span class="footer-brand">MEIOSIS</span>
+      <span>${escapeHtml(clinicName)} · Confidential Medical Record</span>
+      <span class="footer-brand meiosis-calligraphy">𝔐𝔢𝔦𝔬𝔰𝔦𝔰</span>
     </div>
   `);
 
   let finalHtml = html;
 
   if (customHtmlTemplate) {
+    // Clinic identity for custom template token substitution
+    const _clinicName   = doctor.clinicName || doctor.hospital || 'Medical Clinic';
+    const _drName       = doctor.name ? `Dr. ${doctor.name.replace(/^Dr\.?\s*/i, '')}` : 'Physician';
+    const _credLine     = [doctor.qualification, doctor.specialty || 'General Medicine'].filter(Boolean).join(' · ');
     const tokens = {
-      '{{doctor_hospital}}':   escapeHtml(doctor.hospital || 'MEIOSIS CLINIC'),
-      '{{doctor_name}}':       escapeHtml(doctor.name || 'N/A'),
+      '{{clinic_name}}':       escapeHtml(_clinicName),
+      '{{clinic_phone}}':      escapeHtml(doctor.phone || ''),
+      '{{clinic_email}}':      escapeHtml(doctor.email || ''),
+      '{{clinic_address}}':    escapeHtml(doctor.clinicAddress || ''),
+      '{{doctor_hospital}}':   escapeHtml(_clinicName),
+      '{{doctor_name}}':       escapeHtml(_drName),
       '{{doctor_specialty}}':  escapeHtml(doctor.specialty || 'General Medicine'),
+      '{{doctor_qualification}}': escapeHtml(doctor.qualification || ''),
+      '{{doctor_reg_no}}':     escapeHtml(doctor.registrationNumber || ''),
+      '{{doctor_credentials}}': escapeHtml(_credLine),
       '{{prescription_date}}': formatDate(new Date()),
       '{{prescription_id}}':   escapeHtml(prescription.id.slice(0, 8).toUpperCase()),
       '{{patient_name}}':      escapeHtml(patient.name || 'N/A'),
@@ -562,6 +627,7 @@ async function createPrescriptionPdf(prescription, customHtmlTemplate = null) {
       '{{diagnosis}}': escapeHtml(prescription.title || 'N/A'),
       '{{advice}}':    escapeHtml(prescription.doctorNote.split('\n').find(l => l.startsWith('Plan: '))?.slice(6) || 'N/A'),
       '{{doctor_note}}': escapeHtml(prescription.doctorNote),
+      '{{added_note}}':  escapeHtml((prescription.doctorNote || '').split('\n').find(l => l.startsWith('Added Note: '))?.replace('Added Note: ', '') || ''),
       '{{lab_orders}}': labOrders.length ? labOrders.map(l => `${l.testName} (${l.status})`).join(', ') : 'None',
       '{{adherence}}': String(prescription.adherenceScore || 0) + '%'
     };

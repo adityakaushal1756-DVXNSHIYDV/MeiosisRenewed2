@@ -63,17 +63,53 @@ router.post('/', asyncHandler(async (req, res) => {
   }
 
   /* ── Resolve doctor (by id, or first available) ── */
+  // We fetch the doctor's full profile including clinic identity fields
+  // and their DoctorPreferences (which stores custom PDF templates).
+  // This ensures the PDF is built with the exact identity of the doctor who created the EMR.
   let doctor = doctorId
-    ? await prisma.doctor.findUnique({ where: { id: doctorId } }).catch(() => null)
+    ? await prisma.doctor.findUnique({
+        where: { id: doctorId },
+        select: {
+          id: true, name: true, specialty: true, hospital: true,
+          clinicName: true, phone: true, email: true,
+          registrationNumber: true, clinicAddress: true, qualification: true,
+          meiosisId: true,
+          preferences: { select: { pdfTemplates: true } }
+        }
+      }).catch(() => null)
     : null;
 
   if (!doctor) {
-    doctor = await prisma.doctor.findFirst();
+    doctor = await prisma.doctor.findFirst({
+      select: {
+        id: true, name: true, specialty: true, hospital: true,
+        clinicName: true, phone: true, email: true,
+        registrationNumber: true, clinicAddress: true, qualification: true,
+        meiosisId: true,
+        preferences: { select: { pdfTemplates: true } }
+      }
+    });
   }
 
   if (!doctor) {
     res.status(404).json({ error: 'No doctor record found in database' });
     return;
+  }
+
+  // Extract the active custom PDF template for this specific doctor
+  let activePdfTemplateHtml = req.body.pdfTemplateHtml || null;
+  if (!activePdfTemplateHtml && doctor.preferences?.pdfTemplates) {
+    try {
+      const templates = typeof doctor.preferences.pdfTemplates === 'string'
+        ? JSON.parse(doctor.preferences.pdfTemplates)
+        : doctor.preferences.pdfTemplates;
+      if (Array.isArray(templates)) {
+        const activeTpl = templates.find(t => t.isActive && t.htmlTemplate && t.htmlTemplate !== '<!-- UPLOADED_PDF_PLACEHOLDER -->');
+        if (activeTpl) activePdfTemplateHtml = activeTpl.htmlTemplate;
+      }
+    } catch (e) {
+      console.warn('[EMR] Could not parse pdfTemplates from DoctorPreferences:', e.message);
+    }
   }
 
   /* ── Date calculations ── */
@@ -175,7 +211,9 @@ router.post('/', asyncHandler(async (req, res) => {
 
   /* ── Generate PDF ── */
   try {
-    const { publicPath } = await createPrescriptionPdf(saved.prescription, req.body.pdfTemplateHtml);
+    // Use the doctor-specific active template (fetched above from their DoctorPreferences),
+    // falling back to the default Meiosis template which now uses the doctor's clinic identity.
+    const { publicPath } = await createPrescriptionPdf(saved.prescription, activePdfTemplateHtml);
     saved.prescription = await prisma.prescription.update({
       where: { id: saved.prescription.id },
       data: { documentPath: publicPath },

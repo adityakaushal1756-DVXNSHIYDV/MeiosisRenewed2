@@ -113,4 +113,66 @@ router.post('/:meiosisId/staff', asyncHandler(async (req, res) => {
   }
 }));
 
+// ── Doctor Clinic Identity (Profile) ────────────────────────────────────────
+
+// GET /api/doctors/:meiosisId/profile — fetch clinic identity fields
+router.get('/:meiosisId/profile', asyncHandler(async (req, res) => {
+  const { meiosisId } = req.params;
+  const doctor = await prisma.doctor.findUnique({
+    where: { meiosisId },
+    select: {
+      id: true,
+      name: true,
+      specialty: true,
+      hospital: true,
+      clinicName: true,
+      phone: true,
+      email: true,
+      registrationNumber: true,
+      clinicAddress: true,
+      qualification: true,
+      meiosisId: true,
+    }
+  });
+  if (!doctor) return res.status(404).json({ error: 'Doctor not found' });
+  res.json(doctor);
+}));
+
+// PATCH /api/doctors/:meiosisId/profile — update clinic identity fields
+router.patch('/:meiosisId/profile', asyncHandler(async (req, res) => {
+  const { meiosisId } = req.params;
+  const {
+    clinicName,
+    phone,
+    email,
+    registrationNumber,
+    clinicAddress,
+    qualification,
+  } = req.body;
+
+  const doctor = await prisma.doctor.findUnique({ where: { meiosisId } });
+  if (!doctor) return res.status(404).json({ error: 'Doctor not found' });
+
+  const updateData = {};
+  if (clinicName        !== undefined) updateData.clinicName        = clinicName;
+  if (phone             !== undefined) updateData.phone             = phone;
+  if (email             !== undefined) updateData.email             = email;
+  if (registrationNumber !== undefined) updateData.registrationNumber = registrationNumber;
+  if (clinicAddress     !== undefined) updateData.clinicAddress     = clinicAddress;
+  if (qualification     !== undefined) updateData.qualification     = qualification;
+
+  const updated = await prisma.doctor.update({
+    where: { meiosisId },
+    data: updateData,
+    select: {
+      id: true, name: true, specialty: true, hospital: true,
+      clinicName: true, phone: true, email: true,
+      registrationNumber: true, clinicAddress: true, qualification: true,
+      meiosisId: true,
+    }
+  });
+
+  res.json(updated);
+}));
+
 module.exports = router;

@@ -30,15 +30,15 @@ interface PdfTemplate {
 // ── Block definitions ─────────────────────────────────────────────────────────
 
 const BLOCK_LIBRARY: { type: TemplateBlock['type']; label: string; icon: React.ReactNode; description: string; required?: boolean }[] = [
-  { type: 'header',          label: 'Clinic Header',       icon: <Sparkles size={15} />,    description: 'Clinic name, doctor name, date, and prescription ID.', required: true },
+  { type: 'header',          label: 'Clinic Header',       icon: <Sparkles size={15} />,    description: '{{clinic_name}}, {{doctor_name}}, {{doctor_specialty}}, {{doctor_qualification}}, {{clinic_phone}}, {{clinic_email}}, {{clinic_address}}, {{prescription_date}}, {{prescription_id}}', required: true },
   { type: 'patient_info',    label: 'Patient Information',  icon: <User size={15} />,        description: '{{patient_name}}, {{patient_id}}', required: true },
-  { type: 'doctor_info',     label: 'Doctor Information',   icon: <Stethoscope size={15} />, description: '{{doctor_name}}, {{doctor_specialty}}, {{doctor_hospital}}' },
-  { type: 'medication_table',label: 'Medication Table',     icon: <Pill size={15} />,        description: '{{medication_name}}, {{dose}}, {{frequency}}, {{duration}}', required: true },
-  { type: 'vitals',          label: 'Vitals',               icon: <Activity size={15} />,    description: '{{vitals}} — Blood pressure, pulse, temperature, SpO₂' },
-  { type: 'notes',           label: 'Clinical Notes',       icon: <ClipboardList size={15} />, description: '{{diagnosis}}, {{advice}}, {{doctor_note}}' },
+  { type: 'doctor_info',     label: 'Doctor Information',   icon: <Stethoscope size={15} />, description: '{{doctor_name}}, {{doctor_specialty}}, {{doctor_qualification}}, {{doctor_reg_no}}, {{follow_up_date}}' },
+  { type: 'medication_table',label: 'Medication Table',     icon: <Pill size={15} />,        description: '{{medication_table}} — Full medicine table with dose, frequency, duration', required: true },
+  { type: 'vitals',          label: 'Vitals',               icon: <Activity size={15} />,    description: '{{vitals}} — Blood pressure, pulse, temperature, SpO₂, height, weight' },
+  { type: 'notes',           label: 'Clinical Notes',       icon: <ClipboardList size={15} />, description: '{{diagnosis}}, {{advice}}, {{added_note}}, {{doctor_note}}' },
   { type: 'lab_orders',      label: 'Lab Orders',           icon: <FileText size={15} />,    description: '{{lab_orders}} — Ordered tests and status' },
-  { type: 'signature',       label: 'Doctor Signature',     icon: <CheckCircle size={15} />, description: 'Signature line with doctor name and registration number' },
-  { type: 'footer',          label: 'Footer',               icon: <Info size={15} />,        description: 'Page footer with platform branding and disclaimer' },
+  { type: 'signature',       label: 'Doctor Signature',     icon: <CheckCircle size={15} />, description: '{{doctor_name}}, {{doctor_specialty}}, {{doctor_reg_no}} — Signature line' },
+  { type: 'footer',          label: 'Footer',               icon: <Info size={15} />,        description: '{{clinic_name}} — Page footer with clinic name and MEIOSIS calligraphy branding' },
   { type: 'custom_text',     label: 'Custom Text Block',    icon: <FileText size={15} />,    description: 'Write any custom text or instructions' },
 ];
 
@@ -91,12 +91,15 @@ function generateHtmlFromBlocks(blocks: TemplateBlock[], templateName: string): 
       switch (b.type) {
         case 'header':
           return `
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;padding-bottom:14px;border-bottom:2px solid #2fcc77;">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;padding-bottom:14px;border-bottom:2px solid #2fcc77;">
   <div>
-    <div style="font-size:20px;font-weight:900;letter-spacing:0.14em;color:#0b3d25;text-transform:uppercase;">{{doctor_hospital}}</div>
-    <div style="font-size:11px;letter-spacing:0.12em;color:#4a9068;margin-top:2px;">Dr. {{doctor_name}} · {{doctor_specialty}}</div>
+    <div style="font-size:20px;font-weight:900;letter-spacing:0.14em;color:#0b3d25;text-transform:uppercase;">{{clinic_name}}</div>
+    <div style="font-size:11px;letter-spacing:0.12em;color:#4a9068;margin-top:2px;">{{doctor_name}}{{doctor_specialty ? ' · ' + doctor_specialty : ''}}</div>
+    <div style="font-size:10px;color:#5a7d6c;margin-top:1px;">{{doctor_qualification}}</div>
   </div>
-  <div style="text-align:right;font-size:11px;color:#4a9068;line-height:1.6;">
+  <div style="text-align:right;font-size:11px;color:#4a9068;line-height:1.7;">
+    {{clinic_phone}}<br/>{{clinic_email}}<br/>
+    Reg: {{doctor_reg_no}}<br/>
     Issued: {{prescription_date}}<br/>Ref: {{prescription_id}}
   </div>
 </div>`;
@@ -157,8 +160,8 @@ function generateHtmlFromBlocks(blocks: TemplateBlock[], templateName: string): 
         case 'footer':
           return `
 <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#7a9d8c;padding-top:12px;border-top:1px solid #cde6d8;">
-  <span>MEIOSIS Health Platform · Confidential Medical Record</span>
-  <span style="font-weight:700;color:#1a7a48;">MEIOSIS</span>
+  <span>{{clinic_name}} · Confidential Medical Record</span>
+  <span style="font-family:'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;font-size:14px;font-weight:700;font-style:italic;letter-spacing:0.22em;color:#1a7a48;">&#120080;&#120098;&#120102;&#120108;&#120110;&#120102;&#120110;</span>
 </div>`;
 
         case 'custom_text':
