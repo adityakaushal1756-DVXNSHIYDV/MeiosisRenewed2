@@ -2495,72 +2495,88 @@ function SimpleListView({
   });
 
   // ── Theme tokens using doctor dashboard CSS variables ──────────────
+  // ── Theme tokens using doctor dashboard CSS variables ──────────────
   const text        = chromeDarkMode ? 'var(--doctor-text, #f8fafc)'           : '#0f172a';
   const muted       = chromeDarkMode ? 'var(--doctor-muted, #8ca1b4)'          : '#64748b';
-  const sectionLbl  = chromeDarkMode ? 'rgba(140,161,180,0.70)'                : '#94a3b8';
-  const neon        = chromeDarkMode ? 'var(--doctor-accent, #52ff9d)'         : '#0f766e';
-  const neonBg      = chromeDarkMode ? 'rgba(82,255,157,0.10)'                 : 'rgba(15,118,110,0.08)';
-  const neonBdr     = chromeDarkMode ? 'rgba(82,255,157,0.28)'                 : 'rgba(15,118,110,0.28)';
+  const sectionLbl  = chromeDarkMode ? 'rgba(140,161,180,0.85)'                : '#64748b';
+  const neon        = chromeDarkMode ? 'var(--doctor-accent, #52ff9d)'         : '#0d9488';
+  const neonBg      = chromeDarkMode ? 'rgba(82,255,157,0.12)'                 : 'rgba(13,148,136,0.1)';
+  const neonBdr     = chromeDarkMode ? 'rgba(82,255,157,0.32)'                 : 'rgba(13,148,136,0.2)';
   const cardBg      = chromeDarkMode
-    ? 'color-mix(in srgb, var(--doctor-card-tint, rgba(8,26,43,0.82)) 94%, transparent)'
-    : 'rgba(255,255,255,0.82)';
-  const cardBdr     = chromeDarkMode ? 'var(--doctor-border, rgba(108,156,204,0.08))' : 'rgba(148,163,184,0.2)';
+    ? 'rgba(13, 25, 41, 0.72)'
+    : 'rgba(255, 255, 255, 0.9)';
+  const cardBdr     = chromeDarkMode ? 'rgba(255, 255, 255, 0.06)'             : 'rgba(0, 0, 0, 0.08)';
   const cardActiveBdr = chromeDarkMode
-    ? 'color-mix(in srgb, var(--doctor-accent, #52ff9d) 38%, var(--doctor-border, rgba(108,156,204,0.08)) 62%)'
-    : 'rgba(15,118,110,0.38)';
-  const divider     = chromeDarkMode ? 'rgba(103,232,249,0.09)'                : 'rgba(148,163,184,0.14)';
-  const rowBg       = chromeDarkMode ? 'rgba(103,232,249,0.05)'                : 'rgba(0,0,0,0.03)';
-  const rowBdr      = chromeDarkMode ? 'rgba(103,232,249,0.10)'                : 'rgba(148,163,184,0.14)';
-  const ctrlBg      = chromeDarkMode ? 'rgba(6, 18, 42, 0.72)'                : 'rgba(255,255,255,0.88)';
-  const ctrlBdr     = chromeDarkMode ? 'rgba(103,232,249,0.18)'               : 'rgba(148,163,184,0.25)';
-  const ctrlActBg   = chromeDarkMode ? 'rgba(82,255,157,0.16)'                : '#0f766e';
-  const ctrlActClr  = chromeDarkMode ? '#52ff9d'                              : '#ffffff';
+    ? 'rgba(82, 255, 157, 0.45)'
+    : 'rgba(13, 148, 136, 0.4)';
+  const divider     = chromeDarkMode ? 'rgba(255, 255, 255, 0.05)'             : 'rgba(0, 0, 0, 0.06)';
+  const rowBg       = chromeDarkMode ? 'rgba(255, 255, 255, 0.03)'             : 'rgba(0, 0, 0, 0.02)';
+  const rowBdr      = chromeDarkMode ? 'rgba(255, 255, 255, 0.05)'             : 'rgba(0, 0, 0, 0.04)';
+  
+  // Refined control styles
+  const ctrlBg      = chromeDarkMode ? 'rgba(15, 23, 42, 0.6)'                 : 'rgba(255, 255, 255, 0.7)';
+  const ctrlBdr     = chromeDarkMode ? 'rgba(255, 255, 255, 0.08)'             : 'rgba(0, 0, 0, 0.1)';
+  const ctrlActBg   = chromeDarkMode ? 'var(--doctor-accent, #52ff9d)'         : '#0f172a';
+  const ctrlActClr  = chromeDarkMode ? '#06111d'                              : '#ffffff';
 
   return (
-    <div style={{ padding: '0 0 80px', maxWidth: 760, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+    <div style={{ padding: '0 0 100px', maxWidth: 840, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
 
-      {/* ── Sticky toolbar ─────────────────────────────────────────────── */}
+      {/* ── Sticky toolbar (Pill Redesign) ─────────────────────────── */}
       <div style={{
-        position: 'sticky', top: 0, zIndex: 8,
-        display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-        padding: '12px 20px 10px',
-        backdropFilter: 'blur(24px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-        borderBottom: `1px solid ${divider}`,
-        marginBottom: 4,
+        position: 'sticky', top: 12, zIndex: 20,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16,
+        padding: '10px 24px',
+        margin: '0 24px 24px',
+        backdropFilter: 'blur(30px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(30px) saturate(180%)',
+        borderRadius: 100,
+        border: `1px solid ${divider}`,
+        background: chromeDarkMode ? 'rgba(13, 25, 41, 0.65)' : 'rgba(255, 255, 255, 0.7)',
+        boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
       }}>
         {/* Sort toggle */}
-        <div style={{ display: 'flex', borderRadius: 12, border: `1px solid ${ctrlBdr}`, background: ctrlBg, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', gap: 4, padding: 3, borderRadius: 100, background: chromeDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }}>
           {(['recent', 'oldest'] as const).map(s => (
             <button key={s} onClick={() => setSort(s)} style={{
-              padding: '7px 14px', fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+              padding: '8px 20px', fontSize: 11, fontWeight: 800, cursor: 'pointer', border: 'none',
+              borderRadius: 100,
               background: sort === s ? ctrlActBg : 'transparent',
               color:      sort === s ? ctrlActClr : muted,
-              transition: 'background 0.15s, color 0.15s',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              letterSpacing: '0.03em',
+              textTransform: 'uppercase'
             }}>
               {s === 'recent' ? 'Newest' : 'Oldest'}
             </button>
           ))}
         </div>
 
+        <div style={{ width: 1, height: 24, background: divider }} />
+
         {/* Type filter */}
-        <div style={{ display: 'flex', borderRadius: 12, border: `1px solid ${ctrlBdr}`, background: ctrlBg, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', gap: 4, padding: 3, borderRadius: 100, background: chromeDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }}>
           {(['all', 'visits', 'labs'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{
-              padding: '7px 14px', fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+              padding: '8px 20px', fontSize: 11, fontWeight: 800, cursor: 'pointer', border: 'none',
+              borderRadius: 100,
               background: filter === f ? ctrlActBg : 'transparent',
               color:      filter === f ? ctrlActClr : muted,
-              transition: 'background 0.15s, color 0.15s',
-              textTransform: 'capitalize' as const,
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.03em'
             }}>
               {f === 'all' ? 'All' : f === 'visits' ? 'Visits' : 'Labs'}
             </button>
           ))}
         </div>
 
-        <span style={{ marginLeft: 'auto', fontSize: 11, color: sectionLbl, fontWeight: 500 }}>
-          {filtered.length} {filtered.length === 1 ? 'record' : 'records'}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 8 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: neon, boxShadow: `0 0 10px ${neon}` }} />
+          <span style={{ fontSize: 10, color: sectionLbl, fontWeight: 900, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            {filtered.length} Records
+          </span>
+        </div>
       </div>
 
       {/* ── Vertical timeline entries ───────────────────────────────────── */}
@@ -2585,170 +2601,162 @@ function SimpleListView({
             <div key={apt.id}>
               {/* ── Year separator ── */}
               {showYearSep && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, marginTop: idx > 0 ? 6 : 0, paddingLeft: 112 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20, marginTop: idx > 0 ? 32 : 0, paddingLeft: 112 }}>
                   <span style={{
-                    fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase',
-                    color: chromeDarkMode ? 'var(--doctor-accent, #52ff9d)' : '#0f766e',
-                    background: chromeDarkMode ? 'rgba(82,255,157,0.08)' : 'rgba(15,118,110,0.07)',
-                    border: `1px solid ${chromeDarkMode ? 'rgba(82,255,157,0.22)' : 'rgba(15,118,110,0.22)'}`,
-                    padding: '3px 10px', borderRadius: 8,
+                    fontSize: 12, fontWeight: 900, letterSpacing: '0.1em',
+                    color: chromeDarkMode ? 'var(--doctor-accent, #52ff9d)' : '#0f172a',
+                    opacity: 0.9
                   }}>
                     {aptYear}
                   </span>
-                  <div style={{ flex: 1, height: 1, background: divider }} />
+                  <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${divider}, transparent)` }} />
                 </div>
               )}
 
               {/* ── Row: date column + dot + card ── */}
-              <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 2 }}>
 
                 {/* Date label */}
                 <div style={{
                   width: 88, flexShrink: 0,
                   display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
-                  paddingRight: 14, paddingTop: 13,
+                  paddingRight: 24, paddingTop: 14,
                   position: 'relative',
                 }}>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.2, color: isExpanded ? aptAccent : text, transition: 'color 0.22s' }}>
-                      {(() => { const d = new Date(apt.startDate || apt.date); return isNaN(d.getTime()) ? apt.date : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }); })()}
+                    <div style={{ 
+                      fontSize: 16, 
+                      fontWeight: 800, 
+                      lineHeight: 1, 
+                      color: isExpanded ? neon : text, 
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      transform: isExpanded ? 'translateX(-2px)' : 'translateX(0)'
+                    }}>
+                      {(() => { const d = new Date(apt.startDate || apt.date); return isNaN(d.getTime()) ? apt.date.split(' ')[0] : d.toLocaleDateString('en-GB', { day: '2-digit' }); })()}
                     </div>
-                    <div style={{ fontSize: 10, color: muted, marginTop: 2 }}>
-                      {(() => { const d = new Date(apt.startDate || apt.date); return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { weekday: 'short' }); })()}
+                    <div style={{ fontSize: 10, fontWeight: 700, color: muted, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      {(() => { const d = new Date(apt.startDate || apt.date); return isNaN(d.getTime()) ? apt.date.split(' ')[1] : d.toLocaleDateString('en-GB', { month: 'short' }); })()}
                     </div>
                   </div>
                   {/* Vertical connector rail */}
                   {!isLast && (
                     <div style={{
-                      position: 'absolute', right: 5, top: 38,
-                      bottom: isExpanded ? -22 : -16,
-                      width: 2, borderRadius: 1,
+                      position: 'absolute', right: 5, top: 48,
+                      bottom: isExpanded ? -32 : -20,
+                      width: 1,
                       background: chromeDarkMode
-                        ? 'linear-gradient(180deg, rgba(103,232,249,0.30) 0%, rgba(103,232,249,0.06) 100%)'
-                        : 'linear-gradient(180deg, rgba(148,163,184,0.38) 0%, rgba(148,163,184,0.08) 100%)',
-                      transition: 'bottom 0.42s cubic-bezier(0.4,0,0.2,1)',
+                        ? 'linear-gradient(180deg, rgba(82,255,157,0.3) 0%, rgba(82,255,157,0.05) 100%)'
+                        : 'linear-gradient(180deg, rgba(13,148,136,0.3) 0%, rgba(13,148,136,0.05) 100%)',
+                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                     }} />
                   )}
                 </div>
 
                 {/* Timeline dot */}
-                <div style={{ width: 20, flexShrink: 0, display: 'flex', justifyContent: 'center', paddingTop: 16, position: 'relative', zIndex: 1 }}>
+                <div style={{ width: 12, flexShrink: 0, display: 'flex', justifyContent: 'center', paddingTop: 18, position: 'relative', zIndex: 1 }}>
                   <div style={{
-                    width: isExpanded ? 14 : 10,
-                    height: isExpanded ? 14 : 10,
+                    width: isExpanded ? 10 : 8,
+                    height: isExpanded ? 10 : 8,
                     borderRadius: '50%',
-                    background: isExpanded ? aptAccent : (chromeDarkMode ? 'rgba(103,232,249,0.30)' : 'rgba(148,163,184,0.48)'),
-                    border: `2px solid ${isExpanded ? aptAccent : (chromeDarkMode ? 'rgba(103,232,249,0.16)' : 'rgba(148,163,184,0.26)')}`,
-                    boxShadow: isExpanded ? `0 0 0 4px ${aptAccent}22, 0 0 14px ${aptAccent}44` : 'none',
-                    transition: 'all 0.28s cubic-bezier(0.4,0,0.2,1)',
+                    background: isExpanded ? neon : 'transparent',
+                    border: `2px solid ${isExpanded ? neon : (chromeDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)')}`,
+                    boxShadow: isExpanded ? `0 0 15px ${neon}` : 'none',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   }} />
                 </div>
 
                 {/* Card */}
-                <div style={{ flex: 1, paddingLeft: 10, paddingBottom: 14, minWidth: 0 }}>
+                <div style={{ flex: 1, paddingLeft: 16, paddingBottom: 20, minWidth: 0 }}>
                   <div
                     onClick={() => { if (accessLevel) setExpandedId(isExpanded ? null : apt.id); }}
                     style={{
-                      borderRadius: 16,
-                      border: `1.5px solid ${isExpanded ? cardActiveBdr : cardBdr}`,
+                      borderRadius: 20,
+                      border: `1px solid ${isExpanded ? cardActiveBdr : cardBdr}`,
                       background: cardBg,
-                      backdropFilter: 'blur(22px) saturate(160%)',
-                      WebkitBackdropFilter: 'blur(22px) saturate(160%)',
+                      backdropFilter: 'blur(30px) saturate(180%)',
+                      WebkitBackdropFilter: 'blur(30px) saturate(180%)',
                       cursor: accessLevel ? 'pointer' : 'default',
                       overflow: 'hidden',
                       boxShadow: isExpanded
                         ? chromeDarkMode
-                          ? '0 0 0 1px rgba(82,255,157,0.10), 0 8px 36px rgba(0,0,0,0.52), inset 0 1px 0 rgba(255,255,255,0.06)'
-                          : '0 0 0 2px rgba(15,118,110,0.10), 0 8px 28px rgba(0,0,0,0.09), inset 0 1px 0 rgba(255,255,255,0.85)'
-                        : chromeDarkMode
-                          ? '0 2px 10px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.04)'
-                          : '0 1px 5px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.72)',
-                      transition: 'border-color 0.25s, box-shadow 0.25s',
+                          ? '0 20px 50px -12px rgba(0,0,0,0.6), 0 0 20px rgba(82,255,157,0.05)'
+                          : '0 20px 40px -12px rgba(0,0,0,0.1)'
+                        : 'none',
+                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                      transform: isExpanded ? 'scale(1.005)' : 'scale(1)',
                     }}
                   >
-                    {/* Specialty colour stripe */}
-                    <div style={{ height: 2.5, background: `linear-gradient(90deg, ${aptAccent}, ${aptAccent}88)`, opacity: isExpanded ? 1 : 0.45, transition: 'opacity 0.25s' }} />
+                    {/* Specialty indicator line */}
+                    <div style={{ 
+                      height: 3, 
+                      background: aptAccent, 
+                      width: isExpanded ? '100%' : '40px',
+                      opacity: isExpanded ? 1 : 0.6, 
+                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                      borderRadius: '0 0 2px 0'
+                    }} />
 
                     {/* Header */}
-                    <div style={{ padding: '11px 14px 12px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        {/* Pills row */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 6 }}>
-                          {hasMeds ? (
-                            <span style={{
-                              color: apt.prescriptions.some(p => p.isActive) ? aptAccent : '#9CA3AF',
-                              fontSize: 9,
-                              fontWeight: 800,
-                              letterSpacing: '0.08em',
-                              padding: '3px 7px',
-                              borderRadius: 6,
-                              background: apt.prescriptions.some(p => p.isActive) ? `${aptAccent}1a` : 'rgba(156,163,175,0.12)',
-                              border: `1px solid ${apt.prescriptions.some(p => p.isActive) ? `${aptAccent}33` : 'rgba(156,163,175,0.25)'}`,
-                              textTransform: 'uppercase',
-                            }}>
-                              {apt.prescriptions.some(p => p.isActive) ? 'Active Prescription' : 'Inactive'}
-                            </span>
-                          ) : (
-                            <span style={{
-                              fontSize: 10, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase',
-                              color: aptAccent, padding: '2px 8px', borderRadius: 6,
-                              background: `${aptAccent}1a`, border: `1px solid ${aptAccent}33`,
-                            }}>
-                              {accessLevel ? apt.specialty : 'Restricted'}
-                            </span>
-                          )}
+                        {/* Status + Specialty row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <span style={{
+                            fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase',
+                            color: aptAccent, padding: '3px 8px', borderRadius: 6,
+                            background: `${aptAccent}12`, border: `1px solid ${aptAccent}25`,
+                          }}>
+                            {accessLevel ? apt.specialty : 'Restricted'}
+                          </span>
+                          
                           {accessLevel && (
-                            <>
-                              <span style={{
-                                fontSize: 10, fontWeight: 600,
-                                color: isActive ? neon : muted,
-                                padding: '2px 8px', borderRadius: 6,
-                                background: isActive ? neonBg : (chromeDarkMode ? 'rgba(103,232,249,0.06)' : 'rgba(0,0,0,0.04)'),
-                                border: `1px solid ${isActive ? neonBdr : (chromeDarkMode ? 'rgba(103,232,249,0.12)' : 'rgba(148,163,184,0.18)')}`,
-                              }}>
-                                {apt.status ?? 'Completed'}
-                              </span>
-                              {hasMeds && (
-                                <span style={{ fontSize: 10, color: muted, padding: '2px 7px', borderRadius: 6, background: rowBg, border: `1px solid ${rowBdr}` }}>
-                                  {apt.prescriptions.length} med{apt.prescriptions.length !== 1 ? 's' : ''}
-                                </span>
-                              )}
-                              {hasLabs && (
-                                <span style={{ fontSize: 10, color: muted, padding: '2px 7px', borderRadius: 6, background: rowBg, border: `1px solid ${rowBdr}` }}>
-                                  {apt.labs.length} lab{apt.labs.length !== 1 ? 's' : ''}
-                                </span>
-                              )}
-                            </>
+                            <span style={{
+                              fontSize: 9, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase',
+                              color: isActive ? neon : muted,
+                              opacity: 0.8
+                            }}>
+                              {apt.status ?? 'Completed'}
+                            </span>
                           )}
                         </div>
+
                         {/* Visit title */}
-                        <div style={{ fontSize: 14, fontWeight: 700, color: text, lineHeight: 1.35, marginBottom: 4 }}>
+                        <div style={{ 
+                          fontSize: 15, 
+                          fontWeight: 700, 
+                          color: text, 
+                          lineHeight: 1.2, 
+                          marginBottom: 4,
+                          letterSpacing: '-0.01em'
+                        }}>
                           {accessLevel ? `Consultation, ${apt.date}` : 'Restricted Encounter'}
                         </div>
-                        {/* Doctor + chief complaint preview */}
-                        <div style={{ fontSize: 12, color: muted, lineHeight: 1.45 }}>
-                          {accessLevel ? apt.doctor : 'Medical Professional'}
-                          {accessLevel && apt.chiefComplaint && (
-                            <> · <span style={{ color: chromeDarkMode ? 'rgba(200,220,240,0.65)' : '#475569', fontStyle: 'italic' }}>
-                              {apt.chiefComplaint.slice(0, 72)}{apt.chiefComplaint.length > 72 ? '…' : ''}
-                            </span></>
+
+                        {/* Doctor + Details preview */}
+                        <div style={{ fontSize: 12, color: muted, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 600 }}>{accessLevel ? apt.doctor : 'Medical Professional'}</span>
+                          {accessLevel && (hasLabs || hasMeds) && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: 0.7 }}>
+                              <span style={{ width: 3, height: 3, borderRadius: '50%', background: muted }} />
+                              {hasMeds && <span>{apt.prescriptions.length} Meds</span>}
+                              {hasLabs && <span>{apt.labs.length} Labs</span>}
+                            </div>
                           )}
                         </div>
                       </div>
+
                       {/* Chevron */}
                       {accessLevel && (
                         <div style={{
-                          flexShrink: 0, width: 28, height: 28,
+                          flexShrink: 0, width: 32, height: 32,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          borderRadius: 8, marginTop: 2,
-                          background: isExpanded ? (chromeDarkMode ? 'rgba(82,255,157,0.12)' : 'rgba(15,118,110,0.10)') : 'transparent',
+                          borderRadius: 10,
+                          background: isExpanded ? neonBg : (chromeDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)'),
                           color: isExpanded ? neon : muted,
-                          transition: 'background 0.2s, color 0.2s',
+                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                         }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                            style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)' }}>
-                            <polyline points="6 9 12 15 18 9" />
-                          </svg>
+                          <ChevronDown size={18} strokeWidth={2.5}
+                            style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }} />
                         </div>
                       )}
                     </div>
@@ -2756,20 +2764,21 @@ function SimpleListView({
                     {/* ── Expandable detail panel ─────────────────────────── */}
                     {accessLevel && (
                       <div style={{
-                        maxHeight: isExpanded ? 1800 : 0,
+                        maxHeight: isExpanded ? 2400 : 0,
                         overflow: 'hidden',
-                        transition: 'max-height 0.44s cubic-bezier(0.4,0,0.2,1)',
+                        transition: 'max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
                       }}>
-                        <div style={{ borderTop: `1px solid ${divider}`, padding: '15px 14px 17px' }}>
+                        <div style={{ padding: '0 20px 24px' }}>
+                          <div style={{ height: 1, background: divider, marginBottom: 20 }} />
 
-                          {/* Vitals — shown first, most immediately clinical */}
+                          {/* Vitals Grid */}
                           {hasVitals && (
-                            <div style={{ marginBottom: hasNotes || hasMeds || hasLabs ? 15 : 0 }}>
-                              <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: sectionLbl, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                            <div style={{ marginBottom: 24 }}>
+                              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: sectionLbl, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Activity size={12} strokeWidth={2.5} />
                                 Vitals
                               </div>
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8 }}>
                                 {([
                                   ['BP',   apt.vitals?.bloodPressure],
                                   ['HR',   apt.vitals?.pulse],
@@ -2778,76 +2787,77 @@ function SimpleListView({
                                   ['Ht',   apt.vitals?.height],
                                   ['Wt',   apt.vitals?.weight],
                                 ] as [string, string | undefined][]).filter(([, v]) => !!v).map(([label, value]) => (
-                                  <div key={label} style={{ padding: '8px 10px', borderRadius: 10, background: rowBg, border: `1px solid ${rowBdr}` }}>
-                                    <div style={{ fontSize: 9, fontWeight: 700, color: sectionLbl, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 3 }}>{label}</div>
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: text }}>{value}</div>
+                                  <div key={label} style={{ padding: '10px 12px', borderRadius: 12, background: rowBg, border: `1px solid ${rowBdr}`, transition: 'all 0.2s ease' }}>
+                                    <div style={{ fontSize: 9, fontWeight: 800, color: muted, textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
+                                    <div style={{ fontSize: 14, fontWeight: 800, color: text }}>{value}</div>
                                   </div>
                                 ))}
                               </div>
                             </div>
                           )}
 
-                          {/* Clinical Notes */}
+                          {/* Clinical Narrative */}
                           {hasNotes && (
-                            <div style={{ borderTop: hasVitals ? `1px solid ${divider}` : 'none', paddingTop: hasVitals ? 15 : 0, marginBottom: hasMeds || hasLabs ? 15 : 0 }}>
-                              <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: sectionLbl, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                                Clinical Notes
+                            <div style={{ marginBottom: 24 }}>
+                              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: sectionLbl, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Stethoscope size={12} strokeWidth={2.5} />
+                                Clinical Narrative
                               </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                 {apt.chiefComplaint && (
-                                  <div style={{ padding: '9px 11px', borderRadius: 10, background: rowBg, border: `1px solid ${rowBdr}` }}>
-                                    <div style={{ fontSize: 9, fontWeight: 700, color: sectionLbl, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>Chief Complaint</div>
-                                    <div style={{ fontSize: 13, color: text, lineHeight: 1.6 }}>{apt.chiefComplaint}</div>
+                                  <div style={{ padding: '12px 16px', borderRadius: 14, background: rowBg, border: `1px solid ${rowBdr}` }}>
+                                    <div style={{ fontSize: 9, fontWeight: 800, color: muted, textTransform: 'uppercase', marginBottom: 6 }}>Chief Complaint</div>
+                                    <div style={{ fontSize: 14, color: text, lineHeight: 1.6, fontWeight: 500 }}>{apt.chiefComplaint}</div>
                                   </div>
                                 )}
                                 {apt.notes && (
-                                  <div style={{ padding: '9px 11px', borderRadius: 10, background: rowBg, border: `1px solid ${rowBdr}` }}>
-                                    <div style={{ fontSize: 9, fontWeight: 700, color: sectionLbl, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>Assessment</div>
-                                    <div style={{ fontSize: 13, color: text, lineHeight: 1.6 }}>{apt.notes}</div>
+                                  <div style={{ padding: '12px 16px', borderRadius: 14, background: rowBg, border: `1px solid ${rowBdr}` }}>
+                                    <div style={{ fontSize: 9, fontWeight: 800, color: muted, textTransform: 'uppercase', marginBottom: 6 }}>Clinical Findings</div>
+                                    <div style={{ fontSize: 14, color: text, lineHeight: 1.6, fontWeight: 500 }}>{apt.notes}</div>
                                   </div>
                                 )}
                                 {apt.plan && apt.plan !== apt.notes && (
-                                  <div style={{ padding: '9px 11px', borderRadius: 10, background: rowBg, border: `1px solid ${rowBdr}` }}>
-                                    <div style={{ fontSize: 9, fontWeight: 700, color: sectionLbl, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 4 }}>Plan</div>
-                                    <div style={{ fontSize: 13, color: text, lineHeight: 1.6 }}>{apt.plan}</div>
+                                  <div style={{ padding: '12px 16px', borderRadius: 14, background: rowBg, border: `1px solid ${rowBdr}` }}>
+                                    <div style={{ fontSize: 9, fontWeight: 800, color: muted, textTransform: 'uppercase', marginBottom: 6 }}>Plan & Guidance</div>
+                                    <div style={{ fontSize: 14, color: text, lineHeight: 1.6, fontWeight: 500 }}>{apt.plan}</div>
                                   </div>
                                 )}
                               </div>
                             </div>
                           )}
 
-                          {/* Prescriptions */}
+                          {/* Treatment Plan */}
                           {hasMeds && (
-                            <div style={{ borderTop: hasVitals || hasNotes ? `1px solid ${divider}` : 'none', paddingTop: hasVitals || hasNotes ? 15 : 0, marginBottom: hasLabs ? 15 : 0 }}>
-                              <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: sectionLbl, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                            <div style={{ marginBottom: hasLabs ? 24 : 0 }}>
+                              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: sectionLbl, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Pill size={12} strokeWidth={2.5} />
                                 Prescriptions · {apt.prescriptions.length}
                               </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 {apt.prescriptions.map(med => (
                                   <div key={med.id} style={{
-                                    display: 'grid', gridTemplateColumns: '1fr auto', gap: '3px 10px',
-                                    padding: '9px 11px', borderRadius: 10,
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    padding: '12px 16px', borderRadius: 14,
                                     background: rowBg, border: `1px solid ${rowBdr}`,
-                                    alignItems: 'center',
                                     opacity: med.isActive === false ? 0.6 : 1,
                                   }}>
-                                    <div>
-                                      <span style={{ fontSize: 13, fontWeight: 700, color: med.isActive === false ? muted : neon, textDecoration: med.isActive === false ? 'line-through' : 'none' }}>{med.name}</span>
-                                      {med.dose && <span style={{ fontSize: 12, color: muted, marginLeft: 6 }}>{med.dose}</span>}
+                                    <div style={{ flex: 1 }}>
+                                      <div style={{ fontSize: 14, fontWeight: 700, color: med.isActive === false ? muted : text }}>
+                                        {med.name}
+                                        {med.dose && <span style={{ fontSize: 13, color: muted, marginLeft: 8, fontWeight: 500 }}>{med.dose}</span>}
+                                      </div>
                                       {med.frequency && (
-                                        <div style={{ fontSize: 11, color: sectionLbl, marginTop: 2 }}>
+                                        <div style={{ fontSize: 12, color: muted, marginTop: 4, fontWeight: 500 }}>
                                           {/^[01]{4}$/.test(med.frequency) ? slPatternLabel(med.frequency) : med.frequency}
                                         </div>
                                       )}
                                     </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                                    <div style={{ textAlign: 'right' }}>
                                       {med.duration && (
-                                        <span style={{ fontSize: 11, color: sectionLbl, whiteSpace: 'nowrap', textAlign: 'right' }}>{med.duration}</span>
+                                        <div style={{ fontSize: 11, color: sectionLbl, fontWeight: 700, textTransform: 'uppercase' }}>{med.duration}</div>
                                       )}
                                       {med.isActive === false && (
-                                        <span style={{ fontSize: 9, fontWeight: 800, background: 'rgba(156,163,175,0.12)', color: '#9CA3AF', padding: '2px 6px', borderRadius: 4, textTransform: 'uppercase', border: '1px solid rgba(156,163,175,0.22)' }}>Inactive</span>
+                                        <span style={{ fontSize: 9, fontWeight: 900, background: 'rgba(156,163,175,0.1)', color: '#9CA3AF', padding: '3px 8px', borderRadius: 6, textTransform: 'uppercase', marginTop: 4, display: 'inline-block' }}>Inactive</span>
                                       )}
                                     </div>
                                   </div>
@@ -2856,61 +2866,52 @@ function SimpleListView({
                             </div>
                           )}
 
-                          {/* Labs */}
+                          {/* Diagnostics */}
                           {hasLabs && (
-                            <div style={{ borderTop: hasVitals || hasNotes || hasMeds ? `1px solid ${divider}` : 'none', paddingTop: hasVitals || hasNotes || hasMeds ? 15 : 0 }}>
-                              <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: sectionLbl, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5c-1.4 0-2.5-1.1-2.5-2.5V2"/><path d="M8.5 2h7"/><path d="M14.5 16h-5"/></svg>
-                                Lab Orders · {apt.labs.length}
+                            <div>
+                              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: sectionLbl, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Microscope size={12} strokeWidth={2.5} />
+                                Diagnostic Orders · {apt.labs.length}
                               </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                                {apt.labs.map(lab => {
-                                  const labClr = lab.status === 'critical' ? '#ef4444' : lab.status === 'high' ? '#f97316' : lab.status === 'low' ? '#60a5fa' : muted;
-                                  const flagged = lab.status && lab.status !== 'normal';
-                                  return (
-                                    <div key={lab.id} style={{
-                                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                      padding: '8px 11px', borderRadius: 10,
-                                      background: flagged ? `${labClr}0d` : rowBg,
-                                      border: `1px solid ${flagged ? labClr + '33' : rowBdr}`,
-                                    }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                                        {flagged && <span style={{ width: 6, height: 6, borderRadius: '50%', background: labClr, flexShrink: 0 }} />}
-                                        <span style={{ fontSize: 13, fontWeight: 600, color: text }}>{lab.label}</span>
-                                      </div>
-                                      <span style={{ fontSize: 11, fontWeight: 600, color: labClr }}>
-                                        {lab.value}{lab.unit ? ` ${lab.unit}` : ''}
-                                      </span>
-                                    </div>
-                                  );
-                                })}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {apt.labs.map(lab => (
+                                  <div key={lab.id} style={{
+                                    display: 'flex', alignItems: 'center', gap: 12,
+                                    padding: '12px 16px', borderRadius: 14,
+                                    background: rowBg, border: `1px solid ${rowBdr}`,
+                                  }}>
+                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: SEVERITY_CLR.lab, boxShadow: `0 0 8px ${SEVERITY_CLR.lab}44` }} />
+                                    <div style={{ fontSize: 14, fontWeight: 600, color: text }}>{lab.label}</div>
+                                    <div style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: muted, textTransform: 'uppercase' }}>Pending</div>
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           )}
 
-                          {!hasNotes && !hasMeds && !hasVitals && !hasLabs && (
-                            <div style={{ textAlign: 'center', padding: '8px 0' }}>
-                              <span style={{ fontSize: 12, color: sectionLbl }}>No detailed records for this visit.</span>
+                          {!hasVitals && !hasNotes && !hasMeds && !hasLabs && (
+                            <div style={{ padding: '24px 0', textAlign: 'center' }}>
+                              <div style={{ fontSize: 12, color: muted, fontWeight: 500, fontStyle: 'italic' }}>
+                                No supplementary clinical data recorded for this encounter.
+                              </div>
                             </div>
                           )}
 
-                          {/* Footer */}
-                          <div style={{ borderTop: `1px solid ${divider}`, marginTop: 14, paddingTop: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                            {apt.endDate
-                              ? <span style={{ fontSize: 12, color: muted }}>Follow-up: <strong style={{ color: text, fontWeight: 600 }}>{slFmtDate(apt.endDate)}</strong></span>
-                              : <span />}
+                          <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end' }}>
                             <button
-                              type="button"
-                              onClick={e => { e.stopPropagation(); onSelect(apt); }}
+                              onClick={(e) => { e.stopPropagation(); onSelect(apt); }}
                               style={{
-                                padding: '8px 16px', borderRadius: 10,
-                                fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                                border: `1px solid ${neonBdr}`,
-                                background: neonBg, color: neon,
-                                transition: 'background 0.15s',
+                                padding: '10px 20px', borderRadius: 12, border: `1px solid ${neon}`,
+                                background: 'transparent', color: neon, fontSize: 11, fontWeight: 800,
+                                textTransform: 'uppercase', cursor: 'pointer', letterSpacing: '0.04em',
+                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                display: 'flex', alignItems: 'center', gap: 8
                               }}
+                              onMouseEnter={e => { e.currentTarget.style.background = neonBg; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'translateY(0)'; }}
                             >
-                              View Full Details →
+                              View Full Details
+                              <TrendingUp size={14} />
                             </button>
                           </div>
                         </div>

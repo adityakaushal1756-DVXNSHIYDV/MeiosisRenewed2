@@ -730,12 +730,11 @@ export function PrescriptionModal({
 
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-8"
+      className="fixed inset-0 z-[120] flex items-center justify-center overflow-y-auto bg-black/50 px-6 py-6 backdrop-blur-md"
       onClick={onClose}
     >
       <motion.div
-        layoutId={`emr-card-${appt ? appt.id : (lab ? lab.id : '')}`}
-        className={`w-full ${layoutMode === 'wide' ? 'max-w-[1100px]' : 'max-w-[700px]'} overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0d1520] shadow-[0_32px_100px_rgba(0,0,0,0.75)]`}
+        className={`w-full ${layoutMode === 'wide' ? 'max-w-[95vw]' : 'max-w-[85vw]'} min-h-[90vh] overflow-hidden rounded-[32px] border border-white/[0.08] bg-[#0d1520] shadow-[0_40px_120px_rgba(0,0,0,0.85)]`}
         onClick={(e) => e.stopPropagation()}
       >
 
@@ -766,7 +765,7 @@ export function PrescriptionModal({
                   <button
                     type="button"
                     onClick={() => printDocument(docPath)}
-                    className="action-btn flex items-center justify-center gap-2 !px-4 !py-2 text-xs !bg-neon/10 !border-neon/20 !text-neon hover:!bg-neon/20"
+                    className="action-btn flex items-center justify-center gap-2 !px-5 !py-2.5 text-xs !bg-neon/10 !border-neon/20 !text-neon hover:!bg-neon/20 !rounded-xl"
                   >
                     <Zap size={13} fill="currentColor" /> Print
                   </button>
@@ -774,7 +773,7 @@ export function PrescriptionModal({
                     href={assetUrl(docPath)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="ghost-btn flex items-center justify-center gap-2 !px-4 !py-2 text-xs"
+                    className="ghost-btn flex items-center justify-center gap-2 !px-5 !py-2.5 text-xs !rounded-xl"
                   >
                     <Download size={13} /> PDF
                   </a>
@@ -783,7 +782,7 @@ export function PrescriptionModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="ghost-btn !px-4 !py-2 text-xs flex items-center gap-2"
+                className="ghost-btn !px-5 !py-2.5 text-xs flex items-center gap-2 !rounded-xl"
               >
                 <X size={13} /> Close
               </button>
@@ -826,7 +825,7 @@ export function PrescriptionModal({
                     { label: 'HT',   value: vitals.height        },
                     { label: 'WT',   value: vitals.weight        },
                   ] as const).map(({ label: vl, value }) => (
-                    <div key={vl} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                    <div key={vl} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 shadow-sm transition-all hover:border-white/10">
                       <p className="text-[8px] font-bold uppercase tracking-widest text-mist/40">{vl}</p>
                       <p className={`mt-1 text-[12px] font-bold ${value ? 'text-white' : 'text-mist/20'}`}>
                         {value || '--'}
@@ -872,8 +871,8 @@ export function PrescriptionModal({
                       {meds.map((med, i) => {
                         const noteKey = `wide-${i}`;
                         return (
-                          <div key={noteKey} className="rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden">
-                             <div className="px-4 py-3 flex items-center justify-between gap-4">
+                          <div key={noteKey} className="rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden transition-all hover:bg-white/[0.02] hover:border-white/10">
+                             <div className="px-5 py-4 flex items-center justify-between gap-4">
                                 <div className="flex-1 min-w-0">
                                    <div className="flex items-center gap-2">
                                       <span className="text-[13px] font-bold text-neon">{med.name}</span>
@@ -889,7 +888,7 @@ export function PrescriptionModal({
                                   <button
                                     type="button"
                                     onClick={() => toggleNote(noteKey)}
-                                    className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-all ${
+                                    className={`flex h-8 w-8 items-center justify-center rounded-xl border transition-all ${
                                       expandedNotes.has(noteKey) 
                                         ? 'border-neon/40 bg-neon/10 text-neon' 
                                         : 'border-white/10 bg-white/5 text-mist/40 hover:text-mist'
@@ -900,7 +899,7 @@ export function PrescriptionModal({
                                 )}
                              </div>
                              {expandedNotes.has(noteKey) && med.notes && (
-                               <div className="px-4 pb-3 pt-0 border-t border-white/[0.04] bg-black/20">
+                               <div className="px-5 pb-4 pt-0 border-t border-white/[0.04] bg-black/20">
                                   <p className="text-[11px] leading-5 text-mist/70 pt-2 italic">{med.notes}</p>
                                 </div>
                              )}
@@ -939,7 +938,7 @@ export function PrescriptionModal({
                   {appt?.notes && (
                     <div className="mt-2">
                        <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/70 mb-3">📋 Treatment Plan</p>
-                       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.01] px-4 py-4">
+                       <div className="rounded-3xl border border-white/[0.06] bg-white/[0.01] px-5 py-5 transition-all hover:bg-white/[0.02] hover:border-white/10">
                           <p className="text-[13px] leading-relaxed text-white/80">{appt.notes}</p>
                        </div>
                     </div>
@@ -1113,7 +1112,7 @@ export function PrescriptionModal({
                     { label: 'HEIGHT',         value: vitals.height,        icon: <ArrowUp size={14} />,   color: 'text-emerald-400' },
                     { label: 'WEIGHT',         value: vitals.weight,        icon: <Weight size={14} />,    color: 'text-emerald-400' },
                   ] as const).map(({ label: vl, value, icon, color }) => (
-                    <div key={vl} className="group rounded-2xl border border-white/[0.06] bg-slate-950/40 p-4 transition-all hover:border-white/20 hover:bg-slate-900/60 shadow-lg">
+                    <div key={vl} className="group rounded-3xl border border-white/[0.06] bg-slate-950/40 p-4 transition-all hover:border-white/20 hover:bg-slate-900/60 shadow-lg">
                       <div className="flex items-center gap-2 mb-2 text-mist/40 group-hover:text-mist/60 transition-colors">
                         <span className={`${color}/80`}>{icon}</span>
                         <p className="text-[9px] font-bold uppercase tracking-[0.2em]">{vl}</p>

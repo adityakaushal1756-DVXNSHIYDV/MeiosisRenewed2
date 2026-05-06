@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { X, Activity, User, FileText, AlertCircle, CheckCircle2, Brain, Stethoscope, ChevronRight, Maximize2 } from 'lucide-react';
 import type { HPNoteSnapshot, HPNoteItemState } from '../../types/Patient';
 import type { AppointmentEntry } from './types';
@@ -16,12 +17,12 @@ type FindingType = 'abnormal' | 'normal' | 'not_checked';
 
 function SectionTitle({ icon, title, count }: { icon: React.ReactNode; title: string; count?: number }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, paddingBottom: 14, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 14, background: HP_ACCENT_DIM, border: `1px solid ${HP_ACCENT_BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: HP_ACCENT, flexShrink: 0 }}>
-          {icon}
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ width: 28, height: 28, borderRadius: 10, background: HP_ACCENT_DIM, border: `1px solid ${HP_ACCENT_BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: HP_ACCENT, flexShrink: 0 }}>
+          {icon && (typeof icon === 'object' && 'props' in (icon as any) ? <span style={{ transform: 'scale(0.8)' }}>{icon}</span> : icon)}
         </div>
-        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: '#f8fafc', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{title}</h3>
+        <h3 style={{ margin: 0, fontSize: 12, fontWeight: 900, color: '#f8fafc', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{title}</h3>
       </div>
       {count !== undefined && (
         <span style={{ fontSize: 12, fontWeight: 800, color: 'rgba(148,163,184,0.6)', background: 'rgba(255,255,255,0.04)', padding: '4px 12px', borderRadius: 100, border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -38,14 +39,14 @@ function VitalChip({ label, value }: { label: string; value?: string }) {
     <div style={{ 
       background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)', 
       border: '1px solid rgba(255,255,255,0.08)', 
-      borderRadius: 24, 
-      padding: '16px 22px',
+      borderRadius: 20, 
+      padding: '12px 18px',
       transition: 'all 0.2s ease',
       cursor: 'default',
       boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
     }}>
-      <p style={{ margin: 0, fontSize: 10, fontWeight: 900, color: 'rgba(148,163,184,0.6)', textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: 8 }}>{label}</p>
-      <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#ffffff', fontFamily: 'monospace' }}>{value}</p>
+      <p style={{ margin: 0, fontSize: 9, fontWeight: 900, color: 'rgba(148,163,184,0.6)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 6 }}>{label}</p>
+      <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#ffffff', fontFamily: 'monospace' }}>{value}</p>
     </div>
   );
 }
@@ -54,20 +55,20 @@ function InfoBlock({ label, value, color = HP_ACCENT }: { label: string; value?:
   if (!value?.trim()) return null;
   return (
     <div style={{ 
-      padding: '20px', 
-      borderRadius: 24, 
+      padding: '16px', 
+      borderRadius: 20, 
       background: 'rgba(255,255,255,0.02)', 
       border: '1px solid rgba(255,255,255,0.05)',
       display: 'flex',
       flexDirection: 'column',
-      gap: 12,
+      gap: 10,
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 5, height: 14, borderRadius: 100, background: color }} />
-        <p style={{ margin: 0, fontSize: 11, fontWeight: 900, color: 'rgba(148,163,184,0.8)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</p>
+        <div style={{ width: 4, height: 12, borderRadius: 100, background: color }} />
+        <p style={{ margin: 0, fontSize: 10, fontWeight: 900, color: 'rgba(148,163,184,0.8)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</p>
       </div>
-      <p style={{ margin: 0, fontSize: 15, color: 'rgba(241,245,249,0.95)', lineHeight: 1.8, whiteSpace: 'pre-wrap', fontWeight: 500 }}>{value}</p>
+      <p style={{ margin: 0, fontSize: 13, color: 'rgba(241,245,249,0.9)', lineHeight: 1.7, whiteSpace: 'pre-wrap', fontWeight: 500 }}>{value}</p>
     </div>
   );
 }
@@ -157,11 +158,40 @@ export function HPNotePanel({ appointment, onClose }: HPNotePanelProps) {
       className="fixed inset-0 z-[120] flex items-center justify-center bg-black/85 backdrop-blur-xl"
       onClick={onClose}
     >
+      {/* Floating Close Button */}
+      <button 
+        onClick={onClose} 
+        style={{ 
+          position: 'fixed',
+          top: 24,
+          right: 24,
+          width: 44, 
+          height: 44, 
+          borderRadius: '50%', 
+          border: '1px solid rgba(255,255,255,0.15)', 
+          background: 'rgba(255,255,255,0.08)', 
+          color: '#ffffff', 
+          cursor: 'pointer', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          zIndex: 130,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+        }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+      >
+        <X size={20} strokeWidth={3} />
+      </button>
+
       <div
         style={{ 
-          width: '96vw', 
-          height: '92vh', 
-          borderRadius: 40, 
+          width: '92vw', 
+          height: '86vh', 
+          borderRadius: 32, 
           border: '1px solid rgba(255,255,255,0.1)', 
           background: '#04080f', 
           boxShadow: '0 60px 180px rgba(0,0,0,1), 0 0 0 1px rgba(255,255,255,0.05)', 
@@ -172,61 +202,39 @@ export function HPNotePanel({ appointment, onClose }: HPNotePanelProps) {
         }}
         onClick={e => e.stopPropagation()}
       >
-        {/* ── Immersive Header ── */}
+        {/* ── Compact Header ── */}
         <div style={{ 
-          padding: '32px 48px', 
+          padding: '20px 32px', 
           borderBottom: '1px solid rgba(255,255,255,0.08)', 
-          background: 'linear-gradient(135deg, rgba(129,140,248,0.1) 0%, rgba(0,0,0,0) 100%)',
+          background: 'linear-gradient(135deg, rgba(129,140,248,0.08) 0%, rgba(0,0,0,0) 100%)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-            <div style={{ width: 64, height: 64, borderRadius: 24, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: HP_ACCENT }}>
-              <Brain size={32} strokeWidth={1.5} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: HP_ACCENT }}>
+              <Brain size={24} strokeWidth={2} />
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-                <div style={{ width: 12, height: 12, borderRadius: 100, background: HP_ACCENT, boxShadow: `0 0 20px ${HP_ACCENT}` }} />
-                <span style={{ fontSize: 12, fontWeight: 900, color: HP_ACCENT, textTransform: 'uppercase', letterSpacing: '0.25em' }}>History & Physical Record</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 100, background: HP_ACCENT, boxShadow: `0 0 12px ${HP_ACCENT}` }} />
+                <span style={{ fontSize: 10, fontWeight: 900, color: HP_ACCENT, textTransform: 'uppercase', letterSpacing: '0.15em' }}>History & Physical Record</span>
               </div>
-              <h2 style={{ margin: 0, fontSize: 32, fontWeight: 900, color: '#ffffff', letterSpacing: '-0.03em' }}>
+              <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
                 {appointment.type || 'Universal H&P Note'}
               </h2>
-              <div style={{ display: 'flex', gap: 20, marginTop: 12, alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 14px', borderRadius: 100, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <Activity size={12} color="rgba(148,163,184,0.6)" />
-                  <span style={{ fontSize: 13, color: 'rgba(148,163,184,1)', fontWeight: 700 }}>{appointment.date}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 14px', borderRadius: 100, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <User size={12} color="rgba(148,163,184,0.6)" />
-                  <span style={{ fontSize: 13, color: 'rgba(148,163,184,1)', fontWeight: 700 }}>{appointment.doctor}</span>
-                </div>
-                {data.savedAt && (
-                  <span style={{ fontSize: 13, color: 'rgba(148,163,184,0.4)', fontWeight: 600 }}>Archived {fmtDate(data.savedAt)}</span>
-                )}
-              </div>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-             <button 
-              onClick={onClose} 
-              style={{ 
-                width: 56, 
-                height: 56, 
-                borderRadius: 20, 
-                border: '1px solid rgba(255,255,255,0.1)', 
-                background: 'rgba(255,255,255,0.05)', 
-                color: '#ffffff', 
-                cursor: 'pointer', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                transition: 'all 0.2s cubic-bezier(0.2, 0, 0, 1)'
-              }}
-            >
-              <X size={28} strokeWidth={2.5} />
-            </button>
+
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 100, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <Activity size={10} color="rgba(148,163,184,0.5)" />
+              <span style={{ fontSize: 11, color: 'rgba(148,163,184,0.9)', fontWeight: 800 }}>{appointment.date}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 100, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <User size={10} color="rgba(148,163,184,0.5)" />
+              <span style={{ fontSize: 11, color: 'rgba(148,163,184,0.9)', fontWeight: 800 }}>Dr. {appointment.doctor}</span>
+            </div>
           </div>
         </div>
 
@@ -234,7 +242,7 @@ export function HPNotePanel({ appointment, onClose }: HPNotePanelProps) {
         <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', flex: 1, overflow: 'hidden' }}>
           
           {/* Left Column: Narrative (Scrollable) */}
-          <div style={{ padding: '48px', borderRight: '1px solid rgba(255,255,255,0.06)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 48, background: 'rgba(255,255,255,0.01)' }}>
+          <div style={{ padding: '32px', borderRight: '1px solid rgba(255,255,255,0.06)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 32, background: 'rgba(255,255,255,0.01)' }}>
             
             {/* Vitals Dashboard */}
             {Object.values(data.vitals || {}).some(v => !!v) && (
@@ -256,36 +264,36 @@ export function HPNotePanel({ appointment, onClose }: HPNotePanelProps) {
             {/* History Section */}
             <div>
               <SectionTitle icon={<FileText size={18} />} title="Clinical History" />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <InfoBlock label="Past Medical History" value={data.medicalHistory} />
                 <InfoBlock label="Past Surgical History" value={data.surgicalHistory} />
                 
                 {data.social && Object.values(data.social).some(v => !!v) && (
-                  <div style={{ padding: '24px', borderRadius: 32, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <p style={{ margin: '0 0 20px', fontSize: 12, fontWeight: 900, color: 'rgba(148,163,184,0.7)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Social Context</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 40px' }}>
+                  <div style={{ padding: '20px', borderRadius: 28, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <p style={{ margin: '0 0 16px', fontSize: 10, fontWeight: 900, color: 'rgba(148,163,184,0.7)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Social Context</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 32px' }}>
                       {data.social.tobacco && (
-                        <div style={{ padding: '12px 20px', borderRadius: 20, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(148,163,184,0.4)', marginBottom: 4, textTransform: 'uppercase' }}>Tobacco</p>
-                          <p style={{ margin: 0, fontSize: 16, color: '#f1f5f9', fontWeight: 700 }}>{data.social.tobacco}{data.social.tobaccoPkYrs ? ` · ${data.social.tobaccoPkYrs} pk/yrs` : ''}</p>
+                        <div style={{ padding: '10px 16px', borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: 'rgba(148,163,184,0.4)', marginBottom: 4, textTransform: 'uppercase' }}>Tobacco</p>
+                          <p style={{ margin: 0, fontSize: 13, color: '#f1f5f9', fontWeight: 700 }}>{data.social.tobacco}{data.social.tobaccoPkYrs ? ` · ${data.social.tobaccoPkYrs} pk/yrs` : ''}</p>
                         </div>
                       )}
                       {data.social.alcoholFreq && (
-                        <div style={{ padding: '12px 20px', borderRadius: 20, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(148,163,184,0.4)', marginBottom: 4, textTransform: 'uppercase' }}>Alcohol</p>
-                          <p style={{ margin: 0, fontSize: 16, color: '#f1f5f9', fontWeight: 700 }}>{data.social.alcoholFreq}</p>
+                        <div style={{ padding: '10px 16px', borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: 'rgba(148,163,184,0.4)', marginBottom: 4, textTransform: 'uppercase' }}>Alcohol</p>
+                          <p style={{ margin: 0, fontSize: 13, color: '#f1f5f9', fontWeight: 700 }}>{data.social.alcoholFreq}</p>
                         </div>
                       )}
                       {data.social.illicitDrugsTypes && (
-                        <div style={{ padding: '12px 20px', borderRadius: 20, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(148,163,184,0.4)', marginBottom: 4, textTransform: 'uppercase' }}>Illicit Drugs</p>
-                          <p style={{ margin: 0, fontSize: 16, color: '#f1f5f9', fontWeight: 700 }}>{data.social.illicitDrugsTypes}</p>
+                        <div style={{ padding: '10px 16px', borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: 'rgba(148,163,184,0.4)', marginBottom: 4, textTransform: 'uppercase' }}>Illicit Drugs</p>
+                          <p style={{ margin: 0, fontSize: 13, color: '#f1f5f9', fontWeight: 700 }}>{data.social.illicitDrugsTypes}</p>
                         </div>
                       )}
                       {data.social.occupation && (
-                        <div style={{ padding: '12px 20px', borderRadius: 20, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: 'rgba(148,163,184,0.4)', marginBottom: 4, textTransform: 'uppercase' }}>Occupation</p>
-                          <p style={{ margin: 0, fontSize: 16, color: '#f1f5f9', fontWeight: 700 }}>{data.social.occupation}</p>
+                        <div style={{ padding: '10px 16px', borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: 'rgba(148,163,184,0.4)', marginBottom: 4, textTransform: 'uppercase' }}>Occupation</p>
+                          <p style={{ margin: 0, fontSize: 13, color: '#f1f5f9', fontWeight: 700 }}>{data.social.occupation}</p>
                         </div>
                       )}
                     </div>
@@ -296,8 +304,8 @@ export function HPNotePanel({ appointment, onClose }: HPNotePanelProps) {
 
             {/* Assessment & Plan Dashboard */}
             {(data.impressions?.trim() || data.plan?.trim()) && (
-              <div style={{ padding: '32px', borderRadius: 36, background: 'rgba(129,140,248,0.04)', border: `1px solid rgba(129,140,248,0.15)`, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-                <SectionTitle icon={<Stethoscope size={20} />} title="Assessment & Care Plan" />
+              <div style={{ padding: '24px', borderRadius: 32, background: 'rgba(129,140,248,0.04)', border: `1px solid rgba(129,140,248,0.15)`, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+                <SectionTitle icon={<Stethoscope size={16} />} title="Assessment & Care Plan" />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                   <InfoBlock label="Diagnostic Assessment" value={data.impressions} color="#4ade80" />
                   <InfoBlock label="Therapeutic Plan" value={data.plan} color="#60a5fa" />
@@ -307,54 +315,20 @@ export function HPNotePanel({ appointment, onClose }: HPNotePanelProps) {
           </div>
 
           {/* Right Column: Findings Toggle (Immersive Sidebar) */}
-          <div style={{ padding: '48px', background: 'rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', gap: 32, overflow: 'hidden' }}>
+          <div style={{ padding: '0', background: 'rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
             
-            {/* Pill-Shaped Toggle System */}
-            <div style={{ 
-              display: 'flex', 
-              padding: 6, 
-              background: 'rgba(255,255,255,0.04)', 
-              borderRadius: 24, 
-              border: '1px solid rgba(255,255,255,0.08)',
-              gap: 4
-            }}>
-              {(['abnormal', 'normal', 'not_checked'] as FindingType[]).map((type) => {
-                const isActive = filter === type;
-                const label = type === 'abnormal' ? 'Abnormal' : type === 'normal' ? 'Normal' : 'Pending';
-                const count = type === 'abnormal' ? abnormal.length : type === 'normal' ? normal.length : notChecked.length;
-                const color = type === 'abnormal' ? '#f87171' : type === 'normal' ? '#4ade80' : 'rgba(148,163,184,0.5)';
-                
-                return (
-                  <button
-                    key={type}
-                    onClick={() => setFilter(type)}
-                    style={{
-                      flex: 1,
-                      padding: '16px 0',
-                      borderRadius: 18,
-                      border: 'none',
-                      background: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 4,
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: isActive ? '0 8px 24px rgba(0,0,0,0.2)' : 'none'
-                    }}
-                  >
-                    <span style={{ fontSize: 14, fontWeight: 900, color: isActive ? '#fff' : 'rgba(148,163,184,0.6)', letterSpacing: '0.02em' }}>{label}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 6, height: 6, borderRadius: 100, background: color }} />
-                      <span style={{ fontSize: 11, fontWeight: 900, color: isActive ? color : 'rgba(148,163,184,0.3)' }}>{count}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
             {/* Scrollable Findings Pill List */}
-            <div style={{ flex: 1, overflowY: 'auto', paddingRight: 10, display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={{ 
+              flex: 1, 
+              overflowY: 'auto', 
+              padding: '32px',
+              paddingBottom: 120, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: 24,
+              maskImage: 'linear-gradient(to bottom, transparent, black 40px, black calc(100% - 100px), transparent)',
+              WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 40px, black calc(100% - 100px), transparent)'
+            }}>
               {activeFindings.length === 0 ? (
                 <div style={{ padding: '100px 0', textAlign: 'center' }}>
                   <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: 'rgba(148,163,184,0.2)' }}>
@@ -385,10 +359,10 @@ export function HPNotePanel({ appointment, onClose }: HPNotePanelProps) {
                               width: '100%',
                               padding: '16px 24px', 
                               borderRadius: 24, 
-                              background: filter === 'abnormal' ? 'rgba(239,68,68,0.08)' : filter === 'normal' ? 'rgba(74,222,128,0.06)' : 'rgba(255,255,255,0.03)',
-                              border: filter === 'abnormal' ? '1px solid rgba(239,68,68,0.18)' : filter === 'normal' ? '1px solid rgba(74,222,128,0.14)' : '1px solid rgba(255,255,255,0.06)',
+                              background: filter === 'abnormal' ? 'rgba(239,68,68,0.12)' : filter === 'normal' ? 'rgba(74,222,128,0.08)' : 'rgba(255,255,255,0.05)',
+                              border: filter === 'abnormal' ? '1px solid rgba(239,68,68,0.25)' : filter === 'normal' ? '1px solid rgba(74,222,128,0.2)' : '1px solid rgba(255,255,255,0.1)',
                               transition: 'all 0.2s ease',
-                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                              boxShadow: filter === 'abnormal' ? '0 10px 30px -10px rgba(239,68,68,0.15)' : filter === 'normal' ? '0 10px 30px -10px rgba(74,222,128,0.12)' : '0 10px 30px -10px rgba(0,0,0,0.3)'
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: entry.state.note ? 10 : 0 }}>
@@ -396,12 +370,13 @@ export function HPNotePanel({ appointment, onClose }: HPNotePanelProps) {
                                 width: 8, 
                                 height: 8, 
                                 borderRadius: 100, 
-                                background: filter === 'abnormal' ? '#f87171' : filter === 'normal' ? '#4ade80' : 'rgba(148,163,184,0.4)' 
+                                background: filter === 'abnormal' ? '#f87171' : filter === 'normal' ? '#4ade80' : 'rgba(148,163,184,0.6)',
+                                boxShadow: filter === 'abnormal' ? '0 0 10px #f87171' : filter === 'normal' ? '0 0 10px #4ade80' : 'none'
                               }} />
                               <span style={{ 
                                 fontSize: 15, 
                                 fontWeight: 800, 
-                                color: filter === 'abnormal' ? '#fca5a5' : filter === 'normal' ? '#86efac' : 'rgba(148,163,184,0.8)',
+                                color: filter === 'abnormal' ? '#fecaca' : filter === 'normal' ? '#bbf7d0' : '#f8fafc',
                                 textTransform: 'capitalize',
                                 letterSpacing: '-0.01em'
                               }}>
@@ -411,12 +386,12 @@ export function HPNotePanel({ appointment, onClose }: HPNotePanelProps) {
                             {entry.state.note && (
                               <div style={{ 
                                 padding: '12px 16px', 
-                                background: 'rgba(0,0,0,0.2)', 
+                                background: 'rgba(0,0,0,0.4)', 
                                 borderRadius: 16, 
                                 marginTop: 4,
-                                border: '1px solid rgba(255,255,255,0.03)'
+                                border: '1px solid rgba(255,255,255,0.05)'
                               }}>
-                                <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
+                                <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>
                                   {entry.state.note}
                                 </p>
                               </div>
@@ -429,39 +404,76 @@ export function HPNotePanel({ appointment, onClose }: HPNotePanelProps) {
                 })()
               )}
             </div>
+
+            {/* Bottom-Floating Pill-Shaped Toggle System */}
+            <div style={{ 
+              position: 'absolute',
+              bottom: 32,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '85%',
+              display: 'flex', 
+              padding: 5, 
+              background: 'rgba(13, 21, 32, 0.85)', 
+              borderRadius: 100, 
+              border: '1px solid rgba(255,255,255,0.12)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)',
+              gap: 4,
+              zIndex: 10
+            }}>
+              {(['abnormal', 'normal', 'not_checked'] as FindingType[]).map((type) => {
+                const isActive = filter === type;
+                const label = type === 'abnormal' ? 'Abnormal' : type === 'normal' ? 'Normal' : 'Pending';
+                const count = type === 'abnormal' ? abnormal.length : type === 'normal' ? normal.length : notChecked.length;
+                const color = type === 'abnormal' ? '#f87171' : type === 'normal' ? '#4ade80' : 'rgba(148,163,184,0.8)';
+                
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setFilter(type)}
+                    style={{
+                      flex: 1,
+                      padding: '12px 0',
+                      borderRadius: 100,
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 4,
+                      position: 'relative',
+                      zIndex: 1,
+                    }}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="active-finding-pill"
+                        transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }}
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          background: 'rgba(255,255,255,0.12)',
+                          borderRadius: 100,
+                          boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
+                          zIndex: -1,
+                        }}
+                      />
+                    )}
+                    <span style={{ fontSize: 10, fontWeight: 900, color: isActive ? '#fff' : 'rgba(148,163,184,0.8)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{label}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 4, height: 4, borderRadius: 100, background: color, boxShadow: isActive ? `0 0 10px ${color}` : 'none' }} />
+                      <span style={{ fontSize: 9, fontWeight: 900, color: isActive ? color : 'rgba(148,163,184,0.5)' }}>{count}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* ── Action Footer ── */}
-        <div style={{ 
-          padding: '24px 48px', 
-          borderTop: '1px solid rgba(255,255,255,0.08)', 
-          display: 'flex', 
-          justifyContent: 'flex-end', 
-          background: 'rgba(0,0,0,0.4)',
-          alignItems: 'center',
-          gap: 20
-        }}>
-          <p style={{ margin: 0, fontSize: 12, color: 'rgba(148,163,184,0.4)', fontWeight: 600 }}>Press <span style={{ color: 'rgba(148,163,184,0.8)', padding: '2px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: 4, border: '1px solid rgba(255,255,255,0.1)' }}>Space</span> or <span style={{ color: 'rgba(148,163,184,0.8)', padding: '2px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: 4, border: '1px solid rgba(255,255,255,0.1)' }}>Esc</span> to close</p>
-          <button 
-            onClick={onClose} 
-            style={{ 
-              padding: '16px 56px', 
-              borderRadius: 100, 
-              border: `1px solid ${HP_ACCENT_BORDER}`, 
-              background: HP_ACCENT_DIM, 
-              color: HP_ACCENT, 
-              fontSize: 16, 
-              fontWeight: 900, 
-              cursor: 'pointer', 
-              letterSpacing: '0.02em',
-              boxShadow: `0 8px 32px ${HP_ACCENT_DIM}`,
-              transition: 'all 0.2s ease'
-            }}
-          >
-            Close Patient Record
-          </button>
-        </div>
       </div>
     </div>
   );
