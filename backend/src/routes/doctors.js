@@ -3,6 +3,24 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const asyncHandler = require('../lib/async-handler');
 
+// ── List All Doctors (patient-facing: used in appointment booking overlay) ──
+router.get('/', asyncHandler(async (req, res) => {
+  const doctors = await prisma.doctor.findMany({
+    select: {
+      id: true,
+      name: true,
+      specialty: true,
+      hospital: true,
+      clinicName: true,
+      rating: true,
+      consultFee: true,
+      yearsExperience: true,
+    },
+    orderBy: { name: 'asc' },
+  });
+  res.json(doctors);
+}));
+
 // ── Patient Discovery ────────────────────────────────────────────────────────
 router.get('/discover/:meiosisId', asyncHandler(async (req, res) => {
   const { meiosisId } = req.params;
