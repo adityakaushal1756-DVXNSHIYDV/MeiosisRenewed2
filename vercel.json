@@ -3,10 +3,11 @@
   "installCommand": "npm run install:all",
   "buildCommand": "npm run build:frontend",
   "outputDirectory": "doctor-frontend/dist",
+  "cleanUrls": true,
   "functions": {
     "api/index.js": {
       "maxDuration": 60,
-      "includeFiles": "backend/public/**"
+      "includeFiles": "{backend/public/**,doctor-frontend/dist/**,patient-frontend/dist/**,staff-frontend/dist/**}"
     }
   },
   "rewrites": [

@@ -105,6 +105,3 @@ export function handleAuthError() {
     // ignore
   }
 
-  // Fallback: go to login.html at the backend origin
-  window.location.href = 'http://localhost:5002/login.html';
-}

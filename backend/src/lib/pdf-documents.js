@@ -1,6 +1,6 @@
 const fs = require('fs/promises');
 const path = require('path');
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const { uploadsRoot } = require('./storage-paths');
 
 function escapeHtml(value) {
@@ -32,15 +32,28 @@ function safeName(value, fallback = 'document') {
 
 async function renderPdfToFile(html, absolutePath) {
   await fs.mkdir(path.dirname(absolutePath), { recursive: true });
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-gpu',
-      '--disable-dev-shm-usage',
-    ],
-  });
+  
+  let browser;
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    const chromium = require('@sparticuz/chromium');
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+  } else {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-gpu',
+        '--disable-dev-shm-usage',
+      ],
+    });
+  }
+
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'load', timeout: 30000 });
