@@ -131,28 +131,39 @@ async function redirectAfterLogin(role, isNewSignup = false) {
     window.location.href = doctorUrl.toString();
     return;
   }
-  
-  if (isNewSignup) {
-    window.location.href = new URL(
-      "./meiosis-setup.html",
-      window.location.href,
-    ).href;
-    return;
-  }
+  if (effectiveRole === "patient") {
+    if (isNewSignup) {
+      window.location.href = new URL("./meiosis-setup.html", window.location.href).href;
+      return;
+    }
 
-  // Patient pathing... Check radio toggle if it exists
-  let targetUrl = rootLinks.patient; // Default classic HTML
-  const modeRadio = document.querySelector('input[name="patientWorkspaceMode"]:checked');
-  if (modeRadio && modeRadio.value === "vite") {
+    const isLocalSession =
+      window.location.protocol === "file:" ||
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+
+    // Patient pathing... Check radio toggle if it exists
+    let targetBase = isLocalSession ? "http://localhost:5174/" : new URL("/patient-frontend/", window.location.href).href;
+    
+    const modeRadio = document.querySelector('input[name="patientWorkspaceMode"]:checked');
+    const useClassicHtml = modeRadio && modeRadio.value === "html";
+
+    if (useClassicHtml) {
+      window.location.href = new URL("./patient.html", window.location.href).href;
+      return;
+    }
+
+    // Default to Vite App
+    const url = new URL(targetBase);
     const sessionData = localStorage.getItem(AUTH_SESSION_KEY);
-    const url = new URL(rootLinks.patientVite);
     if (sessionData) {
       url.searchParams.set("session", sessionData);
     }
-    targetUrl = url.toString();
+    
+    console.log("[Meiosis] Redirecting patient to:", url.toString());
+    window.location.href = url.toString();
+    return;
   }
-  
-  window.location.href = targetUrl;
 }
 
 async function apiPost(path, body) {
@@ -164,7 +175,27 @@ async function apiPost(path, body) {
       cache: "no-store",
     });
     const text = await response.text();
-    const data = text ? JSON.parse(text) : null;
+    if (
+      response.status === 401 &&
+      /authentication required/i.test(text) &&
+      /vercel/i.test(text)
+    ) {
+      throw new Error(
+        "Vercel Deployment Protection is blocking the backend API. Disable protection for this deployment or open it with a valid Vercel bypass session.",
+      );
+    }
+
+    let data = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      throw new Error(
+        response.ok
+          ? "Backend returned an unreadable response."
+          : `Backend request failed with HTTP ${response.status}.`,
+      );
+    }
+
     if (!response.ok) throw new Error(data?.error || "Request failed.");
     backendReachable = true;
     return data;
@@ -196,9 +227,21 @@ async function checkBackendHealth() {
         cache: "no-store",
       });
       clearTimeout(timer);
+      const bodyText = await response.clone().text().catch(() => "");
+      if (
+        response.status === 401 &&
+        /authentication required/i.test(bodyText) &&
+        /vercel/i.test(bodyText)
+      ) {
+        badge.className = "auth-backend-pill auth-backend-pill-offline";
+        badge.textContent =
+          "Vercel Deployment Protection is blocking the backend API.";
+        return;
+      }
+
       if (!response.ok)
         throw new Error(`Health endpoint failed with ${response.status}`);
-      const health = await response.json().catch(() => null);
+      const health = bodyText ? JSON.parse(bodyText) : null;
       backendReachable = true;
       badge.className =
         health?.database === "degraded"
