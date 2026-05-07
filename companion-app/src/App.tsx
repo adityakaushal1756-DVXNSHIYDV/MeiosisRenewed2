@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
 import axios from 'axios';
 import { LogOut, CheckCircle2, AlertCircle, Smartphone, IdCard, Phone, Droplet, Upload, Camera } from 'lucide-react';
@@ -486,6 +487,7 @@ export default function App() {
       ) : (
         <Login onLogin={handleLogin} />
       )}
+      <Analytics />
     </div>
   );
 }

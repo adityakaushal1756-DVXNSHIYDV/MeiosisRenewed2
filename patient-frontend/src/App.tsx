@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState, useRef, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { Menu } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { RadialMenu, Section } from './components/RadialMenu';
@@ -107,54 +108,57 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-ink flex overflow-hidden selection:bg-neon/30 selection:text-neon font-primary" data-doctor-theme={theme}>
-      
-      {/* Floating Back Button - iOS Overlay Style */}
-      <FloatingBackButton 
-        onBack={() => setCurrentSection('home')} 
-        visible={currentSection !== 'home' && showFloatingBack} 
-      />
-
-      {/* Desktop Sidebar - Re-sync with large screens (xl = 1280px+) */}
-      <div className="hidden xl:block">
-        <Sidebar 
-          currentSection={currentSection} 
-          onSectionChange={setCurrentSection} 
-          isOpen={false}
-          onClose={() => {}} 
+    <>
+      <div className="min-h-screen bg-ink flex overflow-hidden selection:bg-neon/30 selection:text-neon font-primary" data-doctor-theme={theme}>
+        
+        {/* Floating Back Button - iOS Overlay Style */}
+        <FloatingBackButton 
+          onBack={() => setCurrentSection('home')} 
+          visible={currentSection !== 'home' && showFloatingBack} 
         />
-      </div>
 
-      {/* Radial Navigation Menu - Tablet & Mobile (<1280px, including iPad Air 11") */}
-      <div className="xl:hidden">
-        <RadialMenu 
-          currentSection={currentSection} 
-          onSectionChange={setCurrentSection} 
-        />
+        {/* Desktop Sidebar - Re-sync with large screens (xl = 1280px+) */}
+        <div className="hidden xl:block">
+          <Sidebar 
+            currentSection={currentSection} 
+            onSectionChange={setCurrentSection} 
+            isOpen={false}
+            onClose={() => {}} 
+          />
+        </div>
+
+        {/* Radial Navigation Menu - Tablet & Mobile (<1280px, including iPad Air 11") */}
+        <div className="xl:hidden">
+          <RadialMenu 
+            currentSection={currentSection} 
+            onSectionChange={setCurrentSection} 
+          />
+        </div>
+        
+        <div className="flex-1 xl:pl-[312px] flex flex-col h-screen overflow-hidden relative">
+          {/* Main Content Area */}
+          <main 
+            ref={mainRef}
+            onScroll={handleScroll}
+            className="flex-1 overflow-y-auto scroll-skin relative z-10 w-full queue-scroll"
+          >
+            <Suspense fallback={<LoadingFallback />}>
+              {currentSection === 'home' && <DashboardPage onNavigate={setCurrentSection} data={data} patientId={session.patientId} />}
+              {currentSection === 'records' && <RecordsPage data={data} />}
+              {currentSection === 'appointments' && <AppointmentsPage data={data} refresh={refresh} />}
+              {currentSection === 'medicines' && <MedicinesPage data={data} />}
+              {currentSection === 'prescriptions' && <PrescriptionsPage data={data} />}
+              {currentSection === 'network' && <NetworkPage />}
+              {currentSection === 'messages' && <MessagesPage />}
+              {currentSection === 'myqr' && <MyQrPage data={data} patientId={session.patientId} />}
+              {currentSection === 'settings' && <SettingsPage />}
+              {currentSection === 'nfc' && <NfcPage />}
+            </Suspense>
+          </main>
+        </div>
       </div>
-      
-      <div className="flex-1 xl:pl-[312px] flex flex-col h-screen overflow-hidden relative">
-        {/* Main Content Area */}
-        <main 
-          ref={mainRef}
-          onScroll={handleScroll}
-          className="flex-1 overflow-y-auto scroll-skin relative z-10 w-full queue-scroll"
-        >
-          <Suspense fallback={<LoadingFallback />}>
-            {currentSection === 'home' && <DashboardPage onNavigate={setCurrentSection} data={data} patientId={session.patientId} />}
-            {currentSection === 'records' && <RecordsPage data={data} />}
-            {currentSection === 'appointments' && <AppointmentsPage data={data} refresh={refresh} />}
-            {currentSection === 'medicines' && <MedicinesPage data={data} />}
-            {currentSection === 'prescriptions' && <PrescriptionsPage data={data} />}
-            {currentSection === 'network' && <NetworkPage />}
-            {currentSection === 'messages' && <MessagesPage />}
-            {currentSection === 'myqr' && <MyQrPage data={data} patientId={session.patientId} />}
-            {currentSection === 'settings' && <SettingsPage />}
-            {currentSection === 'nfc' && <NfcPage />}
-          </Suspense>
-        </main>
-      </div>
-    </div>
+      <Analytics />
+    </>
   );
 }
 
