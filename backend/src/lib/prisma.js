@@ -4,11 +4,11 @@ const { PrismaClient } = require('@prisma/client');
 
 const DB_CONNECT_TIMEOUT_SECONDS = Math.max(
   1,
-  Number.parseInt(process.env.DB_CONNECT_TIMEOUT_SECONDS || '3', 10) || 3,
+  Number.parseInt(process.env.DB_CONNECT_TIMEOUT_SECONDS || '10', 10) || 10,
 );
 const DB_POOL_TIMEOUT_SECONDS = Math.max(
   1,
-  Number.parseInt(process.env.DB_POOL_TIMEOUT_SECONDS || '5', 10) || 5,
+  Number.parseInt(process.env.DB_POOL_TIMEOUT_SECONDS || '10', 10) || 10,
 );
 const DB_QUERY_TIMEOUT_MS = Math.max(
   1000,
@@ -20,19 +20,17 @@ function appendQueryParam(url, key, value) {
   return url + (url.includes('?') ? '&' : '?') + `${key}=${value}`;
 }
 
-// Supabase Session mode caps concurrent connections at pool_size (default: 15 on free tier).
-// Prisma's default pool = num_cpus * 2 + 1, which can exceed that limit.
-// We append connection_limit to the URL to keep the pool well within bounds.
+// Supabase Session/Transaction mode fixes
 const base = process.env.DATABASE_URL ?? '';
-const url = appendQueryParam(
-  appendQueryParam(
-    appendQueryParam(base, 'connection_limit', 5),
-    'connect_timeout',
-    DB_CONNECT_TIMEOUT_SECONDS,
-  ),
-  'pool_timeout',
-  DB_POOL_TIMEOUT_SECONDS,
-);
+const isPGBouncer = base.includes(':6543'); // Supabase default pooling port
+
+let url = appendQueryParam(base, 'connection_limit', 5);
+url = appendQueryParam(url, 'connect_timeout', DB_CONNECT_TIMEOUT_SECONDS);
+url = appendQueryParam(url, 'pool_timeout', DB_POOL_TIMEOUT_SECONDS);
+
+if (isPGBouncer) {
+  url = appendQueryParam(url, 'pgbouncer', 'true');
+}
 
 // Prisma client should be a singleton in serverless environments
 // to prevent exhausting database connections during horizontal scaling.
