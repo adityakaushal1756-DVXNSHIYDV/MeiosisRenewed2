@@ -214,59 +214,64 @@ async function checkBackendHealth() {
   const badge = document.getElementById("authBackendStatus");
   if (!badge) return;
 
-  badge.className = "auth-backend-pill auth-backend-pill-pending";
-  badge.textContent = "Checking backend...";
+  // Clear any existing retry listeners by cloning and replacing (simple way to avoid duplicates)
+  const newBadge = badge.cloneNode(true);
+  badge.parentNode.replaceChild(newBadge, badge);
+  
+  newBadge.className = "auth-backend-pill auth-backend-pill-pending";
+  newBadge.textContent = "Checking backend...";
 
-  for (let attempt = 1; attempt <= 4; attempt += 1) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3500);
-    try {
-      const response = await fetch(`${BACKEND_ORIGIN}/health`, {
-        method: "GET",
-        signal: controller.signal,
-        cache: "no-store",
-      });
-      clearTimeout(timer);
-      const bodyText = await response.clone().text().catch(() => "");
-      if (
-        response.status === 401 &&
-        /authentication required/i.test(bodyText) &&
-        /vercel/i.test(bodyText)
-      ) {
-        badge.className = "auth-backend-pill auth-backend-pill-offline";
-        badge.textContent =
-          "Vercel Deployment Protection is blocking the backend API.";
-        return;
-      }
-
-      if (!response.ok)
-        throw new Error(`Health endpoint failed with ${response.status}`);
-      const health = bodyText ? JSON.parse(bodyText) : null;
-      backendReachable = true;
-      badge.className =
-        health?.database === "degraded"
-          ? "auth-backend-pill auth-backend-pill-pending"
-          : "auth-backend-pill auth-backend-pill-online";
-      badge.textContent =
-        health?.database === "degraded"
-          ? `Backend reachable, but database is unavailable at the moment.`
-          : `Backend connected at ${BACKEND_ORIGIN}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000); // 5s timeout
+  
+  try {
+    const response = await fetch(`${BACKEND_ORIGIN}/health`, {
+      method: "GET",
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    clearTimeout(timer);
+    
+    const bodyText = await response.clone().text().catch(() => "");
+    
+    if (response.status === 401 && /authentication required/i.test(bodyText) && /vercel/i.test(bodyText)) {
+      newBadge.className = "auth-backend-pill auth-backend-pill-offline";
+      newBadge.textContent = "Vercel Protection is blocking the backend API.";
       return;
-    } catch (_error) {
-      clearTimeout(timer);
-      backendReachable = false;
-      if (attempt < 4) {
-        badge.className = "auth-backend-pill auth-backend-pill-pending";
-        badge.textContent = `Checking backend... (${attempt + 1}/4)`;
-        await delay(1200);
-        continue;
-      }
     }
-  }
 
-  badge.className = "auth-backend-pill auth-backend-pill-offline";
-  badge.textContent =
-    "Backend is taking longer to respond. You can still try logging in.";
+    if (!response.ok) throw new Error(`Status ${response.status}`);
+    
+    const health = bodyText ? JSON.parse(bodyText) : null;
+    backendReachable = true;
+    
+    if (health?.database === "degraded") {
+      newBadge.className = "auth-backend-pill auth-backend-pill-pending";
+      newBadge.textContent = "Backend reachable, but database is unavailable.";
+      appendRetry(newBadge);
+    } else {
+      newBadge.className = "auth-backend-pill auth-backend-pill-online";
+      newBadge.textContent = `Backend connected at ${new URL(BACKEND_ORIGIN).hostname}`;
+    }
+  } catch (error) {
+    clearTimeout(timer);
+    backendReachable = false;
+    newBadge.className = "auth-backend-pill auth-backend-pill-offline";
+    newBadge.textContent = "Backend unreachable. ";
+    appendRetry(newBadge);
+  }
+}
+
+function appendRetry(container) {
+  const retryLink = document.createElement("a");
+  retryLink.href = "#";
+  retryLink.textContent = "Try again?";
+  retryLink.style.cssText = "color: #52ff9d; text-decoration: underline; margin-left: 8px; cursor: pointer;";
+  retryLink.onclick = (e) => {
+    e.preventDefault();
+    checkBackendHealth();
+  };
+  container.appendChild(retryLink);
 }
 
 function setMessage(target, text, kind = "error") {
@@ -303,9 +308,6 @@ if (loginForm) {
 
 saveRootLinks();
 checkBackendHealth();
-window.addEventListener("focus", () => {
-  checkBackendHealth();
-});
 
 const signupForm = document.getElementById("signupForm");
 if (signupForm) {
