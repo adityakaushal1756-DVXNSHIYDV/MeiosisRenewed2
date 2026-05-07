@@ -275,14 +275,17 @@ const Scanner: React.FC<{ doctor: any; onLogout: () => void }> = ({ doctor, onLo
     const html5QrCode = new Html5Qrcode("reader-hidden");
     
     try {
-      const decodedText = await html5QrCode.scanFile(file, true);
-      onScanSuccess(decodedText);
+      // Pass 'false' to prevent rendering to the hidden DOM element (which causes 0x0 canvas errors)
+      const decodedText = await html5QrCode.scanFile(file, false);
+      await onScanSuccess(decodedText);
     } catch (err) {
-      setErrorMsg('No QR code found in image');
+      setErrorMsg('No QR code found. Please upload a clear image of the QR.');
       setStatus('error');
-      setTimeout(() => setStatus('scanning'), 3000);
+      setTimeout(() => setStatus('scanning'), 3500);
     } finally {
-      html5QrCode.clear();
+      try {
+        await html5QrCode.clear();
+      } catch (e) { /* ignore clear errors */ }
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };

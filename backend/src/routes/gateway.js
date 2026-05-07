@@ -452,19 +452,25 @@ router.get('/resolve-patient', authMiddleware, asyncHandler(async (req, res) => 
   let id = String(req.query.id || '').trim();
   if (!id) return res.status(400).json({ error: 'id_required' });
 
+  console.log(`[ResolvePatient] Incoming ID/URL: ${id}`);
+
   // If the scanned ID is actually a full Gateway URL, extract and verify it
   try {
     const url = new URL(id);
     const data = url.searchParams.get('data');
     const sig = url.searchParams.get('sig');
     if (data && sig) {
+      console.log(`[ResolvePatient] Found data and sig in URL. Verifying...`);
       const qrPayload = verifySignedQrPayload({ data, sig });
       if (isQrExpired(qrPayload)) {
+        console.log(`[ResolvePatient] QR is expired.`);
         return res.status(410).json({ error: 'qr_expired', message: 'This QR code has expired.' });
       }
       id = qrPayload.p_id; // Use the decrypted patient ID for the lookup
+      console.log(`[ResolvePatient] Decrypted patient ID: ${id}`);
     }
   } catch (e) {
+    console.log(`[ResolvePatient] Failed to parse/verify URL:`, e.message);
     // Not a valid URL or not a signed QR, proceed with the raw id string
   }
 
