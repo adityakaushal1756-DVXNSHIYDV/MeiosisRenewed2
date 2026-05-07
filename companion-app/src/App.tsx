@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
 import axios from 'axios';
-import { QrCode, LogOut, CheckCircle2, AlertCircle, Smartphone, User, IdCard, Phone, Droplet, Upload, Camera } from 'lucide-react';
+import { LogOut, CheckCircle2, AlertCircle, Smartphone, IdCard, Phone, Droplet, Upload, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Configuration ---
@@ -198,7 +198,7 @@ const Scanner: React.FC<{ doctor: any; onLogout: () => void }> = ({ doctor, onLo
       /* verbose= */ false
     );
     scannerRef.current = scanner;
-    scanner.render(onScanSuccess, (err) => {});
+    scanner.render(onScanSuccess, () => {});
   };
 
   const onScanSuccess = async (decodedText: string) => {
