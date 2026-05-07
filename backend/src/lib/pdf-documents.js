@@ -368,15 +368,6 @@ function baseHtml(title, body) {
       border-top: 1px solid #cde6d8;
     }
     .footer-brand { font-weight: 700; color: #1a7a48; letter-spacing: 0.12em; }
-    .meiosis-calligraphy {
-      font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, 'Georgia', serif;
-      font-size: 15px;
-      font-weight: 700;
-      font-style: italic;
-      letter-spacing: 0.22em;
-      color: #1a7a48;
-      opacity: 0.85;
-    }
     ul { padding-left: 18px; }
     li { margin-bottom: 6px; line-height: 1.5; font-size: 13px; }
   </style>
@@ -429,7 +420,7 @@ function parseVitalsFromNote(note) {
   return _VITAL_DEFS.map(def => ({ ...def, value: found[def.key] || null }));
 }
 
-async function createPrescriptionPdf(prescription) {
+async function createPrescriptionPdf(prescription, customHtmlTemplate = null) {
   const patient   = prescription.patient || {};
   const doctor    = prescription.doctor  || {};
   const items     = prescription.items   || [];
@@ -437,16 +428,6 @@ async function createPrescriptionPdf(prescription) {
   const fileName  = `${safeName(patient.name, 'patient')}-${safeName(prescription.title, 'prescription')}-${prescription.id}.pdf`;
   const absolutePath = path.join(uploadsRoot, 'prescriptions', fileName);
   const publicPath   = `/uploads/prescriptions/${fileName}`;
-
-  // Clinic identity — use actual doctor fields, fall back gracefully
-  const clinicName        = doctor.clinicName || doctor.hospital || 'Medical Clinic';
-  const doctorDisplayName = doctor.name ? `Dr. ${doctor.name.replace(/^Dr\.?\s*/i, '')}` : 'Physician';
-  const doctorSpecialty   = doctor.specialty || 'General Medicine';
-  const doctorPhone       = doctor.phone || '';
-  const doctorEmail       = doctor.email || '';
-  const doctorRegNo       = doctor.registrationNumber || '';
-  const doctorAddress     = doctor.clinicAddress || '';
-  const doctorQual        = doctor.qualification || '';
 
   const statusLabel = (prescription.status || 'ACTIVE').toUpperCase() === 'ACTIVE' ? 'Active' : 'Completed';
   const chipClass   = statusLabel === 'Active' ? 'chip-green' : 'chip-gray';
@@ -492,38 +473,15 @@ async function createPrescriptionPdf(prescription) {
       </div>`).join('')}
     </div>` : '';
 
-  // Parse "Added Note" field from doctorNote
-  const addedNoteLine = (prescription.doctorNote || '').split('\n').find(l => l.startsWith('Added Note: '));
-  const addedNoteHtml = addedNoteLine ? `
-    <div class="section">
-      <p class="section-title">Added Note</p>
-      <div class="note-row">
-        <span class="note-val" style="font-style:italic;color:#1a2e22;">${escapeHtml(addedNoteLine.replace('Added Note: ', ''))}</span>
-      </div>
-    </div>` : '';
-
-  // Build contact block for the top-right header
-  const contactParts = [
-    doctorPhone && `📞 ${doctorPhone}`,
-    doctorEmail && `✉ ${doctorEmail}`,
-    doctorRegNo && `Reg: ${doctorRegNo}`,
-    doctorAddress && doctorAddress,
-  ].filter(Boolean);
-
-  const credLine = [doctorQual, doctorSpecialty].filter(Boolean).join(' · ');
-
   const html = baseHtml(prescription.title || 'Prescription', `
-    <!-- CLINIC HEADER -->
     <div class="topbar">
       <div>
-        <div class="brand">${escapeHtml(clinicName)}</div>
-        <div class="brand-sub">${escapeHtml(doctorDisplayName)}${credLine ? ` · ${escapeHtml(credLine)}` : ''}</div>
-        ${doctorAddress ? `<div class="brand-sub" style="margin-top:1px;">${escapeHtml(doctorAddress)}</div>` : ''}
+        <div class="brand">MEIOSIS</div>
+        <div class="brand-sub">Clinical Prescription</div>
       </div>
       <div class="doc-meta">
-        ${contactParts.map(c => `<div>${escapeHtml(c)}</div>`).join('')}
-        <div style="margin-top:6px;">Issued: ${formatDate(new Date())}</div>
-        <div>Ref: ${escapeHtml(prescription.id.slice(0, 8).toUpperCase())}</div>
+        Issued: ${formatDate(new Date())}<br/>
+        Ref: ${escapeHtml(prescription.id.slice(0, 8).toUpperCase())}
       </div>
     </div>
 
@@ -538,8 +496,8 @@ async function createPrescriptionPdf(prescription) {
 
     <div class="meta-grid">
       <div class="meta-card"><p class="meta-label">Patient</p><p class="meta-value">${escapeHtml(patient.name || 'N/A')}</p></div>
-      <div class="meta-card"><p class="meta-label">Patient ID</p><p class="meta-value" style="font-size:11.5px;">${escapeHtml(patient.meiosisId || patient.universalCode || 'N/A')}</p></div>
-      <div class="meta-card"><p class="meta-label">Physician</p><p class="meta-value">${escapeHtml(doctorDisplayName)}</p></div>
+      <div class="meta-card"><p class="meta-label">Doctor</p><p class="meta-value">${escapeHtml(doctor.name || 'N/A')}</p></div>
+      <div class="meta-card"><p class="meta-label">Specialty</p><p class="meta-value">${escapeHtml(doctor.specialty || 'General Medicine')}</p></div>
       <div class="meta-card"><p class="meta-label">Follow-up Date</p><p class="meta-value">${formatDate(prescription.endDate)}</p></div>
       <div class="meta-card"><p class="meta-label">Duration</p><p class="meta-value">${prescription.durationDays || 'N/A'} days</p></div>
       <div class="meta-card"><p class="meta-label">Pharmacy</p><p class="meta-value" style="${prescription.pharmacy ? '' : 'color:#9ab5a8;font-style:italic;'}">${escapeHtml(prescription.pharmacy || 'N/A')}</p></div>
@@ -565,8 +523,6 @@ async function createPrescriptionPdf(prescription) {
       ${noteRows}
     </div>` : ''}
 
-    ${addedNoteHtml}
-
     ${labOrdersSection}
 
     <div class="section">
@@ -575,23 +531,49 @@ async function createPrescriptionPdf(prescription) {
       <div class="adhere-track"><div class="adhere-fill" style="width:${adherence}%"></div></div>
     </div>
 
-    <!-- DOCTOR SIGNATURE -->
-    <div style="margin-top:28px;display:flex;justify-content:flex-end;">
-      <div style="text-align:center;border-top:2px solid #0b3d25;padding-top:10px;min-width:200px;">
-        <p style="font-size:13px;font-weight:800;color:#0b3d25;">${escapeHtml(doctorDisplayName)}</p>
-        ${credLine ? `<p style="font-size:10px;color:#4a9068;margin-top:2px;">${escapeHtml(credLine)}</p>` : ''}
-        ${doctorRegNo ? `<p style="font-size:9px;color:#5a7d6c;margin-top:2px;letter-spacing:0.1em;">Reg. No: ${escapeHtml(doctorRegNo)}</p>` : ''}
-        <p style="font-size:9px;color:#5a7d6c;letter-spacing:0.1em;text-transform:uppercase;margin-top:4px;">Physician Signature</p>
-      </div>
-    </div>
-
     <div class="footer">
-      <span>${escapeHtml(clinicName)} · Confidential Medical Record</span>
-      <span class="footer-brand meiosis-calligraphy">𝔐𝔢𝔦𝔬𝔰𝔦𝔰</span>
+      <span>MEIOSIS Health Platform · Confidential Medical Record</span>
+      <span class="footer-brand">MEIOSIS</span>
     </div>
   `);
 
-  await renderPdfToFile(html, absolutePath);
+  let finalHtml = html;
+
+  if (customHtmlTemplate) {
+    const tokens = {
+      '{{doctor_hospital}}':   escapeHtml(doctor.hospital || 'MEIOSIS CLINIC'),
+      '{{doctor_name}}':       escapeHtml(doctor.name || 'N/A'),
+      '{{doctor_specialty}}':  escapeHtml(doctor.specialty || 'General Medicine'),
+      '{{prescription_date}}': formatDate(new Date()),
+      '{{prescription_id}}':   escapeHtml(prescription.id.slice(0, 8).toUpperCase()),
+      '{{patient_name}}':      escapeHtml(patient.name || 'N/A'),
+      '{{patient_id}}':        escapeHtml(patient.meiosisId || patient.universalCode || 'N/A'),
+      '{{follow_up_date}}':    formatDate(prescription.endDate),
+      '{{medication_table}}':  `
+        <table>
+          <thead><tr><th>Medicine</th><th>Dose</th><th>Frequency</th><th>Duration</th></tr></thead>
+          <tbody>${itemRows}</tbody>
+        </table>`,
+      '{{medication_name}}': items[0] ? escapeHtml(items[0].medicine || 'N/A') : 'N/A',
+      '{{dose}}':            items[0] ? escapeHtml(items[0].dose || 'N/A') : 'N/A',
+      '{{frequency}}':       items[0] ? escapeHtml(pdfPatternLabel(items[0].frequency)) : 'N/A',
+      '{{duration}}':        items[0] ? escapeHtml(items[0].timing || 'N/A') : 'N/A',
+      '{{vitals}}': vitals.filter(v => v.value).map(v => `${v.label}: ${v.value} ${v.unit}`).join(' | ') || 'N/A',
+      '{{diagnosis}}': escapeHtml(prescription.title || 'N/A'),
+      '{{advice}}':    escapeHtml(prescription.doctorNote.split('\n').find(l => l.startsWith('Plan: '))?.slice(6) || 'N/A'),
+      '{{doctor_note}}': escapeHtml(prescription.doctorNote),
+      '{{lab_orders}}': labOrders.length ? labOrders.map(l => `${l.testName} (${l.status})`).join(', ') : 'None',
+      '{{adherence}}': String(prescription.adherenceScore || 0) + '%'
+    };
+
+    let processed = customHtmlTemplate;
+    for (const [token, value] of Object.entries(tokens)) {
+      processed = processed.split(token).join(value);
+    }
+    finalHtml = processed;
+  }
+
+  await renderPdfToFile(finalHtml, absolutePath);
   return { absolutePath, publicPath };
 }
 

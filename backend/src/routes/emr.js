@@ -63,29 +63,12 @@ router.post('/', asyncHandler(async (req, res) => {
   }
 
   /* ── Resolve doctor (by id, or first available) ── */
-  // Fetch the doctor's full profile including clinic identity fields.
-  // This ensures the PDF uses the exact branding of the doctor who created the EMR.
   let doctor = doctorId
-    ? await prisma.doctor.findUnique({
-        where: { id: doctorId },
-        select: {
-          id: true, name: true, specialty: true, hospital: true,
-          clinicName: true, phone: true, email: true,
-          registrationNumber: true, clinicAddress: true, qualification: true,
-          meiosisId: true,
-        }
-      }).catch(() => null)
+    ? await prisma.doctor.findUnique({ where: { id: doctorId } }).catch(() => null)
     : null;
 
   if (!doctor) {
-    doctor = await prisma.doctor.findFirst({
-      select: {
-        id: true, name: true, specialty: true, hospital: true,
-        clinicName: true, phone: true, email: true,
-        registrationNumber: true, clinicAddress: true, qualification: true,
-        meiosisId: true,
-      }
-    });
+    doctor = await prisma.doctor.findFirst();
   }
 
   if (!doctor) {
@@ -187,43 +170,20 @@ router.post('/', asyncHandler(async (req, res) => {
         }
       })
     },
-    include: {
-      patient: true,
-      items: true,
-      doctor: {
-        select: {
-          id: true, name: true, specialty: true, hospital: true,
-          clinicName: true, phone: true, email: true,
-          registrationNumber: true, clinicAddress: true, qualification: true,
-          meiosisId: true,
-        }
-      }
-    }
+    include: { patient: true, doctor: true, items: true }
   });
 
   /* ── Generate PDF ── */
   try {
-    // Always use the built-in clinic-branded template — no custom templates.
-    const { publicPath } = await createPrescriptionPdf(saved.prescription);
+    const { publicPath } = await createPrescriptionPdf(saved.prescription, req.body.pdfTemplateHtml);
     saved.prescription = await prisma.prescription.update({
       where: { id: saved.prescription.id },
       data: { documentPath: publicPath },
-      include: {
-        patient: true,
-        items: true,
-        doctor: {
-          select: {
-            id: true, name: true, specialty: true, hospital: true,
-            clinicName: true, phone: true, email: true,
-            registrationNumber: true, clinicAddress: true, qualification: true,
-            meiosisId: true,
-          }
-        }
-      }
+      include: { items: true }
     });
   } catch (pdfError) {
     console.error('[EMR] Prescription PDF generation failed:', pdfError);
-    // Non-fatal — let the request continue without PDF
+    // Non-fatal, let the request continue
   }
 
   /* ── Create LabReport entries (one per ordered test) ── */
