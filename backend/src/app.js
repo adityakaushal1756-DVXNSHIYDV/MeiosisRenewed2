@@ -76,10 +76,12 @@ const ROOT_DIR = path.resolve(__dirname, '../../');
 const DOCTOR_DIST = path.join(ROOT_DIR, 'doctor-frontend/dist');
 const PATIENT_DIST = path.join(ROOT_DIR, 'patient-frontend/dist');
 const STAFF_DIST = path.join(ROOT_DIR, 'staff-frontend/dist');
+const COMPANION_DIST = path.join(ROOT_DIR, 'companion-app/dist');
 
 app.use(express.static(DOCTOR_DIST));
 app.use('/patient-frontend', express.static(PATIENT_DIST));
 app.use('/staff-frontend', express.static(STAFF_DIST));
+app.use('/companion-app', express.static(COMPANION_DIST));
 
 // Serve Unified Gateway files from Root
 app.get('/login.html', (req, res) => res.sendFile(path.join(ROOT_DIR, 'login.html')));
@@ -180,6 +182,10 @@ app.get('/patient-frontend*', (req, res) => {
 
 app.get('/staff-frontend*', (req, res) => {
   res.sendFile(path.join(STAFF_DIST, 'index.html'));
+});
+
+app.get('/companion-app*', (req, res) => {
+  res.sendFile(path.join(COMPANION_DIST, 'index.html'));
 });
 
 // Default to login.html if nothing else matches

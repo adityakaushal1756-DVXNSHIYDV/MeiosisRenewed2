@@ -7,7 +7,7 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 60,
-      "includeFiles": "{backend/public/**,doctor-frontend/dist/**,patient-frontend/dist/**,staff-frontend/dist/**}"
+      "includeFiles": "{backend/public/**,doctor-frontend/dist/**,patient-frontend/dist/**,staff-frontend/dist/**,companion-app/dist/**}"
     }
   },
   "rewrites": [
