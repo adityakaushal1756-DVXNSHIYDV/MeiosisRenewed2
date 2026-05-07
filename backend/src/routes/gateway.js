@@ -445,12 +445,28 @@ router.get('/doctor-status', authMiddleware, asyncHandler(async (req, res) => {
   });
 }));
 
-// 5. Resolve Patient from any identifier (DB id, meiosisId, or universalCode)
+// 5. Resolve Patient from any identifier (DB id, meiosisId, universalCode, or full QR URL)
 // Used by the Companion App after a QR scan to get the canonical patient record.
 router.get('/resolve-patient', authMiddleware, asyncHandler(async (req, res) => {
   noStore(res);
-  const id = String(req.query.id || '').trim();
+  let id = String(req.query.id || '').trim();
   if (!id) return res.status(400).json({ error: 'id_required' });
+
+  // If the scanned ID is actually a full Gateway URL, extract and verify it
+  try {
+    const url = new URL(id);
+    const data = url.searchParams.get('data');
+    const sig = url.searchParams.get('sig');
+    if (data && sig) {
+      const qrPayload = verifySignedQrPayload({ data, sig });
+      if (isQrExpired(qrPayload)) {
+        return res.status(410).json({ error: 'qr_expired', message: 'This QR code has expired.' });
+      }
+      id = qrPayload.p_id; // Use the decrypted patient ID for the lookup
+    }
+  } catch (e) {
+    // Not a valid URL or not a signed QR, proceed with the raw id string
+  }
 
   const patient = await prisma.patient.findFirst({
     where: {
