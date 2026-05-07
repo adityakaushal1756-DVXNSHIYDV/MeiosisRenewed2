@@ -592,15 +592,25 @@ function OverviewPage({
                               <div className="mt-2 flex items-center justify-between">
                                 <span className="text-[11px] font-semibold text-violet-300/70">{lbl.top}</span>
                                 {r.documentPath ? (
-                                  <a
-                                    href={assetUrl(r.documentPath)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="flex items-center gap-1 text-[10px] text-neon/70 hover:text-neon transition-colors"
-                                  >
-                                    <Download size={10} />{r.fileLabel}
-                                  </a>
+                                  r.documentPath.includes('/pdf') || r.documentPath.includes('/summary') || r.documentPath.includes('/audit') ? (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); alert("PDF generation is disabled pending system redesign."); }}
+                                      className="flex items-center gap-1 text-[10px] text-neon/70 hover:text-neon transition-colors"
+                                    >
+                                      <Download size={10} />{r.fileLabel}
+                                    </button>
+                                  ) : (
+                                    <a
+                                      href={assetUrl(r.documentPath)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="flex items-center gap-1 text-[10px] text-neon/70 hover:text-neon transition-colors"
+                                    >
+                                      <Download size={10} />{r.fileLabel}
+                                    </a>
+                                  )
                                 ) : (
                                   <span className="flex items-center gap-1 text-[10px] text-mist/50">
                                     <Download size={10} />{r.fileLabel}
@@ -769,14 +779,24 @@ export function PrescriptionModal({
                   >
                     <Zap size={13} fill="currentColor" /> Print
                   </button>
-                  <a
-                    href={assetUrl(docPath)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ghost-btn flex items-center justify-center gap-2 !px-5 !py-2.5 text-xs !rounded-xl"
-                  >
-                    <Download size={13} /> PDF
-                  </a>
+                  {docPath.includes('/pdf') || docPath.includes('/summary') || docPath.includes('/audit') ? (
+                    <button
+                      type="button"
+                      onClick={() => alert("PDF generation is disabled pending system redesign.")}
+                      className="ghost-btn flex items-center justify-center gap-2 !px-5 !py-2.5 text-xs !rounded-xl"
+                    >
+                      <Download size={13} /> PDF
+                    </button>
+                  ) : (
+                    <a
+                      href={assetUrl(docPath)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ghost-btn flex items-center justify-center gap-2 !px-5 !py-2.5 text-xs !rounded-xl"
+                    >
+                      <Download size={13} /> PDF
+                    </a>
+                  )}
                 </>
               )}
               <button

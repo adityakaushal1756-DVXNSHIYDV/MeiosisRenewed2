@@ -11,7 +11,7 @@ import { useQueue } from './hooks/useQueue';
 import { EmrShareRequest, useEmrShareNotifications } from './hooks/useEmrShareNotifications';
 import { clearCache } from './utils/persistentCache';
 import { mockPrescriptionTemplates } from './mock/mockAppointments';
-import { EMRState, PrescriptionRow, PrescriptionTemplate, PdfTemplate } from './types/EMR';
+import { EMRState, PrescriptionRow, PrescriptionTemplate } from './types/EMR';
 import { Appointment } from './types/Appointment';
 import type { PatientMedicalReport, PatientPastAppointment } from './types/Patient';
 import type { HPNoteSnapshot } from './types/Patient';
@@ -39,11 +39,7 @@ import { useRemoteControlPolling } from './hooks/useRemoteControlPolling';
 import { HistoryAndPhysicalUniversal } from './pages/HistoryAndPhysicalUniversal';
 
 const LazyDashboard = lazy(() => import('./pages/Dashboard'));
-const LazyTemplateBuilder = lazy(() =>
-  import('./pages/TemplateBuilderPage').then((module) => ({
-    default: module.TemplateBuilderPage,
-  }))
-);
+
 const LazyTempAccessPage = lazy(() =>
   import('./pages/TempAccessPage').then((module) => ({
     default: module.TempAccessPage,
@@ -280,7 +276,6 @@ function DoctorWorkspace() {
   useEffect(() => {
     const prefetch = () => {
       import('./pages/Dashboard').catch(() => {});
-      import('./pages/TemplateBuilderPage').catch(() => {});
       import('./pages/EMRv2').catch(() => {});
     };
     // Delay slightly to give main thread priority to the animation
@@ -778,12 +773,7 @@ function DoctorWorkspace() {
   });
   const [currentTime, setCurrentTime] = useState('');
   const [templates, setTemplates] = useState<PrescriptionTemplate[]>(() => loadStoredPrescriptionTemplates());
-  const [pdfTemplates, setPdfTemplates] = useState<PdfTemplate[]>(() => {
-    try {
-      const stored = localStorage.getItem('meiosis_doctor_pdf_templates_v1');
-      return stored ? JSON.parse(stored) : [];
-    } catch { return []; }
-  });
+
   const [manualConsultationStatus, setManualConsultationStatus] = useState<'READY' | 'IN_SESSION' | 'PAUSED'>('READY');
   const [scheduleDays, setScheduleDays] = useState<DailySchedule[]>(defaultSchedule);
   const [slotDuration, setSlotDurationState] = useState<number>(() => {
@@ -1108,10 +1098,7 @@ function DoctorWorkspace() {
             setTemplates(tpls);
             try { localStorage.setItem(DOCTOR_PRESCRIPTION_TEMPLATES_KEY, JSON.stringify(tpls)); } catch {}
           }
-          if (Array.isArray(prefs.pdfTemplates)) {
-            setPdfTemplates(prefs.pdfTemplates as PdfTemplate[]);
-            try { localStorage.setItem('meiosis_doctor_pdf_templates_v1', JSON.stringify(prefs.pdfTemplates)); } catch {}
-          }
+
         }
       })
       .catch(() => {})
@@ -1136,9 +1123,8 @@ function DoctorWorkspace() {
       queueBlockDuration,
       followUpGapDays,
       lang,
-      pdfTemplates,
     });
-  }, [themeMode, customTheme, timelineTheme, emrBuilderV2Theme, emrBuilderLayout, timelineLayout, consoleCollapsible, consoleCollapsed, consoleWidth, slotDuration, queueBlockDuration, followUpGapDays, lang, pdfTemplates]);
+  }, [themeMode, customTheme, timelineTheme, emrBuilderV2Theme, emrBuilderLayout, timelineLayout, consoleCollapsible, consoleCollapsed, consoleWidth, slotDuration, queueBlockDuration, followUpGapDays, lang]);
 
   const selectedQueuePatient = useMemo(() => {
     if (!activeAppointment) return null;
@@ -1607,7 +1593,7 @@ function DoctorWorkspace() {
       prescriptionRows: savedEmr.prescriptionRows,
       labTests: savedEmr.labTests,
       followUpDate: savedEmr.followUpDate,
-      pdfTemplateHtml: pdfTemplates.find(t => t.isActive)?.htmlTemplate || null,
+
     };
 
     if (!navigator.onLine) {
@@ -1878,8 +1864,7 @@ function DoctorWorkspace() {
                 onQueueBlockDurationChange={setQueueBlockDuration}
                 followUpGapDays={followUpGapDays}
                 onFollowUpGapDaysChange={setFollowUpGapDays}
-                pdfTemplates={pdfTemplates}
-                onPdfTemplatesChange={setPdfTemplates}
+
                 onSyncSchedule={handleSyncSchedule}
                 onToggleDayOpen={handleToggleDayOpen}
                 onScheduleChange={handleScheduleChange}
@@ -1900,23 +1885,7 @@ function DoctorWorkspace() {
                 onAutoPrintEnabledChange={handleAutoPrintEnabledChange}
               />
 
-              {nav === 'template-builder' && (
-                <div className="fixed inset-0 z-[100] bg-ink">
-                  <LazyTemplateBuilder
-                    onBack={() => setNav('settings')}
-                    existingTemplates={pdfTemplates}
-                    onSave={(updated: PdfTemplate[]) => {
-                      setPdfTemplates(updated);
-                      try {
-                        localStorage.setItem(
-                          'meiosis_doctor_pdf_templates_v1',
-                          JSON.stringify(updated),
-                        );
-                      } catch {}
-                    }}
-                  />
-                </div>
-              )}
+
 
               {viewRecordsPatientId && (
                 <div className="fixed inset-0 z-[60] bg-ink/60">
@@ -2057,7 +2026,14 @@ export default function App() {
     const session = localStorage.getItem('meiosis_auth_session_v1');
     const isTempAccess = window.location.pathname === '/temp-access';
     if (!session && !isTempAccess) {
-      window.location.href = 'http://localhost:5002/login.html';
+      const isLocal =
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        import.meta.env.DEV;
+      const loginUrl = isLocal
+        ? `${window.location.protocol}//${window.location.hostname || 'localhost'}:5002/login.html`
+        : '/login.html';
+      window.location.href = loginUrl;
     }
   }, []);
 

@@ -3,7 +3,7 @@ const express = require('express');
 const multer = require('multer');
 const prisma = require('../lib/prisma');
 const asyncHandler = require('../lib/async-handler');
-const { createLabReportPdf } = require('../lib/pdf-documents');
+
 const { uploadsRoot } = require('../lib/storage-paths');
 
 const router = express.Router();
@@ -33,25 +33,7 @@ router.get('/', asyncHandler(async (_req, res) => {
   res.json(labs);
 }));
 
-/* GET /api/labs/:labId/pdf — generate or serve lab report PDF */
-router.get('/:labId/pdf', asyncHandler(async (req, res) => {
-  let labReport = await prisma.labReport.findUnique({
-    where: { id: req.params.labId },
-    include: { doctor: true, patient: true }
-  });
 
-  if (!labReport) {
-    return res.status(404).json({ error: 'Lab report not found' });
-  }
-
-  // Re-generate so the latest template + watermark is always used
-  const { absolutePath } = await createLabReportPdf(labReport);
-
-  if (req.query.download === '1') {
-    return res.download(absolutePath);
-  }
-  res.sendFile(absolutePath);
-}));
 
 /* PATCH /api/labs/:labId/upload — patient uploads their lab result file */
 router.patch('/:labId/upload', upload.single('file'), asyncHandler(async (req, res) => {

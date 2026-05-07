@@ -3,7 +3,7 @@ const path = require('path');
 const prisma = require('../lib/prisma');
 const asyncHandler = require('../lib/async-handler');
 const { ensureFutureAppointmentSlots } = require('../lib/appointment-slots');
-const { createPatientSummaryPdf, createPatientAuditPdf } = require('../lib/pdf-documents');
+
 const { parseDurationToDays } = require('../lib/parse-duration');
 
 const { authMiddleware } = require('../middleware/auth-middleware');
@@ -174,33 +174,7 @@ async function loadPatientWithRecords(id) {
   });
 }
 
-router.get('/:id/summary-pdf', asyncHandler(async (req, res) => {
-  const patient = await loadPatientWithRecords(req.params.id);
-  if (!patient) {
-    res.status(404).json({ error: 'Patient not found' });
-    return;
-  }
-  const { absolutePath } = await createPatientSummaryPdf(patient);
-  if (req.query.download === '1') {
-    res.download(absolutePath);
-    return;
-  }
-  res.sendFile(path.resolve(absolutePath));
-}));
 
-router.get('/:id/audit-pdf', asyncHandler(async (req, res) => {
-  const patient = await loadPatientWithRecords(req.params.id);
-  if (!patient) {
-    res.status(404).json({ error: 'Patient not found' });
-    return;
-  }
-  const { absolutePath } = await createPatientAuditPdf(patient);
-  if (req.query.download === '1') {
-    res.download(absolutePath);
-    return;
-  }
-  res.sendFile(path.resolve(absolutePath));
-}));
 
 /* ─────────────────────────────────────────────────────────────
    GET /api/patients/:id/share-settings

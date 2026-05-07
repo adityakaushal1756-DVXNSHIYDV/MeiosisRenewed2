@@ -1,7 +1,29 @@
 import axios from 'axios';
 
-const BACKEND_ORIGIN = import.meta.env.VITE_BACKEND_ORIGIN || 'http://localhost:5002';
-const API_BASE_URL = `${BACKEND_ORIGIN}/api`;
+const rawBackendOrigin = import.meta.env.VITE_BACKEND_ORIGIN?.trim();
+
+function getDefaultBackendOrigin() {
+  if (typeof window === 'undefined') return '';
+
+  const isLocal =
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    import.meta.env.DEV;
+
+  if (isLocal) {
+    const protocol = window.location.protocol;
+    const host = window.location.hostname || 'localhost';
+    return `${protocol}//${host}:5002`;
+  }
+
+  return '';
+}
+
+const BACKEND_ORIGIN = rawBackendOrigin
+  ? rawBackendOrigin.replace(/\/+$/, '')
+  : getDefaultBackendOrigin();
+
+const API_BASE_URL = BACKEND_ORIGIN ? `${BACKEND_ORIGIN}/api` : '/api';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

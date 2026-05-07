@@ -102,56 +102,7 @@ export function SidePanel({ appointment, onClose, accessLevel = 'full' }: SidePa
   }
 
   const handleDownloadPDF = async () => {
-    if (!appointment.id) {
-      setDownloadError('This prescription is missing its PDF reference.');
-      return;
-    }
-
-    setIsGenerating(true);
-    setDownloadError(null);
-
-    let objectUrl: string | null = null;
-    try {
-      const downloadUrl = apiUrl(`/prescriptions/${encodeURIComponent(appointment.id)}/pdf?download=1`);
-      const response = await fetch(downloadUrl, {
-        headers: {
-          ...getAuthHeader(),
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          handleAuthError();
-          return;
-        }
-        let message = 'Unable to generate the prescription PDF right now.';
-        try {
-          const payload = await response.json();
-          if (payload?.error) message = payload.error;
-        } catch {
-          // Ignore JSON parse errors and keep the generic message.
-        }
-        throw new Error(message);
-      }
-
-      const pdfBlob = await response.blob();
-      objectUrl = URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = objectUrl;
-      link.download = getDownloadFileName(response.headers.get('content-disposition'));
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (err) {
-      console.error('[SidePanel] Failed to generate PDF:', err);
-      const errorMsg = err instanceof Error ? err.message : 'Unable to download the prescription PDF.';
-      setDownloadError(`${errorMsg} (Please check if you are still logged in)`);
-    } finally {
-      if (objectUrl) {
-        window.setTimeout(() => URL.revokeObjectURL(objectUrl as string), 1000);
-      }
-      setIsGenerating(false);
-    }
+    alert("PDF generation is disabled pending system redesign.");
   };
 
   const canSeeLabs = accessLevel === 'full' || accessLevel === 'lab';

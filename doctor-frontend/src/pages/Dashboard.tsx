@@ -76,7 +76,7 @@ const MedicalCalendar = lazy(() =>
 import type { DoctorCompletedAppointment } from "../hooks/useDoctorAnalytics";
 import { Appointment } from "../types/Appointment";
 import { Patient } from "../types/Patient";
-import { EMRState, PdfTemplate, PrescriptionTemplate } from "../types/EMR";
+import { EMRState, PrescriptionTemplate } from "../types/EMR";
 import { DailySchedule } from "../components/Schedule/ScheduleDayEditor";
 import type { EmrShareRequest } from "../hooks/useEmrShareNotifications";
 
@@ -168,8 +168,7 @@ interface DashboardProps {
   onQueueBlockDurationChange: (minutes: number) => void;
   followUpGapDays: number;
   onFollowUpGapDaysChange: (days: number) => void;
-  pdfTemplates: PdfTemplate[];
-  onPdfTemplatesChange: (templates: PdfTemplate[]) => void;
+
   vacationNote: string;
   lateStartDate: string;
   lateStartTime: string;
@@ -766,8 +765,7 @@ export default function Dashboard(props: DashboardProps) {
     onQueueBlockDurationChange,
     followUpGapDays = 14,
     onFollowUpGapDaysChange,
-    pdfTemplates = [],
-    onPdfTemplatesChange,
+
     vacationNote = "",
     lateStartDate = "",
     lateStartTime = "",
@@ -823,16 +821,6 @@ export default function Dashboard(props: DashboardProps) {
   } = props;
 
   const isSyncingAny = isSyncingQueue || isSyncingPatients || isSyncingAnalytics;
-  const isRenderablePdfTemplate = (template: PdfTemplate) =>
-    template.type === "built" &&
-    typeof template.htmlTemplate === "string" &&
-    template.htmlTemplate.trim() !== "" &&
-    template.htmlTemplate.trim() !== "<!-- UPLOADED_PDF_PLACEHOLDER -->";
-  const activePdfTemplate =
-    pdfTemplates.find(
-      (template: PdfTemplate) =>
-        template.isActive && isRenderablePdfTemplate(template),
-    ) ?? null;
 
   // Diagnostic Log
   useEffect(() => {
@@ -3202,194 +3190,7 @@ export default function Dashboard(props: DashboardProps) {
             ))}
           </div>
 
-          {/* New PDF Template Section */}
-          <div className="mt-8 border-t border-wire/10 pt-8" id="settings-pdf-templates">
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <FileText size={20} className="text-neon" />
-                Prescription PDF Templates
-              </h3>
-              <p className="mt-1 text-sm text-mist/60 leading-relaxed max-w-2xl">
-                Upload your own clinical letterhead or use our visual builder to create a professional prescription template. 
-                All templates are validated to ensure they contain required placeholders like patient name and medication table.
-              </p>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-              {/* Build Button Card */}
-              <button 
-                onClick={() => onNavChange('template-builder')}
-                className="group relative flex flex-col items-center justify-center p-6 rounded-[32px] border border-wire/10 bg-white/[0.02] hover:bg-white/[0.05] transition-all hover:border-neon/30"
-              >
-                <div className="w-12 h-12 rounded-full bg-neon/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Sparkles size={24} className="text-neon" />
-                </div>
-                <h4 className="text-sm font-semibold text-white">Visual Builder</h4>
-                <p className="mt-1 text-xs text-mist/50 text-center">Figma-style drag-and-drop editor</p>
-                <div className="absolute top-4 right-4 text-[10px] font-bold text-neon/40 uppercase tracking-widest">Recommended</div>
-              </button>
-
-              {/* Upload Button Card */}
-              <label 
-                className="group relative flex flex-col items-center justify-center p-6 rounded-[32px] border border-wire/10 bg-white/[0.02] hover:bg-white/[0.05] transition-all hover:border-neon/30 cursor-pointer"
-              >
-                <input 
-                  type="file" 
-                  accept=".pdf" 
-                  className="hidden" 
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    
-                    const formData = new FormData();
-                    formData.append('template', file);
-                    
-                    try {
-                      const res = await fetch(apiUrl(`/doctors/${CURRENT_DOCTOR.id}/pdf-template/upload`), {
-                        method: 'POST',
-                        headers: { 
-                          ...getAuthHeader()
-                        },
-                        body: formData
-                      });
-                      const data = await res.json();
-                      
-                      if (data.valid) {
-                        const newTpl: PdfTemplate = {
-                          id: `upl_${Date.now()}`,
-                          name: file.name.replace('.pdf', ''),
-                          isActive: false,
-                          type: 'uploaded',
-                          fields: data.found,
-                          htmlTemplate: '<!-- UPLOADED_PDF_PLACEHOLDER -->', // Handle via backend
-                          uploadedAt: new Date().toISOString()
-                        };
-                        const updated = [...pdfTemplates, newTpl];
-                        onPdfTemplatesChange(updated);
-                        showToast(true, "Template uploaded and validated. Generated prescription PDFs will use the active Visual Builder template.");
-                      } else {
-                        showToast(false, `Missing fields: ${data.missing.join(', ')}`);
-                      }
-                    } catch (err) {
-                      showToast(false, "Failed to upload template.");
-                    }
-                  }}
-                />
-                <div className="w-12 h-12 rounded-full bg-mist/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <FileUp size={24} className="text-mist" />
-                </div>
-                <h4 className="text-sm font-semibold text-white">Upload PDF</h4>
-                <p className="mt-1 text-xs text-mist/50 text-center">Scan your existing clinical layout</p>
-              </label>
-
-              {/* Active Info Card */}
-              {activePdfTemplate ? (
-                <div className="p-6 rounded-[32px] border border-neon/20 bg-neon/[0.03] flex flex-col">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-10 h-10 rounded-full bg-neon/20 flex items-center justify-center">
-                      <CheckCircle2 size={20} className="text-neon" />
-                    </div>
-                    <span className="text-[10px] font-bold text-neon uppercase tracking-tighter bg-neon/10 px-2 py-0.5 rounded-full">Active</span>
-                  </div>
-                  <h4 className="text-sm font-semibold text-white truncate">{activePdfTemplate.name}</h4>
-                  <p className="mt-1 text-xs text-mist/50">
-                    Created via Visual Builder
-                  </p>
-                  <div className="mt-auto pt-4 flex items-center gap-2">
-                    <button className="text-[10px] text-neon hover:underline font-bold uppercase tracking-wider">Preview</button>
-                    <div className="w-1 h-1 rounded-full bg-mist/20" />
-                    <button 
-                      onClick={() => {
-                        const updated = pdfTemplates.map((t: PdfTemplate) => ({ ...t, isActive: false }));
-                        onPdfTemplatesChange(updated);
-                      }}
-                      className="text-[10px] text-mist/50 hover:text-red-400 font-bold uppercase tracking-wider transition-colors"
-                    >
-                      Deactivate
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-6 rounded-[32px] border border-wire/10 bg-white/[0.01] flex flex-col items-center justify-center border-dashed">
-                  <p className="text-xs text-mist/30 italic text-center px-4">No custom template active. Using default Meiosis layout.</p>
-                  {pdfTemplates.some((template: PdfTemplate) => template.type === "uploaded") && (
-                    <p className="mt-2 text-[11px] text-mist/40 text-center px-4">
-                      Uploaded PDFs are validated and stored, but live prescription downloads use Visual Builder templates.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Template History List */}
-            {pdfTemplates.length > 0 && (
-              <div className="rounded-[32px] border border-wire/10 bg-white/[0.01] overflow-hidden">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="bg-white/[0.03] text-mist/40 text-[10px] font-bold uppercase tracking-widest border-b border-wire/10">
-                      <th className="px-6 py-4">Template Name</th>
-                      <th className="px-6 py-4">Type</th>
-                      <th className="px-6 py-4">Date</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-wire/5">
-                    {pdfTemplates.map((tpl: PdfTemplate) => {
-                      const isRenderable = isRenderablePdfTemplate(tpl);
-                      const isActiveTemplate = tpl.isActive && isRenderable;
-
-                      return (
-                      <tr key={tpl.id} className="hover:bg-white/[0.02] transition-colors group">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isActiveTemplate ? 'bg-neon/10 text-neon' : 'bg-mist/10 text-mist'}`}>
-                              {tpl.type === 'built' ? <Wand2 size={14} /> : <FileText size={14} />}
-                            </div>
-                            <div>
-                              <span className={`font-medium ${isActiveTemplate ? 'text-white' : 'text-mist/70'}`}>{tpl.name}</span>
-                              {!isRenderable && (
-                                <div className="text-[10px] uppercase tracking-[0.16em] text-mist/35">
-                                  Validation only
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-xs text-mist/50 capitalize">{tpl.type}</td>
-                        <td className="px-6 py-4 text-xs text-mist/50">{new Date(tpl.uploadedAt).toLocaleDateString()}</td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {!isActiveTemplate && isRenderable && (
-                              <button 
-                                onClick={() => {
-                                  const updated = pdfTemplates.map((t: PdfTemplate) => ({ ...t, isActive: t.id === tpl.id }));
-                                  onPdfTemplatesChange(updated);
-                                }}
-                                className="p-2 rounded-xl text-mist hover:text-neon hover:bg-neon/10 transition-all"
-                                title="Activate"
-                              >
-                                <Check size={14} />
-                              </button>
-                            )}
-                            <button 
-                               onClick={() => {
-                                 const updated = pdfTemplates.filter((t: PdfTemplate) => t.id !== tpl.id);
-                                 onPdfTemplatesChange(updated);
-                               }}
-                               className="p-2 rounded-xl text-mist hover:text-red-400 hover:bg-red-400/10 transition-all"
-                               title="Delete"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )})}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
         </PlaceholderBlock>
       </div>
     </div>

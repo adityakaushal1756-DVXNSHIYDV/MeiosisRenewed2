@@ -48,35 +48,7 @@ export function TimelineSidePanel({ entry, isOpen, onClose }: TimelineSidePanelP
   if (!entry) return null;
 
   const handleDownloadPDF = async () => {
-    if (!modalRef.current) return;
-    setIsGenerating(true);
-    try {
-      const element = modalRef.current;
-      // Temporarily hide action buttons during capture
-      const actions = element.querySelector('.modal-actions');
-      if (actions) (actions as HTMLElement).style.display = 'none';
-
-      const canvas = await html2canvas(element, {
-        backgroundColor: '#0A1118',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
-
-      if (actions) (actions as HTMLElement).style.display = 'flex';
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`${entry.type.replace(/\s+/g, '_')}_${entry.date}.pdf`);
-    } catch (err) {
-      console.error('Failed to generate PDF:', err);
-    } finally {
-      setIsGenerating(false);
-    }
+    alert("PDF generation is disabled pending system redesign.");
   };
 
   const isActive = entry.status === 'ACTIVE' || entry.status === 'OPEN';

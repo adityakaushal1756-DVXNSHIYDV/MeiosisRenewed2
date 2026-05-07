@@ -42,8 +42,25 @@ export function loadAuthSession(): AuthSession | null {
 export function logout() {
   if (typeof window !== "undefined") {
     localStorage.removeItem(AUTH_SESSION_KEY);
-    window.location.href = "http://localhost:5002/login.html"; // Central login portal
+    window.location.href = getLoginUrl();
   }
+}
+
+function getLoginUrl() {
+  if (typeof window === "undefined") return "/login.html";
+
+  const isLocal =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    import.meta.env.DEV;
+
+  if (isLocal) {
+    const protocol = window.location.protocol;
+    const host = window.location.hostname || "localhost";
+    return `${protocol}//${host}:5002/login.html`;
+  }
+
+  return "/login.html";
 }
 
 export function useAuth() {
@@ -56,7 +73,7 @@ export function useAuth() {
       setSession(currentSession);
     } else {
       // Redirect to unified gateway if no session is found
-      window.location.href = "http://localhost:5002/login.html";
+      window.location.href = getLoginUrl();
     }
     setIsLoading(false);
   }, []);

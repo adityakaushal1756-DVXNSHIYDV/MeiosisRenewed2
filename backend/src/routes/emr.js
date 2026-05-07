@@ -2,7 +2,7 @@ const express = require('express');
 const { randomUUID } = require('crypto');
 const prisma = require('../lib/prisma');
 const asyncHandler = require('../lib/async-handler');
-const { createPrescriptionPdf } = require('../lib/pdf-documents');
+
 const { parseDurationToDays } = require('../lib/parse-duration');
 const {
   buildPatientEmrPayload,
@@ -173,18 +173,6 @@ router.post('/', asyncHandler(async (req, res) => {
     include: { patient: true, doctor: true, items: true }
   });
 
-  /* ── Generate PDF ── */
-  try {
-    const { publicPath } = await createPrescriptionPdf(saved.prescription, req.body.pdfTemplateHtml);
-    saved.prescription = await prisma.prescription.update({
-      where: { id: saved.prescription.id },
-      data: { documentPath: publicPath },
-      include: { items: true }
-    });
-  } catch (pdfError) {
-    console.error('[EMR] Prescription PDF generation failed:', pdfError);
-    // Non-fatal, let the request continue
-  }
 
   /* ── Create LabReport entries (one per ordered test) ── */
   if (labTests?.trim()) {

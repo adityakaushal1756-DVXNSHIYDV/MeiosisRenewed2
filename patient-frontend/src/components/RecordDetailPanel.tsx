@@ -59,7 +59,7 @@ export function RecordDetailPanel({ prescription, isOpen, onClose }: RecordDetai
   const displayStatus = isExpired ? 'EXPIRED' : (prescription.status === 'COMPLETED' ? 'COMPLETED' : 'ACTIVE');
 
   const handleDownload = () => {
-    window.open(apiUrl(`/prescriptions/${prescription.id}/pdf?download=1`), '_blank');
+    alert("PDF generation is disabled pending system redesign.");
   };
 
   return (

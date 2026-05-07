@@ -19,7 +19,14 @@ function redirectToLogin(): never {
   const tempCode = params.get('tempCode');
 
   if (gatewayFallback === 'true' && tempToken) {
-    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5002/api';
+    const isLocal =
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      import.meta.env.DEV;
+    const defaultBackendUrl = isLocal
+      ? `${window.location.protocol}//${window.location.hostname || 'localhost'}:5002/api`
+      : '/api';
+    const backendUrl = import.meta.env.VITE_API_URL || defaultBackendUrl;
     const baseUrl = backendUrl.replace(/\/api$/, '');
     window.location.replace(`${baseUrl}/patient-record?token=${encodeURIComponent(tempToken)}&code=${encodeURIComponent(tempCode || '')}`);
     throw new Error('Redirecting to temporary access');

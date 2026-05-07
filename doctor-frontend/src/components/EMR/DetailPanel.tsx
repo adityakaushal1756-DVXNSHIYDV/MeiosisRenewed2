@@ -144,14 +144,13 @@ function AppointmentDetail({ a }: { a: PatientPastAppointment }) {
             </span>
           )}
           {a.documentPath && (
-            <a
-              href={assetUrl(a.documentPath)}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => alert("PDF generation is disabled pending system redesign.")}
               className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-neon/50 transition hover:text-neon"
             >
               <Download size={10} /> Prescription PDF
-            </a>
+            </button>
           )}
         </div>
       )}
