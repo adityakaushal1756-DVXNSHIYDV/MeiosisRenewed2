@@ -5,8 +5,22 @@ import { LogOut, CheckCircle2, AlertCircle, Smartphone, IdCard, Phone, Droplet, 
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Configuration ---
-const API_BASE = 'http://' + window.location.hostname + ':5002';
-const API_URL = `${API_BASE}/api`;
+const getBackendUrl = () => {
+  // 1. Check for explicit environment variable (best for separate hosting)
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+
+  const { hostname, protocol, origin } = window.location;
+  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+
+  // 2. Local Dev: Backend is usually on 5002
+  if (isLocal) return `${protocol}//${hostname}:5002/api`;
+
+  // 3. Unified Vercel: Backend is at /api on the same domain
+  // We assume the companion app is at /companion-app/, so we go to root /api
+  return `${origin}/api`;
+};
+
+const API_URL = getBackendUrl();
 
 const getAuthHeader = () => {
   try {
