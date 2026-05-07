@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Hammer, HardHat, Construction, Loader2, UserCircle2, ArrowRight, ShieldCheck, ChevronRight } from 'lucide-react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -73,6 +74,7 @@ export default function App() {
     return (
       <QueryClientProvider client={queryClient}>
         <CommandDashboard />
+        <Analytics />
       </QueryClientProvider>
     );
   }
@@ -130,6 +132,7 @@ export default function App() {
           </p>
         </motion.div>
       </main>
+      <Analytics />
     </div>
   );
 }

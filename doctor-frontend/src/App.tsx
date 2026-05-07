@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { CheckCircle2, FileText, LayoutDashboard, UserPlus, X } from 'lucide-react';
 import { WelcomeAnimation } from './components/WelcomeAnimation';
 import { LanguageContext } from './i18n/LanguageContext';
@@ -2062,5 +2063,10 @@ export default function App() {
     );
   }
 
-  return <DoctorWorkspace />;
+  return (
+    <>
+      <DoctorWorkspace />
+      <Analytics />
+    </>
+  );
 }
