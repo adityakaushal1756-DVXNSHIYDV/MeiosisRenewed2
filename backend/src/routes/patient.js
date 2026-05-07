@@ -85,7 +85,6 @@ router.patch('/setup-code', asyncHandler(async (req, res) => {
 }));
 
 router.get('/profile', asyncHandler(async (req, res) => {
-  await ensureFutureAppointmentSlots(prisma);
   const { id } = req.query;
   if (!id) {
     return res.status(400).json({ error: 'id query parameter is required' });

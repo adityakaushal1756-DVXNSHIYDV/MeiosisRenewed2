@@ -12,7 +12,7 @@ const DB_POOL_TIMEOUT_SECONDS = Math.max(
 );
 const DB_QUERY_TIMEOUT_MS = Math.max(
   1000,
-  Number.parseInt(process.env.DB_QUERY_TIMEOUT_MS || '3000', 10) || 3000,
+  Number.parseInt(process.env.DB_QUERY_TIMEOUT_MS || '10000', 10) || 10000,
 );
 
 function appendQueryParam(url, key, value) {
