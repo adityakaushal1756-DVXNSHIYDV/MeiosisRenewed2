@@ -105,3 +105,6 @@ export function handleAuthError() {
     // ignore
   }
 
+  // Fallback: go to login.html relative to current origin
+  window.location.href = '/login.html';
+}
