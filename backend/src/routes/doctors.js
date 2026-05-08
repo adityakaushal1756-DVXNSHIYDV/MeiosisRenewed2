@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
 const asyncHandler = require('../lib/async-handler');
+const { ensureFutureAppointmentSlots } = require('../lib/appointment-slots');
 
 // ── Patient Discovery ────────────────────────────────────────────────────────
 router.get('/discover/:meiosisId', asyncHandler(async (req, res) => {
@@ -27,6 +28,16 @@ router.get('/:doctorId/patients', asyncHandler(async (req, res) => {
     orderBy: { linkedAt: 'desc' }
   });
   res.json(links.map(l => ({ ...l.patient, linkedAt: l.linkedAt })));
+}));
+
+router.get('/:doctorId/slots', asyncHandler(async (req, res) => {
+  const { doctorId } = req.params;
+  await ensureFutureAppointmentSlots(prisma, doctorId);
+  const slots = await prisma.appointmentSlot.findMany({
+    where: { doctorId },
+    orderBy: { startAt: 'asc' }
+  });
+  res.json(slots);
 }));
 
 // ── Staff Management ────────────────────────────────────────────────────────

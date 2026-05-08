@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pill, ChevronRight, FileText, Clock, AlertTriangle } from 'lucide-react';
+import { Pill, FileText, Clock, AlertTriangle } from 'lucide-react';
 import { cn } from '../components/Sidebar';
 import type { PatientProfile, Prescription, PrescriptionItem } from '../types';
 import { differenceInDays, addDays, parseISO, startOfDay } from 'date-fns';
@@ -137,8 +137,8 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
   );
 
   return (
-    <div className="p-6 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto h-full flex flex-col relative overflow-hidden">
-      <header className="mb-8 mt-2 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="patient-page patient-medicines-page p-4 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto min-h-full flex flex-col relative">
+      <header className="patient-page-header mb-8 mt-2 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">My Medications</h1>
           <p className="text-mist mt-1 text-sm font-medium">Real-time treatment tracker &amp; adherence assistant.</p>
@@ -152,8 +152,8 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto scroll-skin pb-20 queue-scroll">
-        <div className="grid lg:grid-cols-12 gap-6 mb-8">
+      <div className="patient-page-content flex-1 overflow-y-auto scroll-skin pb-20 queue-scroll">
+        <div className="medicines-grid-12 grid lg:grid-cols-12 gap-5 md:gap-6 mb-8">
           
           <div className="lg:col-span-5 flex flex-col gap-6">
             {/* Daily Tracker */}
@@ -289,14 +289,35 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
         </div>
 
         {/* Active Regimen Table */}
-        <div className="glass-card p-0 border border-wire/10 overflow-hidden">
+        <div className="medicine-table-card glass-card p-0 border border-wire/10 overflow-hidden">
           <div className="p-6 border-b border-wire/10 bg-white/[0.01]">
             <h2 className="text-base font-bold text-white flex items-center gap-2">
               <FileText className="w-4 h-4 text-sky" /> Full Regimen Details
             </h2>
           </div>
           
-          <div className="overflow-x-auto">
+          <div className="mobile-regimen-cards">
+            {allActiveItems.length > 0 ? (
+              allActiveItems.map((item, idx) => (
+                <article key={idx} className="mobile-regimen-card">
+                  <div>
+                    <p className="mobile-regimen-kicker">{item.doctorName || 'Prescribing Lead'}</p>
+                    <h3>{item.medicine}</h3>
+                    <p>{item.dose}</p>
+                  </div>
+                  <div className="mobile-regimen-meta">
+                    <span>{item.frequency.replace(/_/g, ' ')}</span>
+                    <strong className={item.daysLeft <= 2 ? 'text-rose-400' : 'text-white'}>{item.daysLeft} Days</strong>
+                  </div>
+                  <p className="mobile-regimen-note">{item.reason || 'Symptomatic control'}</p>
+                </article>
+              ))
+            ) : (
+              <div className="mobile-regimen-empty">No active medication tracks enqueued.</div>
+            )}
+          </div>
+
+          <div className="desktop-regimen-table overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                  <tr className="bg-white/[0.02]">
@@ -346,14 +367,31 @@ export function MedicinesPage({ data }: MedicinesPageProps) {
 
         {/* Past Medications */}
         {allInactiveItems.length > 0 && (
-          <div className="glass-card p-0 border border-wire/10 overflow-hidden mt-8 opacity-80">
+          <div className="medicine-table-card glass-card p-0 border border-wire/10 overflow-hidden mt-8 opacity-80">
             <div className="p-6 border-b border-wire/10 bg-white/[0.01]">
               <h2 className="text-base font-bold text-mist flex items-center gap-2">
                 <Clock className="w-4 h-4" /> Past Medications
               </h2>
             </div>
             
-            <div className="overflow-x-auto">
+            <div className="mobile-regimen-cards">
+              {allInactiveItems.map((item, idx) => (
+                <article key={idx} className="mobile-regimen-card inactive">
+                  <div>
+                    <p className="mobile-regimen-kicker">{item.doctorName || 'Prescribing Lead'}</p>
+                    <h3>{item.medicine}</h3>
+                    <p>{item.dose}</p>
+                  </div>
+                  <div className="mobile-regimen-meta">
+                    <span>{item.frequency.replace(/_/g, ' ')}</span>
+                    <strong>Inactive</strong>
+                  </div>
+                  <p className="mobile-regimen-note">Ended {item.endedOn}</p>
+                </article>
+              ))}
+            </div>
+
+            <div className="desktop-regimen-table overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                    <tr className="bg-white/[0.02]">

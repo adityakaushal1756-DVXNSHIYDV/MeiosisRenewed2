@@ -186,14 +186,14 @@ export function MyQrPage({ data }: MyQrPageProps) {
     : undefined;
 
   return (
-    <div className="p-6 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-5xl mx-auto h-full flex flex-col">
-      <header className="mb-8 mt-2 shrink-0">
+    <div className="patient-page patient-qr-page p-4 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-5xl mx-auto min-h-full flex flex-col gap-6 md:gap-8">
+      <header className="patient-page-header mt-2 shrink-0">
         <h1 className="text-3xl font-bold text-white tracking-tight mb-2">My QR</h1>
         <p className="text-mist">Present to a doctor for signed, time-boxed EMR access.</p>
       </header>
 
-      <div className="flex flex-col lg:flex-row gap-8 flex-1 pb-8">
-        <div className="flex-1 max-w-md mx-auto w-full">
+      <div className="qr-layout flex flex-col lg:flex-row gap-6 md:gap-8 flex-1 pb-4 md:pb-8">
+        <div className="flex-1 w-full max-w-md mx-auto lg:mx-0">
           <div className="glass-card overflow-hidden h-full flex flex-col">
             <div className="p-8 pb-6 flex justify-center bg-gradient-to-b from-white/[0.02] to-transparent border-b border-wire/10 relative">
               <div className="relative w-64 h-64 p-4 rounded-3xl bg-white shadow-[0_0_40px_rgba(255,255,255,0.15)] flex items-center justify-center overflow-hidden">
@@ -304,7 +304,7 @@ export function MyQrPage({ data }: MyQrPageProps) {
           </div>
         </div>
 
-        <div className="lg:w-80 shrink-0 flex flex-col gap-6">
+        <div className="w-full lg:w-80 shrink-0 flex flex-col gap-6">
           <div className="glass-card p-6 h-full border border-wire/10">
             <span className="chip bg-sky/10 border-sky/20 text-sky mb-4 inline-flex">Scan Guide</span>
             <h3 className="section-title mb-6">How it works</h3>

@@ -81,11 +81,11 @@ export function RecordDetailPanel({ prescription, isOpen, onClose }: RecordDetai
             animate={{ y: 20 }} // Stops 20px from top
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-x-0 bottom-0 z-[120] bg-ink border-t border-wire/20 rounded-t-[40px] shadow-[0_-20px_80px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden"
+            className="record-detail-panel fixed inset-x-0 bottom-0 z-[120] bg-ink border-t border-wire/20 rounded-t-[40px] shadow-[0_-20px_80px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden"
             style={{ height: 'calc(100vh - 20px)' }}
           >
             {/* Grab Handle/Header */}
-            <div className="flex items-center justify-between px-8 py-6 border-b border-wire/10 shrink-0">
+            <div className="record-detail-header flex items-center justify-between px-8 py-6 border-b border-wire/10 shrink-0">
                <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-sky/20 border border-sky/30 flex items-center justify-center text-sky">
                     <FileSignature className="w-6 h-6" />
@@ -104,7 +104,7 @@ export function RecordDetailPanel({ prescription, isOpen, onClose }: RecordDetai
             </div>
 
             {/* Content Scroll Area */}
-            <div className="flex-1 overflow-y-auto scroll-skin px-8 py-10">
+            <div className="record-detail-scroll flex-1 overflow-y-auto scroll-skin px-8 py-10">
                <div className="max-w-4xl mx-auto space-y-12 pb-20">
                  
                  {/* 1. High-Level Context Row */}

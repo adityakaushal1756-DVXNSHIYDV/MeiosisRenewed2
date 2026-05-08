@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Home, 
-  FileText, 
   Calendar, 
   Pill, 
   Files, 
@@ -49,16 +48,30 @@ const navItems: { id: Section; label: string; icon: React.ReactNode; color: stri
 export function RadialMenu({ currentSection, onSectionChange }: RadialMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredSection, setHoveredSection] = useState<Section | null>(null);
-  const [isPressing, setIsPressing] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   
   const centerRef = useRef<HTMLDivElement>(null);
-  const radius = 130; 
+  const radius = viewportWidth <= 430 ? 70 : viewportWidth <= 820 ? 90 : 100;
+  const haloSize = viewportWidth <= 430 ? 200 : viewportWidth <= 820 ? 240 : 280;
+  const itemSize = viewportWidth <= 430 ? 44 : 52;
 
   const currentItem = navItems.find(i => i.id === currentSection) || navItems[0];
 
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle('radial-open', isOpen);
+    return () => document.body.classList.remove('radial-open');
+  }, [isOpen]);
+
   const handlePointerDown = (e: React.PointerEvent) => {
-    e.currentTarget.releasePointerCapture(e.pointerId);
-    setIsPressing(true);
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
     setIsOpen(prev => !prev);
     if ('vibrate' in navigator) navigator.vibrate(10);
   };
@@ -91,8 +104,7 @@ export function RadialMenu({ currentSection, onSectionChange }: RadialMenuProps)
     }
   };
 
-  const handlePointerUp = (e: React.PointerEvent) => {
-    setIsPressing(false);
+  const handlePointerUp = () => {
     if (hoveredSection) {
       onSectionChange(hoveredSection);
       setIsOpen(false);
@@ -110,19 +122,20 @@ export function RadialMenu({ currentSection, onSectionChange }: RadialMenuProps)
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-black/40 backdrop-blur-[4px] z-[90]"
+        className="radial-backdrop fixed inset-0 bg-black/40 backdrop-blur-[4px] z-[90]"
           />
         )}
       </AnimatePresence>
 
-      <motion.div 
+      <motion.div
         ref={centerRef}
-        animate={{ 
-          x: isOpen ? -130 : 0, 
-          y: isOpen ? -130 : 0 
+        animate={{
+          x: "-50%",
+          y: isOpen ? -radius : 0
         }}
         transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-        className="radial-menu-container fixed bottom-10 right-10 z-[100] flex items-center justify-center touch-none select-none"
+        className="radial-menu-container fixed bottom-8 left-1/2 z-[100] flex items-center justify-center touch-none select-none"
+        data-open={isOpen ? 'true' : 'false'}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
@@ -138,8 +151,8 @@ export function RadialMenu({ currentSection, onSectionChange }: RadialMenuProps)
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             className="absolute rounded-full border border-white/10 bg-white/[0.03] backdrop-blur-[24px] pointer-events-none z-0 overflow-hidden"
             style={{ 
-               width: `${radius * 2 + 100}px`, 
-               height: `${radius * 2 + 100}px`,
+               width: `${haloSize}px`,
+               height: `${haloSize}px`,
                boxShadow: 'inset 0 0 20px rgba(255,255,255,0.05), 0 0 80px rgba(0,0,0,0.6)'
             }}
           >
@@ -183,17 +196,20 @@ export function RadialMenu({ currentSection, onSectionChange }: RadialMenuProps)
                 onSectionChange(item.id);
                 setIsOpen(false);
               }}
+              aria-label={`Open ${item.label}`}
               style={{
-                boxShadow: isSelected ? `0 15px 50px ${item.color.includes('neon') ? 'rgba(82,255,157,0.4)' : 'rgba(255,255,255,0.15)'}` : 'none'
+                width: itemSize,
+                height: itemSize,
+                boxShadow: isSelected ? `0 12px 32px ${item.color.includes('neon') ? 'rgba(82,255,157,0.28)' : 'rgba(255,255,255,0.12)'}` : 'none'
               }}
               className={cn(
-                "absolute w-16 h-16 rounded-full border flex flex-col items-center justify-center transition-all duration-200 group bg-panel/95 backdrop-blur-3xl",
+                "radial-item absolute rounded-full border flex flex-col items-center justify-center transition-all duration-200 group bg-panel/95 backdrop-blur-3xl",
                 isSelected 
                   ? "border-white/50 bg-white/20 scale-125 z-20 shadow-2xl" 
                   : "border-wire/10 opacity-70 scale-90"
               )}
             >
-              <div className={cn(item.color, "flex items-center justify-center [&>svg]:w-7 [&>svg]:h-7 transition-transform", isSelected && "scale-110")}>
+              <div className={cn(item.color, "flex items-center justify-center [&>svg]:w-6 [&>svg]:h-6 transition-transform", isSelected && "scale-110")}>
                 {item.icon}
               </div>
               
@@ -218,8 +234,9 @@ export function RadialMenu({ currentSection, onSectionChange }: RadialMenuProps)
         onPointerDown={handlePointerDown}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.9 }}
+        aria-label={isOpen ? 'Close patient navigation' : 'Open patient navigation'}
         className={cn(
-          "relative w-20 h-20 rounded-full flex flex-col items-center justify-center text-white transition-all duration-300 shadow-2xl z-10 overflow-hidden outline-none",
+          "radial-trigger relative w-16 h-16 sm:w-20 sm:h-20 rounded-full flex flex-col items-center justify-center text-white transition-all duration-300 shadow-2xl z-10 overflow-hidden outline-none",
           isOpen 
             ? "bg-rose-500 shadow-[0_0_50px_rgba(244,63,94,0.5)] border-transparent" 
             : "bg-ink border-2 border-neon text-white shadow-[0_0_40px_rgba(82,255,157,0.25)]"
@@ -236,7 +253,7 @@ export function RadialMenu({ currentSection, onSectionChange }: RadialMenuProps)
           </motion.div>
         ) : (
           <div className="flex flex-col items-center gap-0.5">
-            <div className={cn(currentItem.color, "[&>svg]:w-8 [&>svg]:h-8 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]")}>
+            <div className={cn(currentItem.color, "[&>svg]:w-7 [&>svg]:h-7 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]")}>
               {currentItem.icon}
             </div>
             <span className="text-[9px] font-semibold uppercase tracking-tight text-mist/80">
@@ -250,4 +267,3 @@ export function RadialMenu({ currentSection, onSectionChange }: RadialMenuProps)
     </>
   );
 }
-

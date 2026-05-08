@@ -281,7 +281,7 @@ export interface ModernTimelineProps {
   isSmallDevice?: boolean;
 }
 
-export function ModernTimeline({ data }: ModernTimelineProps) {
+export function ModernTimeline({ data, isSmallDevice = false }: ModernTimelineProps) {
   const [selectedEntry, setSelectedEntry] = useState<AppointmentEntry | null>(null);
   const entries = mapToAppointmentEntries(data);
   
@@ -294,7 +294,7 @@ export function ModernTimeline({ data }: ModernTimelineProps) {
   });
 
   return (
-    <div className="flex-1 h-full overflow-y-auto overflow-x-hidden scroll-skin relative py-12 px-4 md:px-12 lg:px-24">
+    <div className={cn("modern-timeline flex-1 h-full overflow-y-auto overflow-x-hidden scroll-skin relative py-12 px-4 md:px-12 lg:px-24", isSmallDevice && "is-small-device")}>
       {/* The Clinical Spine - Thick Gradient Track */}
       <div className="absolute left-[34px] md:left-[154px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-transparent via-white/10 to-transparent" />
       

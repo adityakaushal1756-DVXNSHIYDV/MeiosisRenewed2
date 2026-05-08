@@ -95,6 +95,7 @@ export function RecordsPage({ data }: RecordsPageProps) {
   const [shareSaving, setShareSaving] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const [shareSuccess, setShareSuccess] = useState<string | null>(null);
+  const [isCompactDevice, setIsCompactDevice] = useState(() => window.innerWidth <= 1180);
 
   // ── Health Sentiment Logic ──────────────────────────────────────────
   const extractSeverity = (note: string = "") => {
@@ -130,6 +131,12 @@ export function RecordsPage({ data }: RecordsPageProps) {
     setSelectedPrescription(p);
     setIsPanelOpen(true);
   };
+
+  useEffect(() => {
+    const handleResize = () => setIsCompactDevice(window.innerWidth <= 1180);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -212,10 +219,11 @@ export function RecordsPage({ data }: RecordsPageProps) {
   };
 
   return (
-    <div className="h-full flex flex-col p-6 md:p-8 pt-[max(1.5rem,env(safe-area-inset-top,1.5rem))] animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto overflow-hidden bg-ink/30 relative">
+    <>
+      <div className="patient-page patient-records-page min-h-full flex flex-col p-4 md:p-8 pt-[max(1.5rem,env(safe-area-inset-top,1.5rem))] animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto bg-ink/30 relative gap-6 md:gap-8">
       
       {/* Header Area */}
-      <header className="mb-8 mt-2 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <header className="patient-page-header shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">Clinical Records</h1>
           <p className="text-mist mt-1 text-sm font-medium">Unified analytics & patient-controlled intelligence console.</p>
@@ -230,10 +238,10 @@ export function RecordsPage({ data }: RecordsPageProps) {
       </header>
 
       {/* Share Controls Tier */}
-      <section className="shrink-0 mb-8 glass-card relative overflow-hidden bg-gradient-to-br from-white/[0.01] to-transparent p-6 border-none shadow-[0_32px_80px_rgba(0,0,0,0.2)]">
+      <section className="records-share-panel shrink-0 glass-card relative overflow-hidden bg-gradient-to-br from-white/[0.01] to-transparent p-6 border-none shadow-[0_32px_80px_rgba(0,0,0,0.2)]">
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-neon/[0.04] blur-3xl" />
         
-        <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between relative z-10">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between relative z-10">
           <div className="max-w-xl">
             <div className="flex items-center gap-2 mb-3">
               <span className={`chip py-1 text-[11px] font-bold uppercase tracking-widest chip-${SHARE_OPTIONS.find(o => o.id === savedShareScope)?.color}`}>
@@ -336,7 +344,7 @@ export function RecordsPage({ data }: RecordsPageProps) {
       </section>
 
       {/* Health Sentiment Graph Section */}
-      <section className="shrink-0 mb-10 h-80 glass-card p-6 border border-wire/10 relative overflow-hidden flex flex-col bg-gradient-to-br from-white/[0.03] to-transparent">
+      <section className="records-graph-panel shrink-0 h-80 glass-card p-6 border border-wire/10 relative overflow-hidden flex flex-col bg-gradient-to-br from-white/[0.03] to-transparent">
         <div className="flex items-center justify-between mb-2">
            <div>
               <div className="flex items-center gap-2 mb-1">
@@ -353,7 +361,7 @@ export function RecordsPage({ data }: RecordsPageProps) {
 
         <div className="flex-1 min-h-0 w-full mt-4">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={graphData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={graphData} margin={isCompactDevice ? { top: 10, right: 4, left: -32, bottom: 0 } : { top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="sentimentGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={currentStatus.color} stopOpacity={0.3}/>
@@ -399,7 +407,7 @@ export function RecordsPage({ data }: RecordsPageProps) {
                 strokeWidth={3}
                 fillOpacity={1} 
                 fill="url(#sentimentGradient)" 
-                animationDuration={1500}
+                animationDuration={isCompactDevice ? 250 : 1500}
               />
               <ReferenceLine y={20} stroke="#FF5252" strokeDasharray="5 5" strokeOpacity={0.2} label={{ position: 'right', value: 'CRITICAL', fill: '#FF5252', fontSize: 8, fontWeight: 600 }} />
               <ReferenceLine y={60} stroke="#FFB347" strokeDasharray="5 5" strokeOpacity={0.2} label={{ position: 'right', value: 'MODERATE', fill: '#FFB347', fontSize: 8, fontWeight: 600 }} />
@@ -412,19 +420,19 @@ export function RecordsPage({ data }: RecordsPageProps) {
         <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-neon/5 blur-[100px] rounded-full pointer-events-none"></div>
       </section>
 
-      {/* Dual Column Data Area - Scrollable */}
-      <div className="flex-1 overflow-hidden grid lg:grid-cols-2 gap-8 min-h-0">
+      {/* Data Grid: Timeline & Metrics */}
+      <div className="records-data-grid grid lg:grid-cols-2 gap-6 md:gap-8">
         
-        {/* Left Column: Prescriptions */}
-        <div className="flex flex-col h-full overflow-hidden glass-card border-none !bg-transparent">
-          <div className="flex items-center justify-between mb-4 px-2 shrink-0">
+        {/* Timeline Column */}
+        <div className="flex flex-col glass-card border-none !bg-transparent">
+          <div className="flex items-center justify-between px-4 mb-4">
             <h3 className="text-[10px] font-semibold uppercase tracking-wider text-white/50 flex items-center gap-2">
               <Pill className="w-4 h-4" /> Prescription Tracks
             </h3>
             <span className="text-[10px] text-mist/60 font-bold uppercase bg-white/5 px-2 py-0.5 rounded-full border border-wire/10">{(data.prescriptions || []).length} Records</span>
           </div>
           
-          <div className="flex-1 overflow-y-auto scroll-skin queue-scroll px-4 space-y-4 pb-20">
+          <div className="space-y-4 px-4 pb-12">
             {(data.prescriptions || []).map(p => (
               <div 
                 key={p.id} 
@@ -528,6 +536,7 @@ export function RecordsPage({ data }: RecordsPageProps) {
           </div>
         </div>
       </div>
+      </div>
 
       {/* Persistence for interactions */}
       <RecordDetailPanel 
@@ -535,7 +544,7 @@ export function RecordsPage({ data }: RecordsPageProps) {
         isOpen={isPanelOpen} 
         onClose={() => setIsPanelOpen(false)} 
       />
-    </div>
+    </>
   );
 }
 

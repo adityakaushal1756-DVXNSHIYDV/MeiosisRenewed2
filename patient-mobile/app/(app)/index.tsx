@@ -145,8 +145,8 @@ export default function DashboardScreen() {
             </View>
             {nextAppointment ? (
               <View>
-                <Text style={styles.aptDoctor}>{nextAppointment.doctor?.name || 'Doctor'}</Text>
-                <Text style={styles.aptDate}>
+                <Text style={styles.aptDoctor} numberOfLines={1}>{nextAppointment.doctor?.name || 'Doctor'}</Text>
+                <Text style={styles.aptDate} numberOfLines={1}>
                   {new Date(nextAppointment.scheduledDate).toLocaleDateString('en-GB', {
                     day: 'numeric', month: 'short', year: 'numeric',
                   })}
@@ -154,7 +154,7 @@ export default function DashboardScreen() {
                     ? ` · ${new Date(nextAppointment.slotStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                     : ''}
                 </Text>
-                <Text style={styles.aptSub}>
+                <Text style={styles.aptSub} numberOfLines={1}>
                   {nextAppointment.mode === 'IN_PERSON' ? 'In-person' : 'Teleconsult'} · {nextAppointment.doctor?.hospital || 'Clinic'}
                 </Text>
                 <View style={styles.row}>
@@ -188,8 +188,8 @@ export default function DashboardScreen() {
 
             {latestPrescription ? (
               <View>
-                <Text style={styles.rxTitle}>{latestPrescription.title}</Text>
-                <Text style={styles.rxSub}>
+                <Text style={styles.rxTitle} numberOfLines={1}>{latestPrescription.title}</Text>
+                <Text style={styles.rxSub} numberOfLines={1}>
                   {latestPrescription.doctor?.name} · {latestPrescription.doctor?.specialty}
                 </Text>
                 {latestPrescription.items && latestPrescription.items.length > 0 && (

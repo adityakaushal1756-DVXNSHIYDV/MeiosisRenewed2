@@ -2,13 +2,13 @@ import { SmartphoneNfc, ShieldAlert, History, CreditCard, RotateCcw } from 'luci
 
 export function NfcPage() {
   return (
-    <div className="p-6 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto h-full flex flex-col">
-      <header className="mb-6 mt-2 shrink-0">
+    <div className="patient-page patient-nfc-page p-4 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto min-h-full flex flex-col">
+      <header className="patient-page-header mb-6 mt-2 shrink-0">
         <h1 className="text-3xl font-bold text-white tracking-tight mb-2">NFC ID Screen</h1>
         <p className="text-mist">MEIOSIS Universal ID</p>
       </header>
 
-      <div className="flex-1 overflow-y-auto scroll-skin pb-12 queue-scroll space-y-6">
+      <div className="flex-1 pb-12 space-y-6">
         
         {/* NFC Cards List */}
         <div className="glass-card p-6 border border-wire/10">

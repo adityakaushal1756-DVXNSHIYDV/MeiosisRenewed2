@@ -37,8 +37,8 @@ export function AppointmentsPage({ data, refresh }: AppointmentsPageProps) {
   const filtered = mappedAppointments.filter(a => a.status === filter);
 
   return (
-    <div className="p-6 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto h-full flex flex-col relative overflow-hidden">
-      <header className="mb-8 mt-2 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="patient-page patient-appointments-page p-4 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto min-h-full flex flex-col relative">
+      <header className="appointments-header patient-page-header mb-6 md:mb-8 mt-2 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">Appointments</h1>
           <p className="text-mist mt-1 text-sm font-medium">Manage clinical visits & video consultations.</p>
@@ -46,39 +46,35 @@ export function AppointmentsPage({ data, refresh }: AppointmentsPageProps) {
 
         <button 
           onClick={() => setShowBooking(true)}
-          className="action-btn gap-2 shadow-[0_8px_32px_rgba(82,255,157,0.2)]"
+          className="action-btn gap-2 shadow-[0_8px_32px_rgba(82,255,157,0.2)] w-full sm:w-auto justify-center"
         >
           <PlusCircle size={18} strokeWidth={3} />
           Book New Appointment
         </button>
         
-        <div className="flex bg-white/[0.03] p-1.5 rounded-full border border-white/5 backdrop-blur-3xl shadow-2xl">
-
+        <div className="filter-pill-group">
           <button 
             onClick={() => setFilter('upcoming')}
-            className={cn("px-8 py-2.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-all duration-300", 
-              filter === 'upcoming' ? 'bg-neon text-ink shadow-[0_0_20px_rgba(82,255,157,0.4)]' : 'text-mist hover:text-white')}
+            className={`filter-pill-btn ${filter === 'upcoming' ? 'active' : ''}`}
           >
             Upcoming
           </button>
           <button 
             onClick={() => setFilter('past')}
-            className={cn("px-8 py-2.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-all duration-300", 
-              filter === 'past' ? 'bg-neon text-ink shadow-[0_0_20px_rgba(82,255,157,0.4)]' : 'text-mist hover:text-white')}
+            className={`filter-pill-btn ${filter === 'past' ? 'active' : ''}`}
           >
             Past
           </button>
           <button 
             onClick={() => setFilter('cancelled')}
-            className={cn("px-8 py-2.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-all duration-300", 
-              filter === 'cancelled' ? 'bg-neon text-ink shadow-[0_0_20px_rgba(82,255,157,0.4)]' : 'text-mist hover:text-white')}
+            className={`filter-pill-btn ${filter === 'cancelled' ? 'active' : ''}`}
           >
             Cancelled
           </button>
         </div>
       </header>
 
-      <div className="grid md:grid-cols-2 gap-6 overflow-y-auto scroll-skin pb-12 items-start queue-scroll">
+      <div className="patient-page-list grid md:grid-cols-2 gap-4 md:gap-6 pb-12 items-start">
         {filtered.length === 0 ? (
           <div className="md:col-span-2 glass-card p-12 text-center border-dashed border-wire/20 flex flex-col items-center justify-center">
             <Calendar className="w-12 h-12 text-mist mb-4" />

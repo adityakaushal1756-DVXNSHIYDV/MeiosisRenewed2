@@ -175,8 +175,8 @@ export default function PrescriptionsScreen() {
                             </Text>
                           </View>
                         </View>
-                        <Text style={[styles.rxName, !isActive && styles.rxNameInactive]}>{p.title}</Text>
-                        <Text style={styles.rxDoctor}>{p.doctor?.name} · {p.doctor?.specialty}</Text>
+                        <Text style={[styles.rxName, !isActive && styles.rxNameInactive]} numberOfLines={1}>{p.title}</Text>
+                        <Text style={styles.rxDoctor} numberOfLines={1}>{p.doctor?.name} · {p.doctor?.specialty}</Text>
                         <View style={[styles.viewRxBtn, !isActive && styles.viewRxBtnInactive]}>
                           <Text style={[styles.viewRxText, !isActive && styles.viewRxTextInactive]}>View Digital Rx</Text>
                           <Feather name="chevron-right" size={14} color={isActive ? Colors.white : Colors.mist} />
@@ -277,8 +277,9 @@ export default function PrescriptionsScreen() {
         transparent
         onRequestClose={() => setSelected(null)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setSelected(null)}>
-          <Pressable style={styles.modalSheet} onPress={(e) => e.stopPropagation()}>
+        <View style={styles.modalOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelected(null)} />
+          <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             {selected && (
               <ScrollView showsVerticalScrollIndicator={false}>
@@ -319,8 +320,8 @@ export default function PrescriptionsScreen() {
                 </View>
               </ScrollView>
             )}
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -328,7 +329,7 @@ export default function PrescriptionsScreen() {
 
 const INDIGO = '#818CF8';
 
-const styles = StyleSheet.create({
+const styles = {
   container: { flex: 1, backgroundColor: Colors.ink },
   header: { paddingHorizontal: Spacing.xl, paddingBottom: Spacing.lg },
   title: { fontSize: 28, fontWeight: '800', color: Colors.white, letterSpacing: -0.5 },
@@ -474,9 +475,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     marginBottom: 8,
   },
-  medItemLeft: {},
-  medName: { fontSize: 14, fontWeight: '700', color: Colors.white },
-  medDose: { fontSize: 11, color: Colors.mist, marginTop: 2 },
+  medItemLeft: { flex: 1, paddingRight: 8 },
+  medName: { fontSize: 14, fontWeight: '700', color: Colors.white, marginBottom: 2 },
+  medDose: { fontSize: 11, color: Colors.mist },
   medBadge: { backgroundColor: Colors.glass, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: Colors.border },
   medFreq: { fontSize: 9, fontWeight: '700', color: Colors.white, textTransform: 'uppercase', letterSpacing: 0.5 },
   modalMeta: { flexDirection: 'row', gap: 10, marginTop: 16 },
@@ -484,4 +485,4 @@ const styles = StyleSheet.create({
   modalMetaLabel: { fontSize: 10, color: Colors.mist, fontWeight: '500', marginBottom: 4 },
   modalMetaVal: { fontSize: 16, fontWeight: '700', color: Colors.white },
   indigo: INDIGO,
-});
+};

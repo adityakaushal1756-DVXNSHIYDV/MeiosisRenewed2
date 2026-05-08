@@ -69,10 +69,10 @@ export function TimelineSidePanel({ entry, isOpen, onClose }: TimelineSidePanelP
       )}>
         <div 
           ref={modalRef}
-          className="w-full max-w-[800px] h-fit max-h-full bg-[#0A1118] border border-wire/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] rounded-[32px] overflow-hidden flex flex-col pointer-events-auto relative"
+          className="timeline-side-panel w-full max-w-[800px] h-fit max-h-full bg-[#0A1118] border border-wire/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] rounded-[32px] overflow-hidden flex flex-col pointer-events-auto relative"
         >
           {/* Header */}
-          <header className="p-8 border-b border-white/5 flex items-start justify-between shrink-0 bg-gradient-to-b from-white/[0.02] to-transparent">
+          <header className="timeline-side-header p-8 border-b border-white/5 flex items-start justify-between shrink-0 bg-gradient-to-b from-white/[0.02] to-transparent">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-neon">Meiosis Clinical Portal</span>
@@ -94,7 +94,7 @@ export function TimelineSidePanel({ entry, isOpen, onClose }: TimelineSidePanelP
           </header>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto scroll-skin p-8 space-y-10">
+          <div className="timeline-side-scroll flex-1 overflow-y-auto scroll-skin p-8 space-y-10">
             
             {/* Metadata Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 bg-white/[0.03] border border-wire/10 rounded-2xl overflow-hidden divide-x divide-white/5 shadow-inner">

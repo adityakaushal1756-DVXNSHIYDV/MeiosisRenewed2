@@ -15,10 +15,10 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
   const [view, setView] = useState<'overview' | 'timeline'>('overview');
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
-  const [isSmallDevice, setIsSmallDevice] = useState(window.innerWidth <= 820);
+  const [isSmallDevice, setIsSmallDevice] = useState(window.innerWidth <= 1180);
 
   useEffect(() => {
-    const handleResize = () => setIsSmallDevice(window.innerWidth <= 820);
+    const handleResize = () => setIsSmallDevice(window.innerWidth <= 1180);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -57,32 +57,30 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
   const labPercent = Math.min(100, (labs.length / 2) * 100);
 
   return (
-    <div className="p-6 md:p-8 pt-[max(1.5rem,env(safe-area-inset-top,1.5rem))] animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto h-full flex flex-col relative overflow-hidden">
-      <header className="mb-8 mt-2 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="patient-page patient-prescriptions-page p-4 md:p-8 pt-[max(1.5rem,env(safe-area-inset-top,1.5rem))] animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto min-h-full flex flex-col relative gap-6 md:gap-8">
+      <header className="patient-page-header mb-8 mt-2 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">Prescriptions</h1>
           <p className="text-mist mt-1 text-sm font-medium">Digital treatment records & clinical documentation.</p>
         </div>
         
-        <div className="flex bg-white/[0.03] p-1.5 rounded-full border border-white/5 backdrop-blur-3xl shadow-2xl">
+        <div className="filter-pill-group">
           <button 
             onClick={() => setView('overview')}
-            className={cn("px-8 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-300", 
-              view === 'overview' ? 'bg-neon text-ink shadow-[0_0_20px_rgba(82,255,157,0.4)]' : 'text-mist hover:text-white')}
+            className={`filter-pill-btn ${view === 'overview' ? 'active' : ''}`}
           >
             Overview
           </button>
           <button 
             onClick={() => setView('timeline')}
-            className={cn("px-8 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-300", 
-              view === 'timeline' ? 'bg-neon text-ink shadow-[0_0_20px_rgba(82,255,157,0.4)]' : 'text-mist hover:text-white')}
+            className={`filter-pill-btn ${view === 'timeline' ? 'active' : ''}`}
           >
             Timeline
           </button>
         </div>
       </header>
 
-      <div className="flex-1 overflow-hidden h-full">
+      <div className="patient-page-content flex-1 min-h-0">
         {view === 'overview' ? (
           <div className="h-full overflow-y-auto scroll-skin pb-32 queue-scroll pr-1 space-y-8">
             
@@ -206,7 +204,7 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
             <section className="grid lg:grid-cols-2 gap-6 pt-4 border-t border-white/5">
               
               {/* Past Prescriptions */}
-              <div className="flex flex-col h-[500px]">
+              <div className="prescription-archive-col flex flex-col" style={{minHeight: 0}}>
                 <h3 className="text-[10px] font-semibold uppercase tracking-wider text-mist/50 mb-4 px-1">Prescription Archive</h3>
                 <div className="flex-1 overflow-y-auto scroll-skin px-4 space-y-2 relative">
                   {pastPrescriptions.map(p => (
@@ -234,7 +232,7 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
               </div>
 
               {/* Lab Reports */}
-              <div className="flex flex-col h-[500px]">
+              <div className="prescription-archive-col flex flex-col" style={{minHeight: 0}}>
                 <h3 className="text-[10px] font-semibold uppercase tracking-wider text-mist/50 mb-4 px-1 flex justify-between items-center">
                   <span>Lab Reports Archive</span>
                   <span className="hover:text-neon cursor-pointer transition-colors text-[9px] bg-white/5 px-2 py-0.5 rounded-full">+ Upload</span>
@@ -279,4 +277,3 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
     </div>
   );
 }
-

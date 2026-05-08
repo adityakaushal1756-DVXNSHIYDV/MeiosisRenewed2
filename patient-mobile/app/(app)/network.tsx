@@ -179,8 +179,8 @@ export default function NetworkScreen() {
                         <Text style={[styles.docAvatarText, { color: colors.text }]}>{initials(doc.name)}</Text>
                       </View>
                       <View style={styles.docInfo}>
-                        <Text style={styles.docName}>{doc.name}</Text>
-                        <Text style={[styles.docSpecialty, { color: colors.text }]}>{doc.specialty}</Text>
+                        <Text style={styles.docName} numberOfLines={1}>{doc.name}</Text>
+                        <Text style={[styles.docSpecialty, { color: colors.text }]} numberOfLines={1}>{doc.specialty}</Text>
                       </View>
                       <View style={styles.ratingBadge}>
                         <Feather name="star" size={10} color={Colors.amber} />

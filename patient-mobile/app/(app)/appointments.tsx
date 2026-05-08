@@ -7,21 +7,70 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Modal,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { GlassCard, ActionButton, EmptyState } from '../../components/ui';
 import { Colors, Spacing, Radius, Fonts } from '../../lib/theme';
+import { apiUrl, getAuthHeader } from '../../lib/api';
+import type { Doctor } from '../../lib/types';
 import type { Appointment } from '../../lib/types';
 
 type FilterType = 'upcoming' | 'past' | 'cancelled';
 
 export default function AppointmentsScreen() {
-  const { profile, refreshProfile } = useAuth();
+  const { session, profile, refreshProfile } = useAuth();
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<FilterType>('upcoming');
   const [refreshing, setRefreshing] = useState(false);
+  
+  const [showDoctorModal, setShowDoctorModal] = useState(false);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
+  const [careTeamIds, setCareTeamIds] = useState<Set<string>>(new Set());
+
+  const fetchDoctors = async () => {
+    if (!session?.patientId || !session?.token) return;
+    setLoadingDoctors(true);
+    try {
+      // Fetch care team doctors first to get their IDs
+      const careTeamUrl = apiUrl(`/network/doctors/${session.patientId}`);
+      const careTeamRes = await fetch(careTeamUrl, { headers: getAuthHeader(session.token) });
+      const careTeam = careTeamRes.ok ? await careTeamRes.json() : [];
+      const cIds = new Set(Array.isArray(careTeam) ? careTeam.map((d: any) => d.id) : []);
+      setCareTeamIds(cIds);
+
+      // Fetch all doctors
+      const searchUrl = apiUrl(`/network/search?q=&patientId=${session.patientId}`);
+      const searchRes = await fetch(searchUrl, { headers: getAuthHeader(session.token) });
+      const allDoctors = searchRes.ok ? await searchRes.json() : [];
+
+      if (Array.isArray(allDoctors)) {
+        // Sort: Care team first
+        const sorted = [...allDoctors].sort((a: any, b: any) => {
+          const aIsCare = cIds.has(a.id) ? 1 : 0;
+          const bIsCare = cIds.has(b.id) ? 1 : 0;
+          return bIsCare - aIsCare;
+        });
+        setDoctors(sorted);
+      } else {
+        setDoctors([]);
+      }
+    } catch (e) {
+      console.error('Failed to fetch doctors:', e);
+      setDoctors([]);
+    } finally {
+      setLoadingDoctors(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (showDoctorModal) {
+      fetchDoctors();
+    }
+  }, [showDoctorModal]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -60,7 +109,7 @@ export default function AppointmentsScreen() {
             <Text style={styles.title}>Appointments</Text>
             <Text style={styles.subtitle}>Manage clinical visits & consultations.</Text>
           </View>
-          <TouchableOpacity style={styles.addBtn} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.addBtn} activeOpacity={0.8} onPress={() => setShowDoctorModal(true)}>
             <Feather name="plus" size={20} color={Colors.ink} />
           </TouchableOpacity>
         </View>
@@ -96,7 +145,7 @@ export default function AppointmentsScreen() {
             subtitle={`You do not have any ${filter} appointments at this time.`}
             action={
               filter !== 'past' ? (
-                <ActionButton label="Book New Appointment" />
+                <ActionButton label="Book New Appointment" onPress={() => setShowDoctorModal(true)} />
               ) : undefined
             }
           />
@@ -108,10 +157,10 @@ export default function AppointmentsScreen() {
                   <View style={styles.avatar}>
                     <Feather name="user" size={20} color={Colors.mist} />
                   </View>
-                  <View style={styles.doctorText}>
-                    <Text style={styles.doctorName}>{apt.doctor?.name || 'Unknown Doctor'}</Text>
+                  <View style={[styles.doctorText, { flexShrink: 1 }]}>
+                    <Text style={styles.doctorName} numberOfLines={1}>{apt.doctor?.name || 'Unknown Doctor'}</Text>
                     <View style={styles.specialtyBadge}>
-                      <Text style={styles.specialtyText}>{apt.doctor?.specialty || 'General'}</Text>
+                      <Text style={styles.specialtyText} numberOfLines={1}>{apt.doctor?.specialty || 'General'}</Text>
                     </View>
                   </View>
                 </View>
@@ -169,6 +218,63 @@ export default function AppointmentsScreen() {
           ))
         )}
       </ScrollView>
+
+      {/* Doctor Selection Modal */}
+      <Modal
+        visible={showDoctorModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowDoctorModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Specialist</Text>
+              <TouchableOpacity onPress={() => setShowDoctorModal(false)}>
+                <Feather name="x" size={24} color={Colors.mist} />
+              </TouchableOpacity>
+            </View>
+
+            {loadingDoctors ? (
+              <View style={styles.modalLoading}>
+                <ActivityIndicator color={Colors.neon} size="large" />
+                <Text style={styles.modalLoadingText}>Scanning Specialists...</Text>
+              </View>
+            ) : (
+              <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+                {doctors.map((doctor) => (
+                  <TouchableOpacity
+                    key={doctor.id}
+                    style={styles.doctorItem}
+                    onPress={() => {
+                      setShowDoctorModal(false);
+                      alert(`Selected ${doctor.name}. Booking flow not fully implemented yet.`);
+                    }}
+                  >
+                    <View style={styles.doctorItemHeader}>
+                      <View style={styles.avatar}>
+                        <Feather name="user" size={20} color={Colors.mist} />
+                      </View>
+                      <View style={styles.doctorItemText}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <Text style={styles.doctorItemName}>{doctor.name}</Text>
+                          {careTeamIds.has(doctor.id) && (
+                            <View style={styles.careTeamBadge}>
+                              <Feather name="heart" size={10} color={Colors.neon} />
+                              <Text style={styles.careTeamText}>Care Team</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.doctorItemSub}>{doctor.specialty} • {doctor.hospital}</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -314,6 +420,7 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: Spacing.sm,
   },
   detailText: {
@@ -332,5 +439,87 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     gap: Spacing.md,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: Colors.ink,
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
+    padding: Spacing.xl,
+    maxHeight: '80%',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+  },
+  modalTitle: {
+    fontSize: 20,
+    ...Fonts.bold,
+    color: Colors.white,
+  },
+  modalLoading: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.xxl,
+    gap: Spacing.md,
+  },
+  modalLoadingText: {
+    color: Colors.mist,
+    fontSize: 14,
+    ...Fonts.medium,
+  },
+  modalList: {
+    marginBottom: Spacing.xl,
+  },
+  doctorItem: {
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  doctorItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  doctorItemText: {
+    flex: 1,
+  },
+  doctorItemName: {
+    fontSize: 16,
+    ...Fonts.bold,
+    color: Colors.white,
+  },
+  doctorItemSub: {
+    fontSize: 13,
+    color: Colors.mist,
+    marginTop: 2,
+  },
+  careTeamBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(82,255,157,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(82,255,157,0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  careTeamText: {
+    color: Colors.neon,
+    fontSize: 10,
+    ...Fonts.bold,
+    textTransform: 'uppercase',
   },
 });

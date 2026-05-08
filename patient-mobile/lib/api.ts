@@ -10,7 +10,7 @@
 
 // ─── CHANGE THIS TO YOUR LOCAL IP WHEN TESTING ON A PHONE ──────────────────
 // To find it: run `ipconfig getifaddr en0` on Mac terminal
-const LOCAL_DEV_IP = '192.168.1.100'; // <-- UPDATE THIS
+const LOCAL_DEV_IP = '192.168.29.52'; // Updated to match your Mac's current Wi-Fi IP
 const LOCAL_DEV_PORT = '5002';
 // ────────────────────────────────────────────────────────────────────────────
 

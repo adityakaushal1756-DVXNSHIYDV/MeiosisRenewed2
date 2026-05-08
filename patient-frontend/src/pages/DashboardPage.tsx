@@ -30,38 +30,29 @@ export function DashboardPage({ onNavigate, data }: DashboardPageProps) {
   const latestPrescription = activePrescriptions.length > 0 ? activePrescriptions[0] : null;
 
   return (
-    <div className="p-6 md:p-8 pt-[max(1.5rem,env(safe-area-inset-top,1.5rem))] animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto relative overflow-hidden h-full flex flex-col">
+    <div className="patient-page patient-dashboard-page p-4 md:p-8 pt-[max(1.5rem,env(safe-area-inset-top,1.5rem))] animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto relative min-h-full flex flex-col gap-6 md:gap-8">
       {/* Header */}
-      <header className="flex items-start justify-between gap-6 mb-8 mt-2 shrink-0">
+      <header className="patient-page-header flex flex-wrap items-start justify-between gap-4 mb-6 md:mb-8 mt-2 shrink-0">
         <div className="flex-1 min-w-0">
-          <h1 className="text-3xl font-bold text-white tracking-tight leading-tight">Good Afternoon, {data.name.split(' ')[0]}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight leading-tight">Good Afternoon, {data.name.split(' ')[0]}</h1>
           <p className="text-mist mt-1 text-sm font-medium">Your Health. Fully In Your Control.</p>
         </div>
 
         {/* Global Action Area */}
-        <div className="flex items-center gap-3 shrink-0">
-          {/* Desktop Search */}
-          <div className="hidden xl:flex items-center gap-2">
-            <div className="relative">
-              <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-mist" />
-              <input 
-                type="text" 
-                placeholder="Search section" 
-                className="pl-10 pr-4 py-2.5 rounded-xl border border-wire/10 bg-white/[0.03] text-white outline-none focus:border-neon focus:ring-1 focus:ring-neon w-[240px] text-sm transition-all"
-              />
-            </div>
-            <button className="ghost-btn !px-4 !py-2.5 !rounded-xl">Go</button>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-mist" />
+            <input 
+              type="text" 
+              placeholder="Search..." 
+              className="dashboard-search-input pl-9 pr-4 py-2.5 rounded-xl border border-wire/10 bg-white/[0.03] text-white outline-none focus:border-neon focus:ring-1 focus:ring-neon text-sm transition-all"
+            />
           </div>
-
-          {/* Mobile/Tablet Search - Fixed Position */}
-          <button className="xl:hidden flex items-center justify-center w-12 h-12 rounded-2xl border border-wire/10 bg-white/[0.03] text-mist hover:text-neon hover:border-neon transition-all group shadow-glass active:scale-95">
-            <Search className="w-6 h-6 group-hover:scale-110 transition-transform" />
-          </button>
         </div>
       </header>
 
       {/* KPI Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="kpi-grid">
         {[
           { label: 'Upcoming Appointments', val: upcomingAppointments.length, onClick: () => onNavigate('appointments'), id: 'appointments' },
           { label: 'Active Channels', val: activePrescriptions.length, onClick: () => onNavigate('prescriptions'), id: 'prescriptions' },
@@ -83,7 +74,7 @@ export function DashboardPage({ onNavigate, data }: DashboardPageProps) {
       </div>
 
       {/* Main Two Columns */}
-      <div className="grid lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
         
         {/* Upcoming Appointment */}
         <div className="glass-card p-6 flex flex-col relative overflow-hidden group border border-wire/5 hover:border-wire/20 cursor-pointer transition-all" onClick={() => onNavigate('appointments')}>
@@ -212,32 +203,31 @@ export function DashboardPage({ onNavigate, data }: DashboardPageProps) {
       </div>
 
       {/* Quick Actions */}
-      <div className="glass-card p-6 border border-wire/5">
-        <h2 className="section-title mb-6 border-b border-wire/10 pb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <button className="h-16 flex items-center gap-3 px-4 rounded-xl bg-white/5 border border-wire/10 hover:bg-white/10 hover:border-wire/20 transition-colors text-white font-medium text-sm group">
-            <FileOutput className="w-5 h-5 text-sky group-hover:scale-110 transition-transform" />
-            Share EMR
+      <div className="glass-card p-5 md:p-6 border border-wire/5">
+        <h2 className="section-title mb-4 md:mb-6 border-b border-wire/10 pb-4">Quick Actions</h2>
+        <div className="quick-actions-grid">
+          <button className="min-h-[56px] flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-wire/10 hover:bg-white/10 hover:border-wire/20 transition-colors text-white font-medium text-sm group">
+            <FileOutput className="w-5 h-5 text-sky shrink-0" />
+            <span className="truncate">Share EMR</span>
           </button>
-          <button className="h-16 flex items-center gap-3 px-4 rounded-xl bg-white/5 border border-wire/10 hover:bg-white/10 hover:border-wire/20 transition-colors text-white font-medium text-sm group" onClick={() => onNavigate('records')}>
-            <LayoutList className="w-5 h-5 text-neon group-hover:scale-110 transition-transform" />
-            Health Summary
+          <button className="min-h-[56px] flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-wire/10 hover:bg-white/10 hover:border-wire/20 transition-colors text-white font-medium text-sm group" onClick={() => onNavigate('records')}>
+            <LayoutList className="w-5 h-5 text-neon shrink-0" />
+            <span className="truncate">Health Summary</span>
           </button>
-          <button className="h-16 flex items-center gap-3 px-4 rounded-xl bg-white/5 border border-wire/10 hover:bg-white/10 hover:border-wire/20 transition-colors text-white font-medium text-sm group" onClick={() => onNavigate('appointments')}>
-            <Calendar className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
-            Add Appointment
+          <button className="min-h-[56px] flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-wire/10 hover:bg-white/10 hover:border-wire/20 transition-colors text-white font-medium text-sm group" onClick={() => onNavigate('appointments')}>
+            <Calendar className="w-5 h-5 text-purple-400 shrink-0" />
+            <span className="truncate">Add Appointment</span>
           </button>
-          <button className="h-16 flex items-center gap-3 px-4 rounded-xl bg-white/5 border border-wire/10 hover:bg-white/10 hover:border-wire/20 transition-colors text-white font-medium text-sm group">
-            <Upload className="w-5 h-5 text-mist group-hover:scale-110 transition-transform" />
-            Upload Report
+          <button className="min-h-[56px] flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-wire/10 hover:bg-white/10 hover:border-wire/20 transition-colors text-white font-medium text-sm group">
+            <Upload className="w-5 h-5 text-mist shrink-0" />
+            <span className="truncate">Upload Report</span>
           </button>
-          <button className="h-16 flex items-center gap-3 px-4 rounded-xl bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 transition-colors text-rose-300 font-medium text-sm group" onClick={() => onNavigate('nfc')}>
-            <ShieldAlert className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            Emergency QR
+          <button className="min-h-[56px] flex items-center gap-3 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 transition-colors text-rose-300 font-medium text-sm group" onClick={() => onNavigate('nfc')}>
+            <ShieldAlert className="w-5 h-5 shrink-0" />
+            <span className="truncate">Emergency QR</span>
           </button>
         </div>
       </div>
     </div>
   );
 }
-

@@ -145,7 +145,7 @@ export default function MedicinesScreen() {
             <View style={styles.upcomingFocus}>
               <Text style={styles.focusLabel}>Upcoming Focus</Text>
               <View style={styles.focusRow}>
-                <Text style={styles.focusMedicine}>{allActiveItems[0].medicine}</Text>
+                <Text style={styles.focusMedicine} numberOfLines={1}>{allActiveItems[0].medicine}</Text>
                 <View style={styles.timingBadge}>
                   <Text style={styles.timingText}>{allActiveItems[0].timing}</Text>
                 </View>
@@ -179,8 +179,8 @@ export default function MedicinesScreen() {
                   ]}>
                     <Feather name="disc" size={20} color={selectedMedicine === item.medicine ? Colors.ink : Colors.mist} />
                   </View>
-                  <View>
-                    <Text style={[styles.medName, selectedMedicine === item.medicine && { color: Colors.neon }]}>{item.medicine}</Text>
+                  <View style={{ flexShrink: 1 }}>
+                    <Text style={[styles.medName, selectedMedicine === item.medicine && { color: Colors.neon }]} numberOfLines={1}>{item.medicine}</Text>
                     <View style={styles.timeLeftRow}>
                       <Feather name="clock" size={10} color={item.daysLeft <= 2 ? Colors.rose : Colors.mist} />
                       <Text style={[styles.timeLeftText, item.daysLeft <= 2 && { color: Colors.rose }]}>
@@ -210,9 +210,9 @@ export default function MedicinesScreen() {
             allActiveItems.map((item, idx) => (
               <View key={idx} style={[styles.scheduleItem, idx < allActiveItems.length - 1 && styles.scheduleBorder]}>
                 <View style={styles.scheduleHeader}>
-                  <View>
-                    <Text style={styles.scheduleMedName}>{item.medicine}</Text>
-                    <Text style={styles.scheduleDose}>{item.dose} • {item.timing}</Text>
+                  <View style={{ flexShrink: 1, paddingRight: 8 }}>
+                    <Text style={styles.scheduleMedName} numberOfLines={1}>{item.medicine}</Text>
+                    <Text style={styles.scheduleDose} numberOfLines={1}>{item.dose} • {item.timing}</Text>
                   </View>
                   <Text style={styles.scheduleFreq}>{item.frequency.replace(/_/g, ' ')}</Text>
                 </View>
@@ -256,9 +256,9 @@ const styles = StyleSheet.create({
   progressBar: { height: 8, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: Radius.pill, marginBottom: Spacing.xl, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: Colors.neon, borderRadius: Radius.pill },
   upcomingFocus: { backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: Colors.border, borderLeftWidth: 4, borderLeftColor: Colors.sky, borderRadius: Radius.md, padding: Spacing.md },
-  focusLabel: { fontSize: 10, color: Colors.mist, ...Fonts.bold, textTransform: 'uppercase', tracking: 1, marginBottom: 8 },
-  focusRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  focusMedicine: { fontSize: 14, ...Fonts.bold, color: Colors.white },
+  focusLabel: { fontSize: 10, color: Colors.mist, ...Fonts.bold, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
+  focusRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  focusMedicine: { fontSize: 14, ...Fonts.bold, color: Colors.white, flexShrink: 1 },
   timingBadge: { backgroundColor: 'rgba(131,212,255,0.1)', borderWidth: 1, borderColor: 'rgba(131,212,255,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radius.pill },
   timingText: { fontSize: 10, color: Colors.sky, ...Fonts.bold },
   emptyTracker: { padding: Spacing.xl, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border, borderStyle: 'dashed', borderRadius: Radius.md },
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   medList: { gap: Spacing.sm },
   medItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, backgroundColor: Colors.glass, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg },
   medItemActive: { backgroundColor: 'rgba(82,255,157,0.1)', borderColor: 'rgba(82,255,157,0.4)' },
-  medItemLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  medItemLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1, paddingRight: 8 },
   medIcon: { width: 40, height: 40, borderRadius: Radius.md, backgroundColor: Colors.glass, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
   medIconActive: { backgroundColor: Colors.neon, borderColor: Colors.neon },
   medName: { fontSize: 14, ...Fonts.bold, color: Colors.white },

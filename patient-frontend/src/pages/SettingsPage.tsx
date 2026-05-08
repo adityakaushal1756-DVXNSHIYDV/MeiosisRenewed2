@@ -98,8 +98,8 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-4xl mx-auto h-full flex flex-col">
-      <header className="mb-6 mt-2 shrink-0">
+    <div className="patient-page patient-settings-page p-4 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-4xl mx-auto min-h-full flex flex-col">
+      <header className="patient-page-header mb-6 mt-2 shrink-0">
         <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Patient Settings</h1>
         <p className="text-mist">Manage profile, security, notifications, and preferences.</p>
       </header>
@@ -129,7 +129,7 @@ export function SettingsPage() {
             )}
           </ul>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 md:gap-3">
             <button className="ghost-btn" disabled={isLoading}>Edit Profile</button>
             <button className="ghost-btn group" disabled={isLoading}><KeyRound className="w-4 h-4 mr-2 group-hover:text-neon" /> Change Password</button>
             <button className="ghost-btn group border-sky/30 text-sky hover:bg-sky/10" disabled={isLoading}><SmartphoneNfc className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" /> Open NFC ID</button>
@@ -137,7 +137,7 @@ export function SettingsPage() {
         </div>
 
         {/* Notifications & Theme */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid sm:grid-cols-2 gap-4 md:gap-6">
           <div className="glass-card p-6 border border-wire/10">
             <h2 className="section-title flex items-center gap-2 mb-6">
               <Bell className="w-5 h-5 text-neon" /> Notifications
@@ -432,4 +432,3 @@ export function SettingsPage() {
     </div>
   );
 }
-

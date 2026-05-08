@@ -281,12 +281,12 @@ function AddDoctorPopup({
   // Close on backdrop click
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4"
       style={{ backdropFilter: 'blur(20px) saturate(160%)', WebkitBackdropFilter: 'blur(20px) saturate(160%)', background: 'rgba(4,12,24,0.75)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="w-full max-w-2xl max-h-[88vh] flex flex-col rounded-[28px] border border-wire/15 shadow-2xl"
+        className="w-full sm:max-w-2xl max-h-[92dvh] sm:max-h-[88vh] flex flex-col rounded-t-[28px] sm:rounded-[28px] border border-wire/15 shadow-2xl"
         style={{ background: 'linear-gradient(180deg, rgba(8,22,40,0.98) 0%, rgba(5,14,28,0.96) 100%)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -323,7 +323,7 @@ function AddDoctorPopup({
         </div>
 
         {/* Results */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-3">
+        <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-3 min-h-0">
           {error && (
             <div className="text-sm text-red-300 text-center py-8">{error}</div>
           )}
@@ -404,14 +404,14 @@ export function NetworkPage() {
         />
       )}
 
-      <div className="p-6 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto h-full flex flex-col">
-        <header className="mb-6 mt-2 shrink-0">
+      <div className="patient-page patient-network-page p-4 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto min-h-full flex flex-col gap-8">
+        <header className="patient-page-header mt-2 shrink-0">
           <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Doctor Network</h1>
           <p className="text-mist">Connected care team and referral control</p>
         </header>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="kpi-grid">
           <div className="glass-card p-5 border border-wire/10 border-t-sky/30 text-center">
             <h3 className="text-3xl font-bold text-white mb-1">{loading ? '—' : doctors.length}</h3>
             <p className="text-sm font-medium text-white">Connected Doctors</p>
@@ -422,7 +422,7 @@ export function NetworkPage() {
             <p className="text-sm font-medium text-white">Specialties</p>
             <p className="text-xs text-mist mt-1">Areas of care</p>
           </div>
-          <div className="glass-card p-5 border border-wire/10 border-t-sky/30 text-center col-span-2 md:col-span-1">
+          <div className="glass-card p-5 border border-wire/10 border-t-sky/30 text-center col-span-2 md:col-span-1 max-[820px]:hidden">
             <h3 className="text-3xl font-bold text-white mb-1">{loading ? '—' : doctors.length > 0 ? 'Active' : 'None'}</h3>
             <p className="text-sm font-medium text-white">Care Status</p>
             <p className="text-xs text-mist mt-1">Active care team</p>
@@ -434,17 +434,27 @@ export function NetworkPage() {
             <h3 className="text-sm font-bold text-white mb-1">Second Opinion</h3>
             <p className="text-xs text-mist">Request specialist review</p>
           </div>
+
+          {/* Mobile Add Doctor button */}
+          <div 
+            className="glass-card p-5 border border-neon/30 bg-neon/5 hover:bg-neon/10 transition-colors cursor-pointer flex flex-col justify-center items-center text-center group min-[821px]:hidden"
+            onClick={() => setShowPopup(true)}
+          >
+            <UserPlus className="w-6 h-6 text-neon mb-2 group-hover:scale-110 transition-transform" />
+            <h3 className="text-sm font-bold text-white mb-1">Add Doctor</h3>
+            <p className="text-xs text-mist">Expand your care team</p>
+          </div>
         </div>
 
         {/* Doctors List */}
-        <div className="glass-card p-6 border border-wire/10 flex-1">
+        <div className="glass-card p-6 border border-wire/10 flex-1 flex flex-col">
           <div className="flex justify-between items-start mb-6">
             <div>
               <h2 className="section-title">Your Doctors</h2>
               <p className="text-mist text-sm">Ratings, availability, and quick actions in one place.</p>
             </div>
             <button
-              className="action-btn !py-2 !px-4 flex items-center gap-2"
+              className="action-btn !py-2 !px-4 flex items-center gap-2 max-[820px]:hidden"
               onClick={() => setShowPopup(true)}
             >
               <UserPlus className="w-4 h-4" />

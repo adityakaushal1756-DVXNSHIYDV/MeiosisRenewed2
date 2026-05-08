@@ -55,8 +55,12 @@ export function AppointmentBookingOverlay({ patient, onClose, onSuccess }: Appoi
   const fetchDoctors = async () => {
     try {
       setLoading(true);
-      const res = await fetch(apiUrl('/doctors'), { headers: getAuthHeader() });
+      setError(null);
+      const res = await fetch(apiUrl(`/network/search?patientId=${patient.id}`), { headers: getAuthHeader() });
+      if (!res.ok) throw new Error('Network error');
       const data = await res.json();
+      
+      if (!Array.isArray(data)) throw new Error('Invalid response format');
       
       // Sort: Care team first
       const sorted = [...data].sort((a, b) => {
@@ -76,8 +80,12 @@ export function AppointmentBookingOverlay({ patient, onClose, onSuccess }: Appoi
   const fetchSlots = async (doctorId: string) => {
     try {
       setLoading(true);
+      setError(null);
       const res = await fetch(apiUrl(`/doctors/${doctorId}/slots`), { headers: getAuthHeader() });
+      if (!res.ok) throw new Error('Network error');
       const data = await res.json();
+      
+      if (!Array.isArray(data)) throw new Error('Invalid response format');
       
       // Filter for next 5 days
       const now = new Date();
@@ -147,7 +155,7 @@ export function AppointmentBookingOverlay({ patient, onClose, onSuccess }: Appoi
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6 overflow-hidden">
+    <div className="booking-overlay fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6 overflow-hidden">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -160,7 +168,7 @@ export function AppointmentBookingOverlay({ patient, onClose, onSuccess }: Appoi
         initial={{ scale: 0.95, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
-        className="relative w-full max-w-2xl bg-ink/40 backdrop-blur-2xl border border-white/10 rounded-[40px] shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[85vh]"
+        className="booking-panel relative w-full max-w-2xl bg-ink/40 backdrop-blur-2xl border border-white/10 rounded-[40px] shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[85vh]"
       >
         {/* Glow Effects */}
         <div className="absolute top-0 left-1/4 w-1/2 h-1 bg-gradient-to-r from-transparent via-neon/40 to-transparent blur-sm" />
@@ -193,7 +201,7 @@ export function AppointmentBookingOverlay({ patient, onClose, onSuccess }: Appoi
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto scroll-skin px-8 pb-8 relative z-10">
+        <div className="booking-scroll flex-1 overflow-y-auto scroll-skin px-8 pb-8 relative z-10">
           <AnimatePresence mode="wait">
             {error && (
               <motion.div 

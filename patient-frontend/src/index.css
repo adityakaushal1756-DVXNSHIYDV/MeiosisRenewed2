@@ -619,6 +619,530 @@ body[data-doctor-theme]:not(.theme-light) [class*="text-mist"] {
   color: var(--doctor-muted) !important;
 }
 
+.mobile-regimen-cards {
+  display: none;
+}
+
+@media (max-width: 1180px) {
+  html,
+  body,
+  #root {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+  }
+
+  body::before {
+    background-size: 96px 96px;
+    opacity: 0.14;
+  }
+
+  .patient-app-shell {
+    width: 100%;
+    height: 100dvh;
+    min-height: 100dvh;
+    letter-spacing: 0;
+  }
+
+  .patient-app-shell *,
+  .patient-app-shell *::before,
+  .patient-app-shell *::after {
+    box-sizing: border-box;
+    letter-spacing: 0 !important;
+  }
+
+  .patient-main-shell {
+    height: 100dvh !important;
+    min-height: 100dvh;
+    padding-left: 0 !important;
+  }
+
+  .patient-main-scroll {
+    height: 100%;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .patient-page {
+    width: 100%;
+    max-width: 100%;
+    min-height: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: max(16px, env(safe-area-inset-top, 0px)) 16px calc(112px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .patient-page-header {
+    gap: 14px !important;
+    margin-top: 0 !important;
+    margin-bottom: 20px !important;
+  }
+
+  .patient-page-header h1,
+  .patient-page h1 {
+    font-size: clamp(1.5rem, 4.8vw, 2rem) !important;
+    line-height: 1.1 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .patient-page h2,
+  .patient-page .section-title {
+    font-size: clamp(1.05rem, 3.7vw, 1.35rem) !important;
+    line-height: 1.2 !important;
+  }
+
+  .patient-page .text-3xl {
+    font-size: 1.65rem !important;
+    line-height: 1.12 !important;
+  }
+
+  .patient-page .text-2xl {
+    font-size: 1.35rem !important;
+    line-height: 1.18 !important;
+  }
+
+  .patient-page p,
+  .patient-page span,
+  .patient-page button,
+  .patient-page input {
+    overflow-wrap: anywhere;
+  }
+
+  .patient-page button,
+  .patient-app-shell button,
+  .patient-app-shell a,
+  .patient-app-shell input {
+    touch-action: manipulation;
+  }
+
+  .patient-page button,
+  .patient-page .action-btn,
+  .patient-page .ghost-btn {
+    min-height: 44px;
+  }
+
+  .patient-page .glass-card,
+  .patient-page.glass-card,
+  .patient-app-shell .record-detail-panel,
+  .patient-app-shell .timeline-side-panel,
+  .patient-app-shell .booking-panel {
+    border-radius: 20px !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    backdrop-filter: blur(10px) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.025),
+      0 14px 36px rgba(0, 0, 0, 0.28) !important;
+  }
+
+  .patient-page .p-8,
+  .patient-page .p-10,
+  .patient-page .p-12 {
+    padding: 1.25rem !important;
+  }
+
+  .patient-page .p-6 {
+    padding: 1rem !important;
+  }
+
+  .patient-page .gap-8 {
+    gap: 1.25rem !important;
+  }
+
+  .patient-page .gap-6 {
+    gap: 1rem !important;
+  }
+
+  .patient-page .mb-10,
+  .patient-page .mb-8,
+  .patient-page .mb-6 {
+    margin-bottom: 1.25rem !important;
+  }
+
+  .patient-page .grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .patient-dashboard-page > .grid:first-of-type,
+  .patient-network-page > .grid:first-of-type {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .patient-page [class*="min-w-"] {
+    min-width: 0 !important;
+  }
+
+  .patient-page [class*="max-w-"] {
+    max-width: 100% !important;
+  }
+
+  .patient-page [class*="h-full"],
+  .patient-page [class*="h-["] {
+    min-height: 0;
+  }
+
+  .patient-page-list,
+  .patient-page-content,
+  .patient-page-content > div,
+  .patient-settings-page > .queue-scroll,
+  .patient-nfc-page > .queue-scroll,
+  .records-data-grid,
+  .records-data-grid > div,
+  .records-data-grid .queue-scroll,
+  .patient-appointments-page .queue-scroll,
+  .patient-medicines-page .queue-scroll,
+  .patient-prescriptions-page .queue-scroll {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .records-share-panel {
+    margin-bottom: 1.25rem !important;
+  }
+
+  .records-share-panel [class*="grid-cols-4"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .records-share-panel button {
+    min-height: 58px;
+    padding: 0.85rem 0.5rem !important;
+    border-radius: 16px !important;
+  }
+
+  .records-share-panel [class*="tracking-"] {
+    letter-spacing: 0.03em !important;
+  }
+
+  .records-graph-panel {
+    height: 240px !important;
+    margin-bottom: 1.5rem !important;
+    padding: 1rem !important;
+  }
+
+  .records-data-grid {
+    display: flex !important;
+    flex-direction: column;
+  }
+
+  .patient-prescriptions-page [class*="h-[500px]"] {
+    height: auto !important;
+  }
+
+  .patient-prescriptions-page .modern-timeline {
+    height: auto !important;
+    overflow: visible !important;
+    padding: 1.25rem 0 7rem !important;
+  }
+
+  .modern-timeline .glass-card {
+    padding: 1rem !important;
+  }
+
+  .modern-timeline [class*="min-w-[200px]"] {
+    flex-basis: 100%;
+  }
+
+  .medicine-table-card {
+    overflow: hidden !important;
+  }
+
+  .desktop-regimen-table {
+    display: none !important;
+  }
+
+  .mobile-regimen-cards {
+    display: grid;
+    gap: 12px;
+    padding: 1rem;
+  }
+
+  .mobile-regimen-card {
+    display: grid;
+    gap: 12px;
+    padding: 1rem;
+    border: 1px solid rgba(108, 156, 204, 0.1);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .mobile-regimen-card.inactive {
+    opacity: 0.78;
+  }
+
+  .mobile-regimen-card h3 {
+    color: #fff;
+    font-size: 0.98rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin: 2px 0;
+  }
+
+  .mobile-regimen-card p {
+    color: var(--doctor-muted);
+    font-size: 0.78rem;
+    margin: 0;
+  }
+
+  .mobile-regimen-kicker,
+  .mobile-regimen-meta span {
+    color: var(--doctor-accent-secondary) !important;
+    font-size: 0.65rem !important;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .mobile-regimen-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .mobile-regimen-meta strong {
+    font-size: 0.8rem;
+  }
+
+  .mobile-regimen-empty {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--doctor-muted);
+    font-size: 0.875rem;
+  }
+
+  .messages-shell {
+    min-height: 560px;
+    height: calc(100dvh - 168px);
+  }
+
+  .patient-messages-page {
+    height: 100% !important;
+    min-height: 100% !important;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .patient-messages-page .patient-page-header {
+    margin-bottom: 14px !important;
+  }
+
+  .patient-messages-page .messages-shell .scroll-skin {
+    overflow-y: auto !important;
+  }
+
+  .patient-messages-page .messages-shell input {
+    min-width: 0;
+  }
+
+  .patient-qr-page .qr-layout {
+    gap: 1.25rem !important;
+  }
+
+  .patient-qr-page .w-64.h-64 {
+    width: min(16rem, calc(100vw - 6rem)) !important;
+    height: min(16rem, calc(100vw - 6rem)) !important;
+  }
+
+  .patient-qr-page .absolute.inset-x-8 {
+    left: 1rem !important;
+    right: 1rem !important;
+    bottom: 1rem !important;
+  }
+
+  .patient-nfc-page .queue-window-strip {
+    scroll-snap-type: x mandatory;
+  }
+
+  .patient-nfc-page .queue-window-pill {
+    width: min(300px, 78vw) !important;
+  }
+
+  .booking-overlay {
+    align-items: stretch !important;
+    padding: max(12px, env(safe-area-inset-top, 0px)) 12px max(12px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .booking-panel {
+    max-height: none !important;
+    height: 100%;
+    border-radius: 24px !important;
+  }
+
+  .booking-scroll {
+    padding: 0 1rem 1rem !important;
+  }
+
+  .booking-panel [class*="grid-cols-2"],
+  .booking-panel [class*="sm:grid-cols-3"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .record-detail-panel {
+    height: calc(100dvh - env(safe-area-inset-top, 0px)) !important;
+    max-height: 100dvh;
+    border-radius: 24px 24px 0 0 !important;
+  }
+
+  .record-detail-header,
+  .timeline-side-header {
+    padding: 1rem !important;
+    gap: 12px;
+  }
+
+  .record-detail-header h2,
+  .timeline-side-header h2 {
+    font-size: 1.1rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .record-detail-scroll,
+  .timeline-side-scroll {
+    padding: 1rem !important;
+  }
+
+  .timeline-side-panel {
+    height: 100%;
+    max-height: calc(100dvh - 24px) !important;
+    border-radius: 24px !important;
+  }
+
+  .timeline-side-panel table {
+    min-width: 560px;
+  }
+
+  .timeline-side-panel .modal-actions {
+    padding: 1rem !important;
+    gap: 0.75rem !important;
+  }
+
+  .radial-menu-container {
+    right: max(14px, env(safe-area-inset-right, 0px)) !important;
+    bottom: max(14px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .radial-backdrop {
+    -webkit-backdrop-filter: blur(2px) !important;
+    backdrop-filter: blur(2px) !important;
+    background: rgba(0, 0, 0, 0.26) !important;
+  }
+
+  .radial-trigger {
+    width: 64px !important;
+    height: 64px !important;
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.42) !important;
+  }
+
+  .radial-trigger span {
+    display: none;
+  }
+
+  .radial-item {
+    -webkit-backdrop-filter: blur(10px) !important;
+    backdrop-filter: blur(10px) !important;
+  }
+
+  .floating-back {
+    top: max(14px, env(safe-area-inset-top, 0px)) !important;
+    left: max(14px, env(safe-area-inset-left, 0px)) !important;
+    width: 48px !important;
+    height: 48px !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    backdrop-filter: blur(10px) !important;
+  }
+
+  .patient-app-shell [class*="hover:scale"],
+  .patient-app-shell [class*="group-hover:scale"],
+  .patient-app-shell [class*="group-hover:-translate"],
+  .patient-app-shell [class*="hover:-translate"] {
+    transform: none !important;
+  }
+
+  .patient-app-shell [class*="blur-[100px]"],
+  .patient-app-shell [class*="blur-3xl"],
+  .patient-app-shell [class*="blur-2xl"] {
+    filter: blur(28px) !important;
+  }
+
+  .patient-app-shell [class*="shadow-[0_0"],
+  .patient-app-shell [class*="shadow-[0_32"],
+  .patient-app-shell [class*="shadow-[0_24"],
+  .patient-app-shell [class*="shadow-2xl"] {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.24) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .patient-page {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .patient-dashboard-page > .grid:first-of-type,
+  .patient-network-page > .grid:first-of-type {
+    gap: 0.75rem !important;
+  }
+
+  .patient-dashboard-page > .grid:first-of-type .glass-card,
+  .patient-network-page > .grid:first-of-type .glass-card {
+    padding: 0.85rem !important;
+  }
+
+  .patient-dashboard-page > .grid:first-of-type p,
+  .patient-network-page > .grid:first-of-type p {
+    font-size: 0.72rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .records-share-panel [class*="grid-cols-4"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .messages-shell {
+    min-height: 500px;
+    height: calc(100dvh - 142px);
+  }
+
+  .patient-messages-page {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .patient-messages-page .p-6,
+  .patient-messages-page .p-4 {
+    padding: 0.75rem !important;
+  }
+
+  .radial-trigger {
+    width: 58px !important;
+    height: 58px !important;
+  }
+
+  .patient-qr-page .w-64.h-64 {
+    width: min(14.5rem, calc(100vw - 5rem)) !important;
+    height: min(14.5rem, calc(100vw - 5rem)) !important;
+  }
+}
+
+@media (max-width: 1180px), (prefers-reduced-motion: reduce) {
+  .patient-app-shell *,
+  .booking-overlay *,
+  .record-detail-panel *,
+  .timeline-side-panel * {
+    scroll-behavior: auto !important;
+  }
+
+  .patient-app-shell [class*="animate-"],
+  .booking-overlay [class*="animate-"],
+  .record-detail-panel [class*="animate-"],
+  .timeline-side-panel [class*="animate-"] {
+    animation-duration: 180ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
 body[data-doctor-theme]:not(.theme-light) [class*="bg-neon/"],
 body[data-doctor-theme]:not(.theme-light) [class~="bg-neon"] {
   background-color: color-mix(in srgb, var(--doctor-accent) 18%, transparent) !important;
@@ -1086,3 +1610,354 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .scheduling-slider--sky::-moz-range-thumb {
   box-shadow: 0 0 0 3px #83d4ff, 0 2px 8px rgba(0, 0, 0, 0.5);
 }
+
+/* ═══════════════════════════════════════════════════
+   MEIOSIS RESPONSIVE DESIGN SYSTEM v2
+   Mobile-first adaptive layers
+   ═══════════════════════════════════════════════════ */
+
+/* ── Fluid typography tokens ── */
+:root {
+  --text-xs:   clamp(0.65rem,  1.8vw, 0.75rem);
+  --text-sm:   clamp(0.78rem,  2.2vw, 0.875rem);
+  --text-base: clamp(0.88rem,  2.5vw, 1rem);
+  --text-lg:   clamp(1rem,     3vw,   1.125rem);
+  --text-xl:   clamp(1.1rem,   3.5vw, 1.25rem);
+  --text-2xl:  clamp(1.2rem,   4vw,   1.5rem);
+  --text-3xl:  clamp(1.4rem,   5vw,   1.875rem);
+
+  /* Spacing tokens */
+  --space-page-x:     clamp(12px, 4vw, 32px);
+  --space-page-top:   max(1rem, env(safe-area-inset-top, 1rem));
+  --space-page-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+
+  /* Touch target minimum */
+  --touch-min: 44px;
+}
+
+/* ── Global overflow guard ── */
+html, body, #root {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* ── Filter pill tabs — prevent horizontal overflow at all sizes ── */
+.filter-pill-group {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 0;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 9999px;
+  padding: 6px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  max-width: 100%;
+}
+
+.filter-pill-group::-webkit-scrollbar { display: none; }
+
+.filter-pill-btn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: all 0.25s;
+  white-space: nowrap;
+  min-height: 36px;
+  min-width: 64px;
+  border: none;
+  background: transparent;
+  color: var(--doctor-muted);
+  cursor: pointer;
+}
+
+.filter-pill-btn.active {
+  background: var(--doctor-accent);
+  color: #021120;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--doctor-accent) 40%, transparent);
+}
+
+.filter-pill-btn:hover:not(.active) {
+  color: #fff;
+}
+
+/* ── Prescription archive height fix for mobile ── */
+.prescription-archive-col {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* ── Page header responsive stack ── */
+.page-header-adaptive {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.page-header-adaptive h1 {
+  font-size: var(--text-3xl);
+  line-height: 1.1;
+}
+
+/* ── KPI stat cards: always 2-col on mobile, 4-col on md+ ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(10px, 3vw, 24px);
+}
+
+@media (min-width: 768px) {
+  .kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* ── Dashboard search — no fixed width ── */
+.dashboard-search-input {
+  width: clamp(120px, 30vw, 240px);
+  min-width: 0;
+}
+
+/* ── Quick actions: auto-fill columns ── */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: clamp(8px, 2vw, 16px);
+}
+
+/* ── Messages shell: viewport-aware height ── */
+.messages-shell-adaptive {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  border-radius: clamp(16px, 3vw, 28px);
+  min-height: clamp(400px, calc(100dvh - 200px), 700px);
+}
+
+/* ── QR layout: always center on mobile ── */
+@media (max-width: 1023px) {
+  .qr-layout {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  .qr-layout > div:first-child {
+    max-width: min(420px, 100%) !important;
+    width: 100% !important;
+  }
+
+  .qr-layout > div:last-child {
+    width: 100% !important;
+  }
+}
+
+/* ── Appointments page header — proper responsive stacking ── */
+@media (max-width: 767px) {
+  .appointments-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+  }
+
+  .appointments-header > button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .appointments-header .filter-pill-group {
+    align-self: flex-start;
+    max-width: 100%;
+  }
+}
+
+/* ── Medicines page: stack at md, side-by-side at lg ── */
+@media (max-width: 1023px) {
+  .medicines-grid-12 {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+
+  .medicines-grid-12 > .lg\:col-span-5,
+  .medicines-grid-12 > .lg\:col-span-7 {
+    width: 100% !important;
+  }
+}
+
+/* ── Prescriptions archive: no fixed heights on mobile ── */
+@media (max-width: 1023px) {
+  .patient-prescriptions-page .h-\[500px\] {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .patient-prescriptions-page section.grid.lg\:grid-cols-2 {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+}
+
+/* ── Records page: share panel ── */
+@media (max-width: 639px) {
+  .records-share-panel .grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .records-share-panel button {
+    padding: 12px 8px !important;
+    min-height: 72px !important;
+    border-radius: 20px !important;
+  }
+}
+
+/* ── Network page: stats grid ── */
+@media (max-width: 639px) {
+  .patient-network-page .grid.grid-cols-2.md\:grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* ── Settings lifestyle grid ── */
+@media (max-width: 767px) {
+  .patient-settings-page .grid.grid-cols-1.md\:grid-cols-3 {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+}
+
+/* ── Input & form touch targets ── */
+@media (max-width: 1180px) {
+  input[type="text"],
+  input[type="time"],
+  input[type="date"],
+  input[type="email"],
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px !important; /* Prevent iOS zoom */
+  }
+
+  /* Prevent iOS zoom on focus */
+  input, select, textarea {
+    font-size: max(16px, 1rem) !important;
+  }
+}
+
+/* ── xs breakpoint: phones < 480px ── */
+@media (max-width: 479px) {
+  .patient-page {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  .patient-page h1 {
+    font-size: clamp(1.35rem, 6vw, 1.75rem) !important;
+  }
+
+  .kpi-grid {
+    gap: 8px;
+  }
+
+  .glass-card {
+    border-radius: 18px !important;
+  }
+
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .radial-menu-container {
+    bottom: max(10px, env(safe-area-inset-bottom, 10px)) !important;
+    right: max(10px, env(safe-area-inset-right, 10px)) !important;
+  }
+
+  .messages-shell-adaptive {
+    min-height: calc(100dvh - 160px);
+  }
+
+  /* Booking overlay full screen on tiny phones */
+  .booking-overlay {
+    padding: max(8px, env(safe-area-inset-top, 8px)) 8px max(8px, env(safe-area-inset-bottom, 8px)) !important;
+  }
+}
+
+/* ── sm breakpoint: 480–640px ── */
+@media (min-width: 480px) and (max-width: 639px) {
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ── md breakpoint: 640–768px ── */
+@media (min-width: 640px) and (max-width: 767px) {
+  .quick-actions-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ── xl+ sidebar offset ── */
+@media (min-width: 1280px) {
+  .patient-main-shell {
+    padding-left: 312px;
+  }
+}
+
+/* ── Radial menu: safe area bottom ── */
+.radial-menu-container {
+  bottom: max(32px, env(safe-area-inset-bottom, 32px)) !important;
+}
+
+/* ── Timeline table: horizontal scroll wrapper ── */
+.timeline-side-panel .overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Prevent content going under radial button ── */
+@media (max-width: 1279px) {
+  .patient-main-scroll > *:last-child {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ── Card hover effects: disable on touch devices ── */
+@media (hover: none) {
+  .glass-card:hover,
+  .queue-card:hover {
+    transform: none !important;
+  }
+}
+
+/* ── Focus ring for accessibility ── */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--doctor-accent);
+  outline-offset: 2px;
+}
+
+/* ── Landscape mode on phones ── */
+@media (max-height: 500px) and (orientation: landscape) {
+  .patient-page {
+    padding-top: max(8px, env(safe-area-inset-top, 8px)) !important;
+  }
+
+  .radial-menu-container {
+    bottom: max(8px, env(safe-area-inset-bottom, 8px)) !important;
+  }
+}
+

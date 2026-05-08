@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MessageSquare, Paperclip, Mic, Send } from 'lucide-react';
+import { MessageSquare, Paperclip, Mic, Send, ChevronLeft } from 'lucide-react';
 import { cn } from '../components/Sidebar';
 import { CheckCircle2 } from 'lucide-react';
 
@@ -13,8 +13,8 @@ export function MessagesPage() {
   ];
 
   return (
-    <div className="p-6 md:p-8 animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto h-full flex flex-col relative overflow-hidden">
-      <header className="mb-8 mt-2 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="patient-page patient-messages-page p-4 md:p-6 animate-[page-enter_0.4s_ease-out_forwards] max-w-7xl mx-auto min-h-full flex flex-col relative">
+      <header className="patient-page-header mb-8 mt-2 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">Messages</h1>
           <p className="text-mist mt-1 text-sm font-medium">Secure clinical consultation & encrypted channels.</p>
@@ -28,7 +28,7 @@ export function MessagesPage() {
         </div>
       </header>
 
-      <div className="flex-1 glass-card border border-wire/10 flex overflow-hidden lg:rounded-[28px] rounded-2xl relative">
+      <div className="messages-shell messages-shell-adaptive flex-1 glass-card border border-wire/10 flex overflow-hidden relative" style={{minHeight: 'clamp(400px, calc(100dvh - 180px), 700px)'}}>
         
         {/* Sidebar */}
         <aside className={cn(
@@ -96,8 +96,8 @@ export function MessagesPage() {
               {/* Chat Header */}
               <div className="h-[72px] shrink-0 border-b border-wire/10 flex items-center justify-between px-6 bg-panel/60 backdrop-blur-md">
                 <div className="flex items-center gap-4">
-                  <button onClick={() => setSelectedDoc(null)} className="lg:hidden w-8 h-8 rounded-lg text-mist hover:text-white hover:bg-white/10 flex justify-center items-center">
-                    {'<'}
+                  <button onClick={() => setSelectedDoc(null)} className="lg:hidden w-10 h-10 rounded-xl text-mist hover:text-white hover:bg-white/10 flex justify-center items-center mr-1" aria-label="Back to contacts">
+                    <ChevronLeft className="w-5 h-5" />
                   </button>
                   <div className="w-10 h-10 rounded-full bg-sky/10 border border-sky/20 flex items-center justify-center text-sky font-bold">S</div>
                   <div>
