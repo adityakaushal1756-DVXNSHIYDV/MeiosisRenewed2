@@ -64,8 +64,8 @@ export function TimelineSidePanel({ entry, isOpen, onClose }: TimelineSidePanelP
       
       {/* Modal Container */}
       <div className={cn(
-        "fixed inset-0 z-[101] flex items-center justify-center p-4 md:p-8 transition-all duration-300 pointer-events-none",
-        isOpen ? "opacity-100 scale-100" : "opacity-0 scale-95"
+        "fixed inset-0 z-[101] flex items-center justify-center md:p-8 transition-all duration-300 pointer-events-none",
+        isOpen ? "opacity-100" : "opacity-0"
       )}>
         <div 
           ref={modalRef}

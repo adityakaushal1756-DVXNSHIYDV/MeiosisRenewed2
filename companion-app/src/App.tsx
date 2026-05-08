@@ -44,6 +44,12 @@ const getAuthHeader = () => {
 function extractPatientIdFromQr(raw: string): string {
   const trimmed = raw.trim();
 
+  // Format 0: New Meiosis Secure Token (MEIOSIS:v1:data:sig)
+  // We pass this raw to the backend which now knows how to resolve it
+  if (trimmed.startsWith('MEIOSIS:v1:')) {
+    return trimmed;
+  }
+
   // Try to parse as URL
   try {
     const url = new URL(trimmed);
@@ -63,7 +69,7 @@ function extractPatientIdFromQr(raw: string): string {
     if (pId) return pId;
   } catch { /* not a URL, treat as raw identifier */ }
 
-  // Formats 3 & 4: raw string
+  // Formats 3 & 4: raw string (DB uuid or meiosisId)
   return trimmed;
 }
 

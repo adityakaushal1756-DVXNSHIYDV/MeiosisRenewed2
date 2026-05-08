@@ -161,14 +161,14 @@ export function AppointmentBookingOverlay({ patient, onClose, onSuccess }: Appoi
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-ink/80 backdrop-blur-md"
+        className="absolute inset-0 bg-ink/80 md:bg-ink/60 backdrop-blur-md"
       />
       
       <motion.div 
         initial={{ scale: 0.95, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
-        className="booking-panel relative w-full max-w-2xl bg-ink/40 backdrop-blur-2xl border border-white/10 rounded-[40px] shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[85vh]"
+        className="booking-panel relative w-full max-w-2xl bg-ink/90 md:bg-ink/40 backdrop-blur-xl md:backdrop-blur-2xl border border-white/10 rounded-[40px] shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[85vh]"
       >
         {/* Glow Effects */}
         <div className="absolute top-0 left-1/4 w-1/2 h-1 bg-gradient-to-r from-transparent via-neon/40 to-transparent blur-sm" />

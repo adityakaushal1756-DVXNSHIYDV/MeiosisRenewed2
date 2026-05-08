@@ -23,6 +23,7 @@ interface SignedQrResponse {
   ttlSeconds: number;
   expiresAt: number;
   gatewayUrl: string;
+  token?: string;
 }
 
 const durationOptions = [
@@ -128,7 +129,7 @@ export default function MyQrScreen() {
                 <ActivityIndicator color={Colors.neon} size="large" />
               ) : qrResponse?.gatewayUrl ? (
                 <QRCode
-                  value={qrResponse.gatewayUrl}
+                  value={qrResponse.token || qrResponse.gatewayUrl}
                   size={200}
                   color={Colors.ink}
                   backgroundColor={Colors.white}

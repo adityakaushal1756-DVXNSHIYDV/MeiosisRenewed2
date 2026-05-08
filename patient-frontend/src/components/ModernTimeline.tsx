@@ -200,9 +200,12 @@ const TimelineNode = ({ entry, delay, onSelect }: TimelineNodeProps) => {
   
   return (
     <div 
-      className="relative flex items-center gap-6 md:gap-10 w-full group/node animate-[sIn_0.6s_ease_forwards] opacity-0 cursor-pointer"
+      className={cn(
+        "relative flex items-center gap-6 md:gap-10 w-full group/node animate-[sIn_0.6s_ease_forwards] opacity-0",
+        entry.isNote ? "cursor-pointer" : "cursor-default"
+      )}
       style={{ animationDelay: `${delay}ms` }}
-      onClick={() => onSelect(entry)}
+      onClick={() => entry.isNote ? onSelect(entry) : null}
     >
       {/* Date Marker (Left Side on Desktop, Hidden on small mobile if tight) */}
       <div className="hidden md:block w-24 text-right shrink-0">
@@ -241,10 +244,12 @@ const TimelineNode = ({ entry, delay, onSelect }: TimelineNodeProps) => {
                  <span className="md:hidden text-[10px] text-mist/60 font-bold tracking-widest uppercase">{format(entry.rawDate, 'dd MMM yyyy')}</span>
              </div>
              
-             {/* Interaction affordance */}
-             <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/30 group-hover/node:bg-white/10 group-hover/node:text-white transition-colors">
-                 <ChevronRight className="w-4 h-4" />
-             </div>
+             {/* Interaction affordance - Hidden for non-notes */}
+             {entry.isNote && (
+               <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/30 group-hover/node:bg-white/10 group-hover/node:text-white transition-colors">
+                   <ChevronRight className="w-4 h-4" />
+               </div>
+             )}
           </div>
 
           <h3 className="text-lg font-bold text-white mb-1 truncate pr-4">{entry.type}</h3>
@@ -356,11 +361,14 @@ export function ModernTimeline({ data, isSmallDevice = false }: ModernTimelinePr
         }
       `}} />
 
-      <TimelineSidePanel 
-        entry={selectedEntry} 
-        isOpen={!!selectedEntry} 
-        onClose={() => setSelectedEntry(null)} 
-      />
+      {/* Detailed side panel - Disabled for prescriptions */}
+      {selectedEntry?.isNote && (
+        <TimelineSidePanel 
+          entry={selectedEntry} 
+          isOpen={!!selectedEntry} 
+          onClose={() => setSelectedEntry(null)} 
+        />
+      )}
     </div>
   );
 }

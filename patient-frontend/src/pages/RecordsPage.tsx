@@ -128,8 +128,8 @@ export function RecordsPage({ data }: RecordsPageProps) {
     : { label: "STABLE", color: "#52FF9D" };
 
   const openPanel = (p: Prescription) => {
-    setSelectedPrescription(p);
-    setIsPanelOpen(true);
+    // Prescription view disabled as per requirement
+    console.log("Prescription detail view is disabled:", p.id);
   };
 
   useEffect(() => {
@@ -538,12 +538,7 @@ export function RecordsPage({ data }: RecordsPageProps) {
       </div>
       </div>
 
-      {/* Persistence for interactions */}
-      <RecordDetailPanel 
-        prescription={selectedPrescription} 
-        isOpen={isPanelOpen} 
-        onClose={() => setIsPanelOpen(false)} 
-      />
+      {/* Prescription detail view removed */}
     </>
   );
 }

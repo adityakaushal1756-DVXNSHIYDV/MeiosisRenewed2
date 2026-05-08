@@ -78,11 +78,10 @@ export function RecordDetailPanel({ prescription, isOpen, onClose }: RecordDetai
           {/* Slide Over Panel */}
           <motion.div 
             initial={{ y: '100%' }}
-            animate={{ y: 20 }} // Stops 20px from top
+            animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="record-detail-panel fixed inset-x-0 bottom-0 z-[120] bg-ink border-t border-wire/20 rounded-t-[40px] shadow-[0_-20px_80px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden"
-            style={{ height: 'calc(100vh - 20px)' }}
           >
             {/* Grab Handle/Header */}
             <div className="record-detail-header flex items-center justify-between px-8 py-6 border-b border-wire/10 shrink-0">

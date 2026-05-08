@@ -95,12 +95,14 @@ router.get('/qr', authMiddleware, asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'Patient not found.' });
   }
 
-  const ttlSeconds = clampTtlSeconds(req.query.ttlSeconds || req.query.ttl);
   const signed = generateSignedQrUrl({
     patientId: patient.id,
     ttlSeconds,
     gatewayBaseUrl: gatewayBaseUrl(req),
   });
+
+  // Create a raw secure token for the "Best Approach" (No Link)
+  const secureToken = `MEIOSIS:v1:${signed.data}:${signed.sig}`;
 
   res.json({
     status: 'QR_READY',
@@ -109,6 +111,7 @@ router.get('/qr', authMiddleware, asyncHandler(async (req, res) => {
     ttlSeconds,
     expiresAt: signed.expiresAt,
     gatewayUrl: signed.url,
+    token: secureToken,
     data: signed.data,
     sig: signed.sig,
   });
@@ -452,26 +455,46 @@ router.get('/resolve-patient', authMiddleware, asyncHandler(async (req, res) => 
   let id = String(req.query.id || '').trim();
   if (!id) return res.status(400).json({ error: 'id_required' });
 
-  console.log(`[ResolvePatient] Incoming ID/URL: ${id}`);
+  console.log(`[ResolvePatient] Incoming ID/Token/URL: ${id}`);
 
-  // If the scanned ID is actually a full Gateway URL, extract and verify it
-  try {
-    const url = new URL(id);
-    const data = url.searchParams.get('data');
-    const sig = url.searchParams.get('sig');
-    if (data && sig) {
-      console.log(`[ResolvePatient] Found data and sig in URL. Verifying...`);
-      const qrPayload = verifySignedQrPayload({ data, sig });
-      if (isQrExpired(qrPayload)) {
-        console.log(`[ResolvePatient] QR is expired.`);
-        return res.status(410).json({ error: 'qr_expired', message: 'This QR code has expired.' });
+  // ── Step 1: Detect and Extract from Raw Token (MEIOSIS:v1:data:sig) ──
+  if (id.startsWith('MEIOSIS:v1:')) {
+    const parts = id.split(':');
+    if (parts.length === 4) {
+      const data = parts[2];
+      const sig = parts[3];
+      try {
+        console.log(`[ResolvePatient] Detected raw Meiosis Token. Verifying...`);
+        const qrPayload = verifySignedQrPayload({ data, sig });
+        if (isQrExpired(qrPayload)) {
+          return res.status(410).json({ error: 'qr_expired', message: 'This QR code has expired.' });
+        }
+        id = qrPayload.p_id;
+        console.log(`[ResolvePatient] Decrypted patient ID from token: ${id}`);
+      } catch (e) {
+        console.error(`[ResolvePatient] Token verification failed:`, e.message);
+        return res.status(401).json({ error: 'invalid_token', message: 'The secure QR token is invalid.' });
       }
-      id = qrPayload.p_id; // Use the decrypted patient ID for the lookup
-      console.log(`[ResolvePatient] Decrypted patient ID: ${id}`);
     }
-  } catch (e) {
-    console.log(`[ResolvePatient] Failed to parse/verify URL:`, e.message);
-    // Not a valid URL or not a signed QR, proceed with the raw id string
+  } 
+  // ── Step 2: Fallback to URL Extraction (for backward compatibility) ──
+  else if (id.includes('?data=') || id.includes('&data=')) {
+    try {
+      const url = new URL(id.startsWith('http') ? id : `https://dummy.com/${id}`);
+      const data = url.searchParams.get('data');
+      const sig = url.searchParams.get('sig');
+      if (data && sig) {
+        console.log(`[ResolvePatient] Found data and sig in URL/Link. Verifying...`);
+        const qrPayload = verifySignedQrPayload({ data, sig });
+        if (isQrExpired(qrPayload)) {
+          return res.status(410).json({ error: 'qr_expired', message: 'This QR code has expired.' });
+        }
+        id = qrPayload.p_id;
+        console.log(`[ResolvePatient] Decrypted patient ID from URL: ${id}`);
+      }
+    } catch (e) {
+      console.log(`[ResolvePatient] Failed to parse/verify link:`, e.message);
+    }
   }
 
   const patient = await prisma.patient.findFirst({

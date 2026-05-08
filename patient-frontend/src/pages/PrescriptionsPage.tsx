@@ -43,8 +43,8 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
   });
 
   const openPanel = (p: Prescription) => {
-    setSelectedPrescription(p);
-    setIsPanelOpen(true);
+    // Prescription view disabled as per requirement
+    console.log("Prescription detail view is disabled:", p.id);
   };
 
   const prescriptions = data.prescriptions || [];
@@ -269,11 +269,7 @@ export function PrescriptionsPage({ data }: PrescriptionsPageProps) {
         )}
       </div>
 
-      <RecordDetailPanel 
-        prescription={selectedPrescription} 
-        isOpen={isPanelOpen} 
-        onClose={() => setIsPanelOpen(false)} 
-      />
+      {/* Prescription detail view removed */}
     </div>
   );
 }
