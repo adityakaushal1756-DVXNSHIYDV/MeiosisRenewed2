@@ -453,72 +453,82 @@ router.get('/doctor-status', authMiddleware, asyncHandler(async (req, res) => {
 // Used by the Companion App after a QR scan to get the canonical patient record.
 router.get('/resolve-patient', authMiddleware, asyncHandler(async (req, res) => {
   noStore(res);
-  let id = String(req.query.id || '').trim();
-  if (!id) return res.status(400).json({ error: 'id_required' });
+  const inputIdentifier = String(req.query.id || '').trim();
+  if (!inputIdentifier) return res.status(400).json({ error: 'id_required' });
 
-  console.log(`[ResolvePatient] Incoming ID/Token/URL: ${id}`);
+  console.log(`[ResolvePatient] Incoming Identifier: ${inputIdentifier}`);
 
-  // ── Step 1: Detect and Extract from Raw Token (MEIOSIS:v1:data:sig) ──
-  if (id.startsWith('MEIOSIS:v1:')) {
-    const parts = id.split(':');
-    if (parts.length === 4) {
-      const data = parts[2];
-      const sig = parts[3];
-      try {
+  let targetPatientId = inputIdentifier;
+
+  try {
+    // ── Step 1: Detect and Extract from Raw Token (MEIOSIS:v1:data:sig) ──
+    if (inputIdentifier.startsWith('MEIOSIS:v1:')) {
+      const parts = inputIdentifier.split(':');
+      if (parts.length === 4) {
+        const data = parts[2];
+        const sig = parts[3];
         console.log(`[ResolvePatient] Detected raw Meiosis Token. Verifying...`);
         const qrPayload = verifySignedQrPayload({ data, sig });
+        
         if (isQrExpired(qrPayload)) {
           return res.status(410).json({ error: 'qr_expired', message: 'This QR code has expired.' });
         }
-        id = qrPayload.p_id;
-        console.log(`[ResolvePatient] Decrypted patient ID from token: ${id}`);
-      } catch (e) {
-        console.error(`[ResolvePatient] Token verification failed:`, e.message);
-        return res.status(401).json({ error: 'invalid_token', message: 'The secure QR token is invalid.' });
+        targetPatientId = qrPayload.p_id;
+        console.log(`[ResolvePatient] Decrypted patient ID from token: ${targetPatientId}`);
       }
-    }
-  } 
-  // ── Step 2: Fallback to URL Extraction (for backward compatibility) ──
-  else if (id.includes('?data=') || id.includes('&data=')) {
-    try {
-      const url = new URL(id.startsWith('http') ? id : `https://dummy.com/${id}`);
+    } 
+    // ── Step 2: Fallback to URL Extraction ──
+    else if (inputIdentifier.includes('?data=') || inputIdentifier.includes('&data=')) {
+      const url = new URL(inputIdentifier.startsWith('http') ? inputIdentifier : `https://dummy.com/${inputIdentifier}`);
       const data = url.searchParams.get('data');
       const sig = url.searchParams.get('sig');
       if (data && sig) {
-        console.log(`[ResolvePatient] Found data and sig in URL/Link. Verifying...`);
+        console.log(`[ResolvePatient] Found data and sig in URL. Verifying...`);
         const qrPayload = verifySignedQrPayload({ data, sig });
         if (isQrExpired(qrPayload)) {
           return res.status(410).json({ error: 'qr_expired', message: 'This QR code has expired.' });
         }
-        id = qrPayload.p_id;
-        console.log(`[ResolvePatient] Decrypted patient ID from URL: ${id}`);
+        targetPatientId = qrPayload.p_id;
+        console.log(`[ResolvePatient] Decrypted patient ID from URL: ${targetPatientId}`);
       }
-    } catch (e) {
-      console.log(`[ResolvePatient] Failed to parse/verify link:`, e.message);
     }
+
+    // ── Step 3: Database Lookup ──
+    const patient = await prisma.patient.findFirst({
+      where: {
+        OR: [
+          { id: targetPatientId },
+          { meiosisId: targetPatientId },
+          { universalCode: targetPatientId }
+        ]
+      },
+      select: {
+        id: true,
+        meiosisId: true,
+        universalCode: true,
+        name: true,
+        phone: true,
+        bloodGroup: true,
+      }
+    });
+
+    if (!patient) {
+      console.warn(`[ResolvePatient] Patient not found for identifier: ${targetPatientId}`);
+      return res.status(404).json({ error: 'patient_not_found' });
+    }
+
+    return res.json(patient);
+
+  } catch (err) {
+    console.error(`[ResolvePatient] Fatal resolution error:`, err.message);
+    // If it's a known error with a status code (like from verifySignedQrPayload)
+    const statusCode = err.statusCode || 500;
+    const errorType = err.statusCode === 401 ? 'invalid_token' : 'internal_error';
+    return res.status(statusCode).json({ 
+      error: errorType, 
+      message: err.message || 'An error occurred while resolving the patient.' 
+    });
   }
-
-  const patient = await prisma.patient.findFirst({
-    where: {
-      OR: [
-        { id },
-        { meiosisId: id },
-        { universalCode: id }
-      ]
-    },
-    select: {
-      id: true,
-      meiosisId: true,
-      universalCode: true,
-      name: true,
-      phone: true,
-      bloodGroup: true,
-    }
-  });
-
-  if (!patient) return res.status(404).json({ error: 'patient_not_found' });
-
-  res.json(patient);
 }));
 
 module.exports = router;
