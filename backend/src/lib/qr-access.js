@@ -162,7 +162,11 @@ function verifySignedQrPayload({ data, sig }) {
 }
 
 function isQrExpired(payload, now = Date.now()) {
-  return Number(payload.exp) <= Math.floor(now / 1000);
+  const nowSecs = Math.floor(now / 1000);
+  const expSecs = Number(payload.exp);
+  // Allow 10 minutes of clock skew (some systems might be slightly ahead/behind)
+  const gracePeriod = 10 * 60;
+  return expSecs + gracePeriod <= nowSecs;
 }
 
 function createEphemeralEmrJwt({ patientId, qrPayload, now = Math.floor(Date.now() / 1000) }) {
