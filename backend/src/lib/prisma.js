@@ -24,7 +24,7 @@ function appendQueryParam(url, key, value) {
 const base = process.env.DATABASE_URL ?? '';
 const isPGBouncer = base.includes(':6543'); // Supabase default pooling port
 
-let url = appendQueryParam(base, 'connection_limit', 5);
+let url = appendQueryParam(base, 'connection_limit', 1);
 url = appendQueryParam(url, 'connect_timeout', DB_CONNECT_TIMEOUT_SECONDS);
 url = appendQueryParam(url, 'pool_timeout', DB_POOL_TIMEOUT_SECONDS);
 
