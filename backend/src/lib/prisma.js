@@ -28,9 +28,12 @@ let url = appendQueryParam(base, 'connection_limit', 1);
 url = appendQueryParam(url, 'connect_timeout', DB_CONNECT_TIMEOUT_SECONDS);
 url = appendQueryParam(url, 'pool_timeout', DB_POOL_TIMEOUT_SECONDS);
 
-if (isPGBouncer) {
+if (isPGBouncer || base.includes('supabase.co')) {
   url = appendQueryParam(url, 'pgbouncer', 'true');
 }
+
+// Statement timeout to prevent hanging connections
+url = appendQueryParam(url, 'statement_timeout', 10000);
 
 // Prisma client should be a singleton in serverless environments
 // to prevent exhausting database connections during horizontal scaling.
