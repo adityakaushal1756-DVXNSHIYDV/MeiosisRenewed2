@@ -95,10 +95,10 @@ router.get('/qr', authMiddleware, asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'Patient not found.' });
   }
 
-  const ttlSeconds = clampTtlSeconds(req.query.ttlSeconds || req.query.ttl);
+  const requestedTtl = clampTtlSeconds(req.query.ttlSeconds || req.query.ttl);
   const signed = generateSignedQrUrl({
     patientId: patient.id,
-    ttlSeconds,
+    ttlSeconds: requestedTtl,
     gatewayBaseUrl: gatewayBaseUrl(req),
   });
 
@@ -109,7 +109,7 @@ router.get('/qr', authMiddleware, asyncHandler(async (req, res) => {
     status: 'QR_READY',
     scope: QR_SCOPE,
     patient,
-    ttlSeconds,
+    ttlSeconds: requestedTtl,
     expiresAt: signed.expiresAt,
     gatewayUrl: signed.url,
     token: secureToken,

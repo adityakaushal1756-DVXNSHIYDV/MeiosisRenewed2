@@ -24,6 +24,7 @@ interface SignedQrResponse {
   ttlSeconds: number;
   expiresAt: number;
   gatewayUrl: string;
+  token?: string;
   data: string;
   sig: string;
   patient: {
@@ -121,9 +122,10 @@ export function MyQrPage({ data }: MyQrPageProps) {
   }, [refreshKey, selectedDuration.seconds]);
 
   useEffect(() => {
-    if (!qrResponse?.gatewayUrl) return;
+    const qrData = qrResponse?.token || qrResponse?.gatewayUrl;
+    if (!qrData) return;
     let cancelled = false;
-    QRCode.toDataURL(qrResponse.gatewayUrl, {
+    QRCode.toDataURL(qrData, {
       errorCorrectionLevel: 'M',
       margin: 2,
       width: 288,
@@ -181,8 +183,8 @@ export function MyQrPage({ data }: MyQrPageProps) {
     }
   };
 
-  const smsHref = qrResponse?.gatewayUrl
-    ? `sms:?&body=${encodeURIComponent(`MEIOSIS temporary EMR access for ${data.name}: ${qrResponse.gatewayUrl}`)}`
+  const smsHref = qrResponse
+    ? `sms:?&body=${encodeURIComponent(`MEIOSIS temporary EMR access for ${data.name}: ${qrResponse.token || qrResponse.gatewayUrl}`)}`
     : undefined;
 
   return (
