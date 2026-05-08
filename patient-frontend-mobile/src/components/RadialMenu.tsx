@@ -1,0 +1,269 @@
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Home, 
+  Calendar, 
+  Pill, 
+  Files, 
+  Users, 
+  MessageSquare, 
+  QrCode, 
+  Settings,
+  X,
+  Plus,
+  Activity
+} from 'lucide-react';
+import { cn } from './Sidebar';
+
+export type Section = 
+  | 'home' 
+  | 'records' 
+  | 'nfc' 
+  | 'appointments' 
+  | 'medicines' 
+  | 'prescriptions' 
+  | 'network' 
+  | 'messages' 
+  | 'myqr' 
+  | 'settings';
+
+interface RadialMenuProps {
+  currentSection: Section;
+  onSectionChange: (section: Section) => void;
+}
+
+const navItems: { id: Section; label: string; icon: React.ReactNode; color: string }[] = [
+  { id: 'home', label: 'Home', icon: <Home className="w-5 h-5" />, color: 'text-sky' },
+  { id: 'records', label: 'Timeline', icon: <Activity className="w-5 h-5" />, color: 'text-neon' },
+  { id: 'appointments', label: 'Visits', icon: <Calendar className="w-5 h-5" />, color: 'text-purple-400' },
+  { id: 'medicines', label: 'Meds', icon: <Pill className="w-5 h-5" />, color: 'text-amber-400' },
+  { id: 'prescriptions', label: 'Scripts', icon: <Files className="w-5 h-5" />, color: 'text-emerald-400' },
+  { id: 'network', label: 'Network', icon: <Users className="w-5 h-5" />, color: 'text-sky' },
+  { id: 'messages', label: 'Chat', icon: <MessageSquare className="w-5 h-5" />, color: 'text-blue-400' },
+  { id: 'myqr', label: 'QR', icon: <QrCode className="w-5 h-5" />, color: 'text-neon' },
+  { id: 'nfc', label: 'LifeLine', icon: <Plus className="w-5 h-5" />, color: 'text-rose-400' },
+  { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" />, color: 'text-mist' },
+];
+
+export function RadialMenu({ currentSection, onSectionChange }: RadialMenuProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [hoveredSection, setHoveredSection] = useState<Section | null>(null);
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  
+  const centerRef = useRef<HTMLDivElement>(null);
+  const radius = viewportWidth <= 430 ? 70 : viewportWidth <= 820 ? 90 : 100;
+  const haloSize = viewportWidth <= 430 ? 200 : viewportWidth <= 820 ? 240 : 280;
+  const itemSize = viewportWidth <= 430 ? 44 : 52;
+
+  const currentItem = navItems.find(i => i.id === currentSection) || navItems[0];
+
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle('radial-open', isOpen);
+    return () => document.body.classList.remove('radial-open');
+  }, [isOpen]);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    setIsOpen(prev => !prev);
+    if ('vibrate' in navigator) navigator.vibrate(10);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isOpen || !centerRef.current) return;
+
+    const rect = centerRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    const dx = e.clientX - centerX;
+    const dy = e.clientY - centerY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance > 40 && distance < radius * 2) {
+      const angle = Math.atan2(dy, dx);
+      let normalizedAngle = angle + (Math.PI / 2);
+      if (normalizedAngle < 0) normalizedAngle += 2 * Math.PI;
+      
+      const itemIndex = Math.round((normalizedAngle / (2 * Math.PI)) * navItems.length) % navItems.length;
+      const targetItem = navItems[itemIndex];
+      
+      if (hoveredSection !== targetItem.id) {
+        setHoveredSection(targetItem.id);
+        if ('vibrate' in navigator) navigator.vibrate(5);
+      }
+    } else {
+      setHoveredSection(null);
+    }
+  };
+
+  const handlePointerUp = () => {
+    if (hoveredSection) {
+      onSectionChange(hoveredSection);
+      setIsOpen(false);
+      setHoveredSection(null);
+    }
+  };
+
+  return (
+    <>
+      {/* 1. Global Page Subtle Blur (Uncoupled from menu animation) */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsOpen(false)}
+        className="radial-backdrop fixed inset-0 bg-black/40 backdrop-blur-[4px] z-[90]"
+          />
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        ref={centerRef}
+        animate={{
+          x: "-50%",
+          y: isOpen ? -radius : 0
+        }}
+        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+        className="radial-menu-container fixed bottom-8 left-1/2 z-[100] flex items-center justify-center touch-none select-none"
+        data-open={isOpen ? 'true' : 'false'}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      >
+
+      {/* 2. Frosted Glass Halo (Circular Component Behind Menu) */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0, rotate: -20 }}
+            animate={{ scale: 1, opacity: 1, rotate: 0 }}
+            exit={{ scale: 0.8, opacity: 0, rotate: 20 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            className="absolute rounded-full border border-white/10 bg-white/[0.03] backdrop-blur-[24px] pointer-events-none z-0 overflow-hidden"
+            style={{ 
+               width: `${haloSize}px`,
+               height: `${haloSize}px`,
+               boxShadow: 'inset 0 0 20px rgba(255,255,255,0.05), 0 0 80px rgba(0,0,0,0.6)'
+            }}
+          >
+             {/* Subtle internal shine for extra realism */}
+             <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-transparent opacity-20"></div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Radial Items */}
+      <AnimatePresence>
+        {isOpen && navItems.map((item, index) => {
+          const angle = (index / navItems.length) * 2 * Math.PI - Math.PI / 2;
+          const x = Math.cos(angle) * (radius + (hoveredSection === item.id ? 15 : 0));
+          const y = Math.sin(angle) * (radius + (hoveredSection === item.id ? 15 : 0));
+          const isSelected = hoveredSection === item.id || (currentSection === item.id && !hoveredSection);
+
+          return (
+            <motion.button
+              key={item.id}
+              initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
+              animate={{ 
+                x, 
+                y, 
+                scale: 1, 
+                opacity: 1,
+                transition: { 
+                  type: 'spring', 
+                  stiffness: 800, 
+                  damping: 40, 
+                }
+              }}
+              exit={{ 
+                x: 0, 
+                y: 0, 
+                scale: 0, 
+                opacity: 0,
+                transition: { duration: 0.1, ease: 'easeIn' }
+              }}
+              onClick={() => {
+                onSectionChange(item.id);
+                setIsOpen(false);
+              }}
+              aria-label={`Open ${item.label}`}
+              style={{
+                width: itemSize,
+                height: itemSize,
+                boxShadow: isSelected ? `0 12px 32px ${item.color.includes('neon') ? 'rgba(82,255,157,0.28)' : 'rgba(255,255,255,0.12)'}` : 'none'
+              }}
+              className={cn(
+                "radial-item absolute rounded-full border flex flex-col items-center justify-center transition-all duration-200 group bg-panel/95 backdrop-blur-3xl",
+                isSelected 
+                  ? "border-white/50 bg-white/20 scale-125 z-20 shadow-2xl" 
+                  : "border-wire/10 opacity-70 scale-90"
+              )}
+            >
+              <div className={cn(item.color, "flex items-center justify-center [&>svg]:w-6 [&>svg]:h-6 transition-transform", isSelected && "scale-110")}>
+                {item.icon}
+              </div>
+              
+              <AnimatePresence>
+                {isSelected && (
+                  <motion.span 
+                    initial={{ opacity: 0, y: 5, scale: 0.8 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className="absolute -top-12 text-[10px] font-semibold uppercase tracking-wider text-white whitespace-nowrap bg-ink px-4 py-1.5 rounded-full border border-wire/30 shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-30"
+                  >
+                    {item.label}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
+          );
+        })}
+      </AnimatePresence>
+
+      {/* Central Trigger Button */}
+      <motion.button
+        onPointerDown={handlePointerDown}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.9 }}
+        aria-label={isOpen ? 'Close patient navigation' : 'Open patient navigation'}
+        className={cn(
+          "radial-trigger relative w-16 h-16 sm:w-20 sm:h-20 rounded-full flex flex-col items-center justify-center text-white transition-all duration-300 shadow-2xl z-10 overflow-hidden outline-none",
+          isOpen 
+            ? "bg-rose-500 shadow-[0_0_50px_rgba(244,63,94,0.5)] border-transparent" 
+            : "bg-ink border-2 border-neon text-white shadow-[0_0_40px_rgba(82,255,157,0.25)]"
+        )}
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+        {isOpen ? (
+          <motion.div 
+            initial={{ rotate: -90, scale: 0.5 }}
+            animate={{ rotate: 0, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 1000, damping: 30 }}
+          >
+            <X className="w-10 h-10" />
+          </motion.div>
+        ) : (
+          <div className="flex flex-col items-center gap-0.5">
+            <div className={cn(currentItem.color, "[&>svg]:w-7 [&>svg]:h-7 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]")}>
+              {currentItem.icon}
+            </div>
+            <span className="text-[9px] font-semibold uppercase tracking-tight text-mist/80">
+              {currentItem.label}
+            </span>
+          </div>
+        )}
+      </motion.button>
+
+    </motion.div>
+    </>
+  );
+}

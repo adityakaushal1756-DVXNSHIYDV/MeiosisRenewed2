@@ -126,7 +126,7 @@ function App() {
       {/* Floating Back Button - iOS Overlay Style */}
       <FloatingBackButton
         onBack={() => handleSectionChange('home')}
-        visible={currentSection !== 'home' && showFloatingBack}
+        visible={currentSection !== 'home'}
       />
 
       {/* Desktop Sidebar - Re-sync with large screens (xl = 1280px+) */}

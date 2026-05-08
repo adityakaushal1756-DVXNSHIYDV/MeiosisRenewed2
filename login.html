@@ -58,13 +58,19 @@
           </label>
 
           <div class="auth-workspace-toggle">
-            <span class="auth-workspace-hint">Patient Workspace Version</span>
-            <div class="auth-toggle-group">
-              <input type="radio" name="patientWorkspaceMode" value="vite" id="patientWorkspaceVite" checked />
-              <label for="patientWorkspaceVite">Vite App (Beta)</label>
+            <span class="auth-workspace-hint">Target Workspace</span>
+            <div class="auth-toggle-group" style="grid-template-columns: repeat(4, 1fr);">
+              <input type="radio" name="patientWorkspaceMode" value="auto" id="pAuto" checked />
+              <label for="pAuto">Auto</label>
               
-              <input type="radio" name="patientWorkspaceMode" value="html" id="patientWorkspaceHtml" />
-              <label for="patientWorkspaceHtml">Classic HTML</label>
+              <input type="radio" name="patientWorkspaceMode" value="desktop" id="pDesktop" />
+              <label for="pDesktop">Desktop</label>
+
+              <input type="radio" name="patientWorkspaceMode" value="mobile" id="pMobile" />
+              <label for="pMobile">Mobile</label>
+              
+              <input type="radio" name="patientWorkspaceMode" value="html" id="pHtml" />
+              <label for="pHtml">Classic</label>
               
               <div class="auth-toggle-glider"></div>
             </div>

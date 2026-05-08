@@ -17,8 +17,21 @@ function delay(ms) {
 function deriveRootLinks() {
   const isLocalSession = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
   
-  // Try to use a relative path for the new vite frontend if we are hosted normally, but default to the local Vite port on localhost
-  const patientViteHostname = isLocalSession ? "http://localhost:5174/" : new URL("/patient-frontend/", window.location.href).href;
+  // Smart redirection based on device size
+  // iPad Air 11" width is 820px in CSS units. 
+  // We use this as the threshold to switch between Desktop/Tablet and Mobile frontends.
+  const isLargeScreen = window.innerWidth > 820;
+
+  let patientViteHostname;
+  if (isLocalSession) {
+    // Port 5174: Desktop/Tablet Frontend
+    // Port 5175: Mobile Frontend
+    patientViteHostname = isLargeScreen ? "http://localhost:5174/" : "http://localhost:5175/";
+  } else {
+    patientViteHostname = isLargeScreen 
+      ? new URL("/patient-frontend/", window.location.href).href 
+      : new URL("/patient-frontend-mobile/", window.location.href).href;
+  }
 
   return {
     login: new URL("./login.html", window.location.href).href,
@@ -137,30 +150,40 @@ async function redirectAfterLogin(role, isNewSignup = false) {
       return;
     }
 
-    const isLocalSession =
-      window.location.protocol === "file:" ||
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1";
-
-    // Patient pathing... Check radio toggle if it exists
-    let targetBase = isLocalSession ? "http://localhost:5174/" : new URL("/patient-frontend/", window.location.href).href;
-    
     const modeRadio = document.querySelector('input[name="patientWorkspaceMode"]:checked');
-    const useClassicHtml = modeRadio && modeRadio.value === "html";
+    const mode = modeRadio ? modeRadio.value : "auto";
 
-    if (useClassicHtml) {
+    if (mode === "html") {
       window.location.href = new URL("./patient.html", window.location.href).href;
       return;
     }
 
-    // Default to Vite App
+    const isLocalSession = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    const isLargeScreen = window.innerWidth > 820;
+    
+    let targetBase;
+    if (mode === "desktop") {
+      targetBase = isLocalSession ? "http://localhost:5174/" : new URL("/patient-frontend/", window.location.href).href;
+    } else if (mode === "mobile") {
+      targetBase = isLocalSession ? "http://localhost:5175/" : new URL("/patient-frontend-mobile/", window.location.href).href;
+    } else {
+      // Auto-detection logic (Matches deriveRootLinks)
+      if (isLocalSession) {
+        targetBase = isLargeScreen ? "http://localhost:5174/" : "http://localhost:5175/";
+      } else {
+        targetBase = isLargeScreen 
+          ? new URL("/patient-frontend/", window.location.href).href 
+          : new URL("/patient-frontend-mobile/", window.location.href).href;
+      }
+    }
+
     const url = new URL(targetBase);
     const sessionData = localStorage.getItem(AUTH_SESSION_KEY);
     if (sessionData) {
       url.searchParams.set("session", sessionData);
     }
     
-    console.log("[Meiosis] Redirecting patient to:", url.toString());
+    console.log(`[Meiosis] Redirecting patient to [${mode}] workspace:`, url.toString());
     window.location.href = url.toString();
     return;
   }

@@ -51,181 +51,185 @@ export function DashboardPage({ onNavigate, data }: DashboardPageProps) {
         </div>
       </header>
 
-      {/* KPI Stats */}
-      <div className="kpi-grid">
-        {[
-          { label: 'Upcoming Appointments', val: upcomingAppointments.length, onClick: () => onNavigate('appointments'), id: 'appointments' },
-          { label: 'Active Channels', val: activePrescriptions.length, onClick: () => onNavigate('prescriptions'), id: 'prescriptions' },
-          { label: 'New Reports', val: newReportsCount, onClick: () => onNavigate('records'), id: 'records' },
-          { label: 'Appointments Booked', val: data.appointments.length, sub: 'Across care timeline', onClick: () => onNavigate('appointments'), id: 'appointments2' },
-        ].map((item, i) => (
-          <div
-            key={i}
-            onClick={item.onClick}
-            className="group glass-card p-5 cursor-pointer hover:bg-white/5 transition-colors border border-wire/5 hover:border-wire/20"
-          >
-            <p className="text-mist text-sm font-medium mb-3">{item.label}</p>
-            <h3 className="text-3xl font-semibold text-white">
-              {item.val}
-              {item.sub && <span className="block text-xs font-normal text-mist mt-1">{item.sub}</span>}
-            </h3>
-          </div>
-        ))}
-      </div>
-
-      {/* Main Two Columns */}
-      <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
-        
-        {/* Upcoming Appointment */}
-        <div className="glass-card p-6 flex flex-col relative overflow-hidden group border border-wire/5 hover:border-wire/20 cursor-pointer transition-all" onClick={() => onNavigate('appointments')}>
-          <div className="absolute top-0 right-0 p-6 pointer-events-none opacity-10 group-hover:opacity-20 transition-opacity">
-            <Calendar className="w-24 h-24 text-neon" />
-          </div>
-          <h2 className="section-title mb-6 flex items-center gap-2 relative z-10">
-            <Calendar className="w-5 h-5 text-neon" /> Upcoming Appointment
-          </h2>
-          
-          {nextAppointment ? (
-            <>
-              <div className="mb-6 relative z-10">
-                <p className="text-xl font-bold text-white mb-1">{nextAppointment.doctor?.name || 'Assigned Doctor'}</p>
-                <p className="text-neon font-medium mb-1">
-                  {new Date(nextAppointment.scheduledDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  {nextAppointment.slotStartTime ? ` • ${new Date(nextAppointment.slotStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
-                </p>
-                <p className="text-mist text-sm mb-1">Hospital: {nextAppointment.doctor?.hospital || 'Online'}</p>
-                <p className="text-mist text-sm">Mode: {nextAppointment.mode === 'IN_PERSON' ? 'In-person' : 'Teleconsult'}</p>
+      <div className="patient-page-content">
+        <div className="space-y-8 pb-32">
+          {/* KPI Stats */}
+          <div className="kpi-grid">
+            {[
+              { label: 'Upcoming Appointments', val: upcomingAppointments.length, onClick: () => onNavigate('appointments'), id: 'appointments' },
+              { label: 'Active Channels', val: activePrescriptions.length, onClick: () => onNavigate('prescriptions'), id: 'prescriptions' },
+              { label: 'New Reports', val: newReportsCount, onClick: () => onNavigate('records'), id: 'records' },
+              { label: 'Appointments Booked', val: data.appointments.length, sub: 'Across care timeline', onClick: () => onNavigate('appointments'), id: 'appointments2' },
+            ].map((item, i) => (
+              <div
+                key={i}
+                onClick={item.onClick}
+                className="group glass-card p-5 cursor-pointer hover:bg-white/5 transition-colors border border-wire/5 hover:border-wire/20"
+              >
+                <p className="text-mist text-sm font-medium mb-3">{item.label}</p>
+                <h3 className="text-3xl font-semibold text-white">
+                  {item.val}
+                  {item.sub && <span className="block text-xs font-normal text-mist mt-1">{item.sub}</span>}
+                </h3>
               </div>
-              
-              <div className="flex items-center gap-3 mb-8 relative z-10">
-                <button className="action-btn !py-2 !px-4" onClick={(e) => { e.stopPropagation(); onNavigate('appointments'); }}>View Details</button>
-                <button className="ghost-btn !py-2 !px-4" onClick={(e) => { e.stopPropagation(); }}>Reschedule</button>
-              </div>
-
-              {next2Appointments.length > 0 && (
-                <div className="mt-auto border-t border-wire/10 pt-5 relative z-10">
-                  <h3 className="text-sm font-semibold text-white mb-4">Next Enqueued</h3>
-                  <div className="space-y-4">
-                    {next2Appointments.map((apt, idx) => (
-                      <div key={apt.id} className="flex gap-4 relative">
-                        {idx < next2Appointments.length - 1 && <div className="absolute left-[7px] top-4 bottom-[-16px] w-[2px] bg-wire/10"></div>}
-                        <div className={cn("w-4 h-4 rounded-full border-2 bg-ink z-10 shrink-0 mt-0.5", idx === 0 ? "border-neon" : "border-mist")}></div>
-                        <div>
-                          <p className="text-sm font-medium text-mist">{new Date(apt.scheduledDate).toLocaleDateString()}</p>
-                          <p className="font-semibold text-white">{apt.doctor?.name || 'Doctor'} • {apt.title}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center flex-1 py-8 relative z-10 text-center">
-              <Calendar className="w-12 h-12 text-mist mb-4 opacity-50" />
-              <p className="text-white font-medium mb-1">No Upcoming Appointments</p>
-              <p className="text-mist text-sm mb-6">Your schedule is completely clear.</p>
-              <button className="action-btn" onClick={(e) => { e.stopPropagation(); onNavigate('appointments'); }}>Book Appointment</button>
-            </div>
-          )}
-        </div>
-
-        {/* Latest Prescription */}
-        <div className="glass-card p-6 flex flex-col relative overflow-hidden group border border-wire/5 hover:border-wire/20 cursor-pointer transition-all" onClick={() => onNavigate('prescriptions')}>
-          <div className="absolute top-0 right-0 p-6 pointer-events-none opacity-10 group-hover:opacity-20 transition-opacity">
-            <FileSignature className="w-24 h-24 text-sky" />
+            ))}
           </div>
-          <div className="flex justify-between items-start mb-6 relative z-10">
-            <div>
-              <h2 className="section-title flex items-center gap-2 mb-1">
-                <FileSignature className="w-5 h-5 text-sky" /> Latest Prescription
+    
+          {/* Main Two Columns */}
+          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
+            
+            {/* Upcoming Appointment */}
+            <div className="glass-card p-6 flex flex-col relative overflow-hidden group border border-wire/5 hover:border-wire/20 cursor-pointer transition-all" onClick={() => onNavigate('appointments')}>
+              <div className="absolute top-0 right-0 p-6 pointer-events-none opacity-10 group-hover:opacity-20 transition-opacity">
+                <Calendar className="w-24 h-24 text-neon" />
+              </div>
+              <h2 className="section-title mb-6 flex items-center gap-2 relative z-10">
+                <Calendar className="w-5 h-5 text-neon" /> Upcoming Appointment
               </h2>
-            </div>
-            {latestPrescription && <span className="chip chip-green">Active Track</span>}
-          </div>
-
-          {latestPrescription ? (
-            <>
-              <p className="text-xl font-bold text-white mb-1 relative z-10">{latestPrescription.title}</p>
-              <p className="text-mist mb-6 relative z-10">{latestPrescription.doctor?.name || 'Doctor'} • {latestPrescription.doctor?.specialty || 'General Medicine'}</p>
-
-              {latestPrescription.items && latestPrescription.items.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-8 relative z-10">
-                  {latestPrescription.items.slice(0, 3).map((item, idx) => (
-                    <span key={idx} className="px-3 py-1.5 rounded-lg bg-panel border-wire/10 border text-sm text-white font-medium shadow-glass">
-                      {item.medicine} {item.dose}
-                    </span>
-                  ))}
-                  {latestPrescription.items.length > 3 && (
-                     <span className="px-3 py-1.5 rounded-lg bg-white/5 border-wire/10 border text-sm text-mist font-medium">
-                       +{latestPrescription.items.length - 3} more
-                     </span>
+              
+              {nextAppointment ? (
+                <>
+                  <div className="mb-6 relative z-10">
+                    <p className="text-xl font-bold text-white mb-1">{nextAppointment.doctor?.name || 'Assigned Doctor'}</p>
+                    <p className="text-neon font-medium mb-1">
+                      {new Date(nextAppointment.scheduledDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {nextAppointment.slotStartTime ? ` • ${new Date(nextAppointment.slotStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                    </p>
+                    <p className="text-mist text-sm mb-1">Hospital: {nextAppointment.doctor?.hospital || 'Online'}</p>
+                    <p className="text-mist text-sm">Mode: {nextAppointment.mode === 'IN_PERSON' ? 'In-person' : 'Teleconsult'}</p>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 mb-8 relative z-10">
+                    <button className="action-btn !py-2 !px-4" onClick={(e) => { e.stopPropagation(); onNavigate('appointments'); }}>View Details</button>
+                    <button className="ghost-btn !py-2 !px-4" onClick={(e) => { e.stopPropagation(); }}>Reschedule</button>
+                  </div>
+    
+                  {next2Appointments.length > 0 && (
+                    <div className="mt-auto border-t border-wire/10 pt-5 relative z-10">
+                      <h3 className="text-sm font-semibold text-white mb-4">Next Enqueued</h3>
+                      <div className="space-y-4">
+                        {next2Appointments.map((apt, idx) => (
+                          <div key={apt.id} className="flex gap-4 relative">
+                            {idx < next2Appointments.length - 1 && <div className="absolute left-[7px] top-4 bottom-[-16px] w-[2px] bg-wire/10"></div>}
+                            <div className={cn("w-4 h-4 rounded-full border-2 bg-ink z-10 shrink-0 mt-0.5", idx === 0 ? "border-neon" : "border-mist")}></div>
+                            <div>
+                              <p className="text-sm font-medium text-mist">{new Date(apt.scheduledDate).toLocaleDateString()}</p>
+                              <p className="font-semibold text-white">{apt.doctor?.name || 'Doctor'} • {apt.title}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center flex-1 py-8 relative z-10 text-center">
+                  <Calendar className="w-12 h-12 text-mist mb-4 opacity-50" />
+                  <p className="text-white font-medium mb-1">No Upcoming Appointments</p>
+                  <p className="text-mist text-sm mb-6">Your schedule is completely clear.</p>
+                  <button className="action-btn" onClick={(e) => { e.stopPropagation(); onNavigate('appointments'); }}>Book Appointment</button>
                 </div>
               )}
-
-              <div className="grid grid-cols-2 gap-4 mb-8 relative z-10">
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-wire/10">
-                  <span className="text-sm text-mist block mb-1">Status</span>
-                  <div className="flex items-center gap-2">
-                     <Clock className="w-3.5 h-3.5 text-sky" />
-                     <strong className="text-white">{latestPrescription.durationDays - differenceInDays(today, parseISO(latestPrescription.startDate))} Days Left</strong>
-                  </div>
-                </div>
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-wire/10">
-                  <span className="text-sm text-mist block mb-1">Issued</span>
-                  <strong className="text-white">{new Date(latestPrescription.startDate).toLocaleDateString()}</strong>
-                </div>
-              </div>
-
-              <div className="mt-auto relative z-10">
-                {latestPrescription.doctorNote && (
-                  <p className="text-sm text-mist mb-5 flex items-start gap-2">
-                    <ShieldAlert className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />
-                    <span className="line-clamp-2">{latestPrescription.doctorNote}</span>
-                  </p>
-                )}
-                <div className="flex items-center gap-3">
-                  <button className="action-btn !py-2 !px-4 !bg-white !text-slate-900 border-none shadow-[0_4px_14px_rgba(255,255,255,0.2)]" onClick={(e) => { e.stopPropagation(); onNavigate('medicines'); }}>View Medicines</button>
-                  <button className="ghost-btn !py-2 !px-4" onClick={(e) => { e.stopPropagation(); onNavigate('prescriptions'); }}>View History</button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center flex-1 py-8 relative z-10 text-center">
-              <FileSignature className="w-12 h-12 text-mist mb-4 opacity-50" />
-              <p className="text-white font-medium mb-1">No Active Tracks</p>
-              <p className="text-mist text-sm mb-6">Your current treatment plan has concluded.</p>
-              <button className="ghost-btn" onClick={(e) => { e.stopPropagation(); onNavigate('prescriptions'); }}>View Past Prescriptions</button>
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="glass-card p-5 md:p-6 border border-wire/5">
-        <h2 className="section-title mb-4 md:mb-6 border-b border-wire/10 pb-4">Quick Actions</h2>
-        <div className="quick-actions-grid">
-          <button className="min-h-[56px] flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-wire/10 hover:bg-white/10 hover:border-wire/20 transition-colors text-white font-medium text-sm group">
-            <FileOutput className="w-5 h-5 text-sky shrink-0" />
-            <span className="truncate">Share EMR</span>
-          </button>
-          <button className="min-h-[56px] flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-wire/10 hover:bg-white/10 hover:border-wire/20 transition-colors text-white font-medium text-sm group" onClick={() => onNavigate('records')}>
-            <LayoutList className="w-5 h-5 text-neon shrink-0" />
-            <span className="truncate">Health Summary</span>
-          </button>
-          <button className="min-h-[56px] flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-wire/10 hover:bg-white/10 hover:border-wire/20 transition-colors text-white font-medium text-sm group" onClick={() => onNavigate('appointments')}>
-            <Calendar className="w-5 h-5 text-purple-400 shrink-0" />
-            <span className="truncate">Add Appointment</span>
-          </button>
-          <button className="min-h-[56px] flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-wire/10 hover:bg-white/10 hover:border-wire/20 transition-colors text-white font-medium text-sm group">
-            <Upload className="w-5 h-5 text-mist shrink-0" />
-            <span className="truncate">Upload Report</span>
-          </button>
-          <button className="min-h-[56px] flex items-center gap-3 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 transition-colors text-rose-300 font-medium text-sm group" onClick={() => onNavigate('nfc')}>
-            <ShieldAlert className="w-5 h-5 shrink-0" />
-            <span className="truncate">Emergency QR</span>
-          </button>
+    
+            {/* Latest Prescription */}
+            <div className="glass-card p-6 flex flex-col relative overflow-hidden group border border-wire/5 hover:border-wire/20 cursor-pointer transition-all" onClick={() => onNavigate('prescriptions')}>
+              <div className="absolute top-0 right-0 p-6 pointer-events-none opacity-10 group-hover:opacity-20 transition-opacity">
+                <FileSignature className="w-24 h-24 text-sky" />
+              </div>
+              <div className="flex justify-between items-start mb-6 relative z-10">
+                <div>
+                  <h2 className="section-title flex items-center gap-2 mb-1">
+                    <FileSignature className="w-5 h-5 text-sky" /> Latest Prescription
+                  </h2>
+                </div>
+                {latestPrescription && <span className="chip chip-green">Active Track</span>}
+              </div>
+    
+              {latestPrescription ? (
+                <>
+                  <p className="text-xl font-bold text-white mb-1 relative z-10">{latestPrescription.title}</p>
+                  <p className="text-mist mb-6 relative z-10">{latestPrescription.doctor?.name || 'Doctor'} • {latestPrescription.doctor?.specialty || 'General Medicine'}</p>
+    
+                  {latestPrescription.items && latestPrescription.items.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-8 relative z-10">
+                      {latestPrescription.items.slice(0, 3).map((item, idx) => (
+                        <span key={idx} className="px-3 py-1.5 rounded-lg bg-panel border-wire/10 border text-sm text-white font-medium shadow-glass">
+                          {item.medicine} {item.dose}
+                        </span>
+                      ))}
+                      {latestPrescription.items.length > 3 && (
+                         <span className="px-3 py-1.5 rounded-lg bg-white/5 border-wire/10 border text-sm text-mist font-medium">
+                           +{latestPrescription.items.length - 3} more
+                         </span>
+                      )}
+                    </div>
+                  )}
+    
+                  <div className="grid grid-cols-2 gap-4 mb-8 relative z-10">
+                    <div className="p-4 rounded-xl bg-white/[0.02] border border-wire/10">
+                      <span className="text-sm text-mist block mb-1">Status</span>
+                      <div className="flex items-center gap-2">
+                         <Clock className="w-3.5 h-3.5 text-sky" />
+                         <strong className="text-white">{latestPrescription.durationDays - differenceInDays(today, parseISO(latestPrescription.startDate))} Days Left</strong>
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-white/[0.02] border border-wire/10">
+                      <span className="text-sm text-mist block mb-1">Issued</span>
+                      <strong className="text-white">{new Date(latestPrescription.startDate).toLocaleDateString()}</strong>
+                    </div>
+                  </div>
+    
+                  <div className="mt-auto relative z-10">
+                    {latestPrescription.doctorNote && (
+                      <p className="text-sm text-mist mb-5 flex items-start gap-2">
+                        <ShieldAlert className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />
+                        <span className="line-clamp-2">{latestPrescription.doctorNote}</span>
+                      </p>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <button className="action-btn !py-2 !px-4 !bg-white !text-slate-900 border-none shadow-[0_4px_14px_rgba(255,255,255,0.2)]" onClick={(e) => { e.stopPropagation(); onNavigate('medicines'); }}>View Medicines</button>
+                      <button className="ghost-btn !py-2 !px-4" onClick={(e) => { e.stopPropagation(); onNavigate('prescriptions'); }}>View History</button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center flex-1 py-8 relative z-10 text-center">
+                  <FileSignature className="w-12 h-12 text-mist mb-4 opacity-50" />
+                  <p className="text-white font-medium mb-1">No Active Tracks</p>
+                  <p className="text-mist text-sm mb-6">Your current treatment plan has concluded.</p>
+                  <button className="ghost-btn" onClick={(e) => { e.stopPropagation(); onNavigate('prescriptions'); }}>View Past Prescriptions</button>
+                </div>
+              )}
+            </div>
+          </div>
+    
+          {/* Quick Actions */}
+          <div className="glass-card p-5 md:p-6 border border-wire/5">
+            <h2 className="section-title mb-4 md:mb-6 border-b border-wire/10 pb-4">Quick Actions</h2>
+            <div className="quick-actions-grid">
+              <button className="min-h-[56px] flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-wire/10 hover:bg-white/10 hover:border-wire/20 transition-colors text-white font-medium text-sm group">
+                <FileOutput className="w-5 h-5 text-sky shrink-0" />
+                <span className="truncate">Share EMR</span>
+              </button>
+              <button className="min-h-[56px] flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-wire/10 hover:bg-white/10 hover:border-wire/20 transition-colors text-white font-medium text-sm group" onClick={() => onNavigate('records')}>
+                <LayoutList className="w-5 h-5 text-neon shrink-0" />
+                <span className="truncate">Health Summary</span>
+              </button>
+              <button className="min-h-[56px] flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-wire/10 hover:bg-white/10 hover:border-wire/20 transition-colors text-white font-medium text-sm group" onClick={() => onNavigate('appointments')}>
+                <Calendar className="w-5 h-5 text-purple-400 shrink-0" />
+                <span className="truncate">Add Appointment</span>
+              </button>
+              <button className="min-h-[56px] flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-wire/10 hover:bg-white/10 hover:border-wire/20 transition-colors text-white font-medium text-sm group">
+                <Upload className="w-5 h-5 text-mist shrink-0" />
+                <span className="truncate">Upload Report</span>
+              </button>
+              <button className="min-h-[56px] flex items-center gap-3 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 transition-colors text-rose-300 font-medium text-sm group" onClick={() => onNavigate('nfc')}>
+                <ShieldAlert className="w-5 h-5 shrink-0" />
+                <span className="truncate">Emergency QR</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
