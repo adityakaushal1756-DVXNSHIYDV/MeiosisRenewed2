@@ -42,6 +42,7 @@ export const CompanionCamera: React.FC<CompanionCameraProps> = ({ onPatientResol
   
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const isProcessingRef = useRef(false);
+  const lastScanTimeRef = useRef<number>(0);
 
   useEffect(() => {
     if (active) {
@@ -91,8 +92,12 @@ export const CompanionCamera: React.FC<CompanionCameraProps> = ({ onPatientResol
   };
 
   const onScanSuccess = async (decodedText: string) => {
-    if (isProcessingRef.current) return;
+    const now = Date.now();
+    // 3-second cooldown to prevent accidental rescans
+    if (isProcessingRef.current || (now - lastScanTimeRef.current < 3000)) return;
+    
     isProcessingRef.current = true;
+    lastScanTimeRef.current = now;
     
     setStatus('processing');
     const rawId = extractPatientIdFromQr(decodedText);
