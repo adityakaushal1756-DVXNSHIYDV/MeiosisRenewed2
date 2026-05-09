@@ -32,6 +32,7 @@ interface SignedQrResponse {
     meiosisId?: string;
     universalCode?: string;
   };
+  token?: string;
 }
 
 const durationOptions = [

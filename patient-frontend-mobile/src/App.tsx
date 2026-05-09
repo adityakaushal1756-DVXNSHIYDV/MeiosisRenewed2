@@ -20,7 +20,7 @@ const NfcPage          = lazy(() => import('./pages/NfcPage').then(m => ({ defau
 type Section = 'home' | 'records' | 'appointments' | 'medicines' | 'prescriptions'
              | 'settings' | 'myqr' | 'network' | 'messages' | 'nfc';
 
-const NAV_ITEMS: { key: Section; label: string; icon: React.ComponentType<{size?: number}> }[] = [
+const NAV_ITEMS: { key: Section; label: string; icon: React.ComponentType<{size?: number | string}> }[] = [
   { key: 'home',         label: 'Home',    icon: Home },
   { key: 'records',      label: 'Records', icon: ClipboardList },
   { key: 'appointments', label: 'Visits',  icon: Calendar },
@@ -61,7 +61,7 @@ export default function App() {
   const meta = PAGE_META[section] ?? { title: section, sub: '' };
   const isSubPage = !PRIMARY_SECTIONS.includes(section);
 
-  const navigate = (s: Section) => setSection(s);
+  const navigate = (s: string) => setSection(s as Section);
 
   if (isSyncing) return <LoadingScreen />;
 
