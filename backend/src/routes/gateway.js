@@ -150,11 +150,12 @@ router.get('/', asyncHandler(async (req, res) => {
   const account = await getAccountFromRequest(req);
   const isDoctor = account && account.role === 'DOCTOR' && account.doctorId;
 
-  if (wantsHtml(req)) {
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    const durMins = Math.max(1, Math.floor((qrPayload.exp - nowSeconds) / 60));
-    const tempUrl = `/patient-record?token=${encodeURIComponent(temp.token)}&code=${encodeURIComponent(patient.universalCode || patient.id)}&dur=${durMins}`;
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const durMins = Math.max(1, Math.floor((qrPayload.exp - nowSeconds) / 60));
+  const doctorUrl = absoluteAppUrl(req, '/');
+  const tempUrl = `/patient-record?token=${encodeURIComponent(temp.token)}&code=${encodeURIComponent(patient.universalCode || patient.id)}&dur=${durMins}`;
 
+  if (wantsHtml(req)) {
     return res.send(`
 <!DOCTYPE html>
 <html>

@@ -82,6 +82,7 @@ const COMPANION_DIST = path.join(DOCTOR_DIST, 'companion-app');
 
 app.use(express.static(DOCTOR_DIST));
 app.use('/patient-frontend', express.static(path.join(DOCTOR_DIST, 'patient-frontend')));
+app.use('/patient-frontend-mobile', express.static(path.join(DOCTOR_DIST, 'patient-frontend-mobile')));
 app.use('/staff-frontend', express.static(path.join(DOCTOR_DIST, 'staff-frontend')));
 app.use('/companion-app', express.static(path.join(DOCTOR_DIST, 'companion-app')));
 
@@ -182,6 +183,10 @@ app.get('/doctor-frontend*', (req, res) => {
 
 app.get('/patient-frontend*', (req, res) => {
   res.sendFile(path.join(DOCTOR_DIST, 'patient-frontend/index.html'));
+});
+
+app.get('/patient-frontend-mobile*', (req, res) => {
+  res.sendFile(path.join(DOCTOR_DIST, 'patient-frontend-mobile/index.html'));
 });
 
 app.get('/staff-frontend*', (req, res) => {

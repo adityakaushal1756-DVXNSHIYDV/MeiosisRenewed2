@@ -29,13 +29,13 @@ export function RegistrationPage() {
     }
     setLoading(true);
     try {
-      const res = await api.post('/auth/register', {
+      const res = await api.post('/auth/signup', {
         ...form,
         role: 'PATIENT',
         password: form.phone,
-        healthScore: 85,
       });
-      setSuccess({ meiosisId: res.data.meiosisId || res.data.universalCode || 'N/A', name: form.name });
+      const data = res.data.user || res.data;
+      setSuccess({ meiosisId: data.meiosisId || 'N/A', name: form.name });
       setForm({ name: '', email: '', phone: '', bloodGroup: 'O+', address: '', emergencyContact: '', insurancePlan: 'Basic OPD' });
     } catch (err: any) {
       addToast('error', err?.response?.data?.error || 'Registration failed. Please try again.');
