@@ -36,6 +36,7 @@ model Patient {
   account          UserAccount?
   doctorLinks      PatientDoctor[]
   hpNotes          HPNote[]
+  accessLogs       PatientAccessLog[]
 
   // Lifestyle & Habits
   breakfastTime    String?
@@ -124,6 +125,14 @@ model DoctorPreferences {
   lang                  String   @default("en")
   prescriptionTemplates Json     @default("[]")
   pdfTemplates          Json     @default("[]")
+  timelineZoom          Float    @default(1)
+  timelineWarp          Boolean  @default(false)
+  singularityEnabled    Boolean  @default(true)
+  singularityModern     Boolean  @default(true)
+  singularitySpeed      Float    @default(1.0)
+  singularityPages      Json     @default("[\"dashboard\", \"search\"]")
+  prescriptionLayout    String   @default("classic")
+  autoPrintEnabled      Boolean  @default(false)
   updatedAt             DateTime @updatedAt
   doctor                Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 }
@@ -335,6 +344,7 @@ model AppointmentSlot {
   doctor       Doctor             @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   schedule     DoctorSchedule?    @relation(fields: [scheduleId], references: [id])
 
+  @@unique([doctorId, startAt])
   @@map("DoctorSlot")
 }
 
@@ -426,9 +436,8 @@ model HPNote {
 model AiTranscriptLog {
   id                 String   @id @default(cuid())
   originalTranscript String
-  /// Nullable — may be a mock/walk-in patient not yet in the DB
   patientId          String?
-  /// Nullable — manual consultations have no appointment record
+  doctorId           String?   // Tagged for clinic isolation
   appointmentId      String?
   createdAt          DateTime @default(now())
 }
@@ -508,4 +517,16 @@ enum EmrShareStatus {
   PENDING
   ACCEPTED
   REJECTED
+}
+
+model PatientAccessLog {
+  id         String   @id @default(cuid())
+  patientId  String
+  doctorId   String
+  doctorName String
+  accessType String   @default("QR_SCAN")
+  createdAt  DateTime @default(now())
+  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
 }

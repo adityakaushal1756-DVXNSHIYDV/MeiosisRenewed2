@@ -84,18 +84,24 @@
           </div>
           
           <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 12px;">
-            <p class="auth-kicker" style="margin: 0;">Mobile Companion</p>
-            <a id="companionAppLink" href="http://localhost:5176" class="auth-btn-secondary" style="width: 100%; border-color: #52ff9d; color: #52ff9d; display: flex; align-items: center; justify-content: center; gap: 8px;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
-              Open Companion App
-            </a>
+            <p class="auth-kicker" style="margin: 0;">Clinical Access</p>
+            <div style="display: flex; gap: 8px;">
+              <a id="companionAppLink" href="http://localhost:5177" class="auth-btn-secondary" style="flex: 1; border-color: #52ff9d; color: #52ff9d; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 4px; font-size: 12px; white-space: nowrap;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+                Companion
+              </a>
+              <a href="/staff-login.html" class="auth-btn-secondary" style="flex: 1; border-color: #a855f7; color: #a855f7; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 4px; font-size: 12px; white-space: nowrap;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Staff Portal
+              </a>
+            </div>
             <script>
               const companionLink = document.getElementById('companionAppLink');
               if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
                 companionLink.href = '/companion-app/';
               }
             </script>
-            <p class="auth-copy" style="font-size: 11px; margin: 0;">Scan patient QR codes with your phone for mobile-side verification.</p>
+            <p class="auth-copy" style="font-size: 11px; margin: 0;">Access for clinic nurses, reception, and medical staff.</p>
           </div>
         </form>
 

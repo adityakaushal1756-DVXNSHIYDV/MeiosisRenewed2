@@ -95,6 +95,15 @@ router.get('/search', asyncHandler(async (req, res) => {
   const patientId  = (req.query.patientId || '').toString().trim();
 
   const doctors = await prisma.doctor.findMany({
+    where: q ? {
+      OR: [
+        { name: { contains: q, mode: 'insensitive' } },
+        { specialty: { contains: q, mode: 'insensitive' } },
+        { hospital: { contains: q, mode: 'insensitive' } },
+        { clinicName: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } }
+      ]
+    } : {},
     select: {
       id: true,
       name: true,
@@ -112,18 +121,10 @@ router.get('/search', asyncHandler(async (req, res) => {
       meiosisId: true,
     },
     orderBy: { name: 'asc' },
+    take: 50 // Limit to top 50 results for speed
   });
 
-  // Filter by search query
-  const filtered = q
-    ? doctors.filter(d =>
-        (d.name        || '').toLowerCase().includes(q) ||
-        (d.specialty   || '').toLowerCase().includes(q) ||
-        (d.clinicName  || '').toLowerCase().includes(q) ||
-        (d.hospital    || '').toLowerCase().includes(q) ||
-        (d.email       || '').toLowerCase().includes(q)
-      )
-    : doctors;
+  const filtered = doctors;
 
   // If patientId provided, mark which ones are already linked
   let linkedSet = new Set();

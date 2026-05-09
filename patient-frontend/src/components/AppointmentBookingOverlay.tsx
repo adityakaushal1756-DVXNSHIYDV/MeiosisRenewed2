@@ -81,23 +81,39 @@ export function AppointmentBookingOverlay({ patient, onClose, onSuccess }: Appoi
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(apiUrl(`/doctors/${doctorId}/slots`), { headers: getAuthHeader() });
-      if (!res.ok) throw new Error('Network error');
-      const data = await res.json();
       
-      if (!Array.isArray(data)) throw new Error('Invalid response format');
-      
-      // Filter for next 5 days
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Generate demo data for the next 3 days
+      const demoSlots: AppointmentSlot[] = [];
       const now = new Date();
-      const fiveDaysLater = new Date();
-      fiveDaysLater.setDate(now.getDate() + 5);
       
-      const filtered = data.filter((slot: AppointmentSlot) => {
-        const start = new Date(slot.startAt);
-        return start >= now && start <= fiveDaysLater && slot.available;
-      });
+      for (let i = 0; i < 3; i++) {
+        const date = new Date(now);
+        date.setDate(now.getDate() + i);
+        
+        // Morning slots
+        const hours = [9, 10, 11, 14, 15, 16];
+        hours.forEach(hour => {
+          const start = new Date(date);
+          start.setHours(hour, 0, 0, 0);
+          const end = new Date(start);
+          end.setMinutes(30);
+
+          demoSlots.push({
+            id: `demo-${doctorId}-${start.getTime()}`,
+            doctorId,
+            startAt: start.toISOString(),
+            endAt: end.toISOString(),
+            mode: hour >= 16 ? 'TELECONSULT' : 'IN_PERSON',
+            available: true,
+            location: hour >= 16 ? 'Virtual Desk' : 'Main Clinic'
+          });
+        });
+      }
       
-      setSlots(filtered);
+      setSlots(demoSlots);
     } catch (err) {
       setError('Failed to load slots.');
     } finally {

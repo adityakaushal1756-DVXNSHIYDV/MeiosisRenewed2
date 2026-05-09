@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MEIOSIS | Staff Clinical Login</title>
+  <meta name="theme-color" content="#0d1b2a" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" onload="this.rel='stylesheet'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" /></noscript>
+  <link rel="stylesheet" href="./auth.css" />
+  <style>
+    .staff-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid rgba(168, 85, 247, 0.2);
+      border-radius: 100px;
+      color: #a855f7;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body class="auth-body">
+  <div class="auth-shell">
+    <div class="auth-card">
+      <section class="auth-brand" style="background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);">
+        <div class="auth-mark" style="background: #a855f7;">S</div>
+        <p class="auth-kicker">Clinical Console</p>
+        <h1 class="auth-title">MEIOSIS Clinical Staff Access</h1>
+        <p class="auth-copy">Authenticated gateway for clinic receptionists, nurses, and medical staff. Access your workstation and manage patient queues.</p>
+        
+        <div id="authBackendStatus" class="auth-backend-pill auth-backend-pill-pending">Checking connectivity...</div>
+
+        <div style="margin-top: auto; padding: 24px; background: rgba(255,255,255,0.03); border-radius: 24px; border: 1px solid rgba(255,255,255,0.05);">
+          <p class="auth-kicker" style="color: #a855f7;">Security Notice</p>
+          <p class="auth-copy" style="font-size: 12px;">This portal is for authorized clinic personnel only. All access attempts are logged for audit compliance.</p>
+        </div>
+      </section>
+
+      <section class="auth-panel">
+        <form id="staffLoginForm" class="auth-form-grid">
+          <div>
+            <div class="staff-badge">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+              Protected Clinical Area
+            </div>
+            <h2 class="auth-title" style="font-size:2rem;">Staff Login</h2>
+          </div>
+
+          <label class="auth-label">
+            <span>Staff Email or ID</span>
+            <input id="loginIdentifier" class="auth-input" type="text" placeholder="nurse.john@clinic.com" required />
+          </label>
+
+          <label class="auth-label">
+            <span>Clinical Password</span>
+            <input id="loginPassword" class="auth-input" type="password" placeholder="••••••••" required />
+          </label>
+
+          <p id="loginMessage" hidden></p>
+
+          <div class="auth-actions" style="margin-top: 12px;">
+            <button class="auth-btn" type="submit" style="background: #a855f7; box-shadow: 0 8px 30px rgba(168, 85, 247, 0.2);">Enter Console</button>
+            <a class="auth-btn-secondary" href="./login.html">Main Gateway</a>
+          </div>
+          
+          <p class="auth-copy" style="text-align: center; font-size: 12px; margin-top: 24px;">
+            Contact your hospital administrator if you've lost your access credentials.
+          </p>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <script src="./config.js?v=3"></script>
+  <script src="./auth.js?v=3"></script>
+  <script>
+    // Specific staff login override
+    const staffForm = document.getElementById('staffLoginForm');
+    staffForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const message = document.getElementById('loginMessage');
+      const identifier = document.getElementById('loginIdentifier').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      
+      message.hidden = false;
+      message.textContent = 'Authenticating staff credentials...';
+      message.className = 'auth-success';
+
+      try {
+        const result = await apiPost('/auth/login', { identifier, password });
+        
+        // Ensure the role is a staff role
+        const staffRoles = ["RECEPTION", "NURSE", "REGISTRAR", "RESIDENT", "INTERN", "STAFF", "ADMIN"];
+        const userRole = (result.user.role || "").toUpperCase();
+        
+        if (!staffRoles.includes(userRole)) {
+          throw new Error("This account does not have clinical staff permissions.");
+        }
+
+        saveSession(result.user, result.token);
+        message.textContent = 'Identity verified. Launching Clinical Console...';
+        
+        setTimeout(() => {
+          // Redirect to staff portal directly
+          const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+          const staffUrl = isLocal ? 'http://localhost:5179/' : '/staff-frontend/';
+          
+          const url = new URL(staffUrl, window.location.href);
+          url.searchParams.set('session', JSON.stringify({ ...result.user, token: result.token }));
+          window.location.href = url.toString();
+        }, 800);
+
+      } catch (err) {
+        message.className = 'auth-error';
+        message.textContent = err.message || 'Login failed.';
+      }
+    });
+  </script>
+</body>
+</html>

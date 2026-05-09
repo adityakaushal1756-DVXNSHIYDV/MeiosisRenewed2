@@ -10,7 +10,7 @@ const getBackendUrl = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
 
   const { hostname, protocol, origin } = window.location;
-  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || /^192\.168\./.test(hostname) || /^10\./.test(hostname) || /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname);
 
   // 2. Local Dev: Backend is usually on 5002
   if (isLocal) return `${protocol}//${hostname}:5002/api`;
@@ -43,10 +43,11 @@ const getAuthHeader = () => {
  */
 function extractPatientIdFromQr(raw: string): string {
   const trimmed = raw.trim();
+  console.log('[Scanner] Extracting from:', trimmed.slice(0, 50) + (trimmed.length > 50 ? '...' : ''));
 
   // Format 0: New Meiosis Secure Token (MEIOSIS:v1:data:sig)
-  // We pass this raw to the backend which now knows how to resolve it
   if (trimmed.startsWith('MEIOSIS:v1:')) {
+    console.log('[Scanner] Detected MEIOSIS:v1 token format');
     return trimmed;
   }
 

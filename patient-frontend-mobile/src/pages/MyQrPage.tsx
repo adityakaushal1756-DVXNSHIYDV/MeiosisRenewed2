@@ -121,9 +121,10 @@ export function MyQrPage({ data }: MyQrPageProps) {
   }, [refreshKey, selectedDuration.seconds]);
 
   useEffect(() => {
-    if (!qrResponse?.gatewayUrl) return;
+    const qrData = qrResponse?.token || qrResponse?.gatewayUrl;
+    if (!qrData) return;
     let cancelled = false;
-    QRCode.toDataURL(qrResponse.gatewayUrl, {
+    QRCode.toDataURL(qrData, {
       errorCorrectionLevel: 'M',
       margin: 2,
       width: 288,

@@ -539,24 +539,25 @@ body.auth-body {
   top: 4px;
   left: 4px;
   height: calc(100% - 8px);
-  width: calc(50% - 4px);
-  background: rgba(82, 255, 157, 0.12);
-  border: 1px solid rgba(82, 255, 157, 0.25);
-  border-radius: 12px;
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  z-index: 1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+/* Logic for shifting the glider (4 positions) */
+.auth-toggle-group {
+  display: grid !important;
 }
 
-/* Logic for shifting the glider */
-#patientWorkspaceHtml:checked ~ .auth-toggle-glider {
-  transform: translateX(100%);
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
+.auth-toggle-glider {
+  width: calc(25% - 4px) !important;
 }
 
-#patientWorkspaceHtml:checked + label {
-  color: #fff;
+#pAuto:checked ~ .auth-toggle-glider { transform: translateX(0); }
+#pDesktop:checked ~ .auth-toggle-glider { transform: translateX(100%); }
+#pMobile:checked ~ .auth-toggle-glider { transform: translateX(200%); }
+#pHtml:checked ~ .auth-toggle-glider { transform: translateX(300%); }
+
+#pAuto:checked + label,
+#pDesktop:checked + label,
+#pMobile:checked + label,
+#pHtml:checked + label {
+  color: #52ff9d;
 }
 
 @media (max-width: 900px) {

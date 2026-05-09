@@ -1,14 +1,13 @@
 import { Activity, Building2, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, LayoutDashboard, Menu, MessageSquare, Search, Settings, Users, X } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
-export type NavKey = 'dashboard' | 'queue' | 'search' | 'messages' | 'schedule' | 'calendar' | 'analytics' | 'settings' | 'template-builder' | 'your-clinic';
+export type NavKey = 'dashboard' | 'queue' | 'search' | 'messages' | 'calendar' | 'analytics' | 'settings' | 'template-builder' | 'your-clinic';
 
 const NAV_ICONS: { key: NavKey; icon: typeof LayoutDashboard }[] = [
   { key: 'dashboard', icon: LayoutDashboard },
   { key: 'queue',     icon: Users           },
   { key: 'search',    icon: Search          },
   { key: 'messages',  icon: MessageSquare   },
-  { key: 'schedule',  icon: CalendarClock   },
   { key: 'calendar',  icon: CalendarDays    },
   { key: 'analytics', icon: Activity        },
   { key: 'settings',  icon: Settings        },

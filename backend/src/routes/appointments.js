@@ -138,17 +138,38 @@ router.post('/', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'patientId, doctorId, and appointmentSlotId are required.' });
   }
 
-  const slot = await prisma.appointmentSlot.findUnique({
-    where: { id: appointmentSlotId },
-    include: { doctor: true }
-  });
+  const isDemoSlot = appointmentSlotId.startsWith('demo-');
+  let slot = null;
 
-  if (!slot || slot.doctorId !== doctorId) {
-    return res.status(404).json({ error: 'Selected appointment slot was not found.' });
-  }
+  if (!isDemoSlot) {
+    slot = await prisma.appointmentSlot.findUnique({
+      where: { id: appointmentSlotId },
+      include: { doctor: true }
+    });
 
-  if (!slot.available) {
-    return res.status(409).json({ error: 'Selected appointment slot is no longer available.' });
+    if (!slot || slot.doctorId !== doctorId) {
+      return res.status(404).json({ error: 'Selected appointment slot was not found.' });
+    }
+
+    if (!slot.available) {
+      return res.status(409).json({ error: 'Selected appointment slot is no longer available.' });
+    }
+  } else {
+    // For demo slots, we fetch the doctor to get the fee
+    const doctor = await prisma.doctor.findUnique({ where: { id: doctorId } });
+    if (!doctor) return res.status(404).json({ error: 'Doctor not found.' });
+    
+    // Create a virtual slot object for the transaction logic below
+    const [,,timestamp] = appointmentSlotId.split('-');
+    const demoDate = new Date(Number(timestamp));
+    
+    slot = {
+      doctorId,
+      doctor,
+      startAt: demoDate,
+      mode: mode || (demoDate.getHours() >= 16 ? AppointmentMode.TELECONSULT : AppointmentMode.IN_PERSON),
+      available: true
+    };
   }
 
   const appointment = await prisma.$transaction(async (tx) => {
@@ -165,7 +186,7 @@ router.post('/', asyncHandler(async (req, res) => {
       data: {
         patientId,
         doctorId,
-        appointmentSlotId,
+        appointmentSlotId: isDemoSlot ? null : appointmentSlotId,
         paymentId: payment.id,
         title: title || 'Consultation',
         purpose: purpose || null,
@@ -183,24 +204,26 @@ router.post('/', asyncHandler(async (req, res) => {
       }
     });
 
-    await tx.appointmentSlot.update({
-      where: { id: appointmentSlotId },
-      data: {
-        available: false,
-        status: SlotStatus.BOOKED
-      }
-    });
+    if (!isDemoSlot) {
+      await tx.appointmentSlot.update({
+        where: { id: appointmentSlotId },
+        data: {
+          available: false,
+          status: SlotStatus.BOOKED
+        }
+      });
 
-    await tx.appointmentQueue.create({
-      data: {
-        appointmentId: created.id,
-        doctorSlotId: appointmentSlotId,
-        appointmentTime: slot.startAt,
-        status: QueueStatus.WAITING
-      }
-    });
+      await tx.appointmentQueue.create({
+        data: {
+          appointmentId: created.id,
+          doctorSlotId: appointmentSlotId,
+          appointmentTime: slot.startAt,
+          status: QueueStatus.WAITING
+        }
+      });
 
-    await recalculateQueueNumbers(tx, appointmentSlotId);
+      await recalculateQueueNumbers(tx, appointmentSlotId);
+    }
 
     return tx.appointment.findUnique({
       where: { id: created.id },

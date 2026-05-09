@@ -104,12 +104,12 @@ async function redirectAfterLogin(role, isNewSignup = false) {
   })();
   
   const rawRole = (savedSession?.role || role || "").toUpperCase();
-  const staffRoles = ["RECEPTION", "NURSE", "REGISTRAR", "RESIDENT", "INTERN"];
+  const staffRoles = ["RECEPTION", "NURSE", "REGISTRAR", "RESIDENT", "INTERN", "STAFF", "ADMIN"];
   
   if (staffRoles.includes(rawRole)) {
     const isLocalSession = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    // For local dev, staff frontend might be on a different port, e.g. 5175
-    const staffBase = isLocalSession ? "http://localhost:5175/" : new URL("/staff-frontend/", window.location.href).href;
+    // For local dev, staff frontend is on port 5179
+    const staffBase = isLocalSession ? "http://localhost:5179/" : new URL("/staff-frontend/", window.location.href).href;
     const url = new URL(staffBase);
     const sessionData = localStorage.getItem(AUTH_SESSION_KEY);
     if (sessionData) {

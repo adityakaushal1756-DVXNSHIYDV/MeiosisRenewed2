@@ -14,6 +14,7 @@ const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const prisma = require('../lib/prisma');
 const asyncHandler = require('../lib/async-handler');
+const { authMiddleware } = require('../middleware/auth-middleware');
 
 const router = express.Router();
 
@@ -39,8 +40,9 @@ function extractJson(raw) {
 }
 
 // ── Route ─────────────────────────────────────────────────────
-router.post('/', asyncHandler(async (req, res) => {
+router.post('/', authMiddleware, asyncHandler(async (req, res) => {
   const { transcript, patientId, appointmentId } = req.body;
+  const doctorId = req.user.doctorId || req.user.id;
 
   if (!transcript?.trim()) {
     return res.status(400).json({ error: 'transcript is required' });
@@ -54,6 +56,7 @@ router.post('/', asyncHandler(async (req, res) => {
       data: {
         originalTranscript: transcript,
         patientId:    patientId    ?? null,
+        doctorId:     doctorId     ?? null,
         appointmentId: appointmentId ?? null,
       },
     });

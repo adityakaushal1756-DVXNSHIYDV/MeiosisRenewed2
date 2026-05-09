@@ -1098,7 +1098,35 @@ function DoctorWorkspace() {
             setTemplates(tpls);
             try { localStorage.setItem(DOCTOR_PRESCRIPTION_TEMPLATES_KEY, JSON.stringify(tpls)); } catch {}
           }
-
+          if (typeof prefs.timelineZoom === 'number') {
+            const z = clampTimelineZoom(prefs.timelineZoom);
+            setTimelineZoomState(z);
+            try { localStorage.setItem(DOCTOR_TIMELINE_ZOOM_KEY, String(z)); } catch {}
+          }
+          if (typeof prefs.timelineWarp === 'boolean') {
+            setTimelineWarpState(prefs.timelineWarp);
+            try { localStorage.setItem(DOCTOR_TIMELINE_WARP_KEY, String(prefs.timelineWarp)); } catch {}
+          }
+          if (typeof prefs.singularityEnabled === 'boolean') {
+            setSingularityEnabledState(prefs.singularityEnabled);
+            try { localStorage.setItem(DOCTOR_SINGULARITY_ENABLED_KEY, String(prefs.singularityEnabled)); } catch {}
+          }
+          if (typeof prefs.singularityModern === 'boolean') {
+            setSingularityModernState(prefs.singularityModern);
+            try { localStorage.setItem(DOCTOR_SINGULARITY_MODERN_KEY, String(prefs.singularityModern)); } catch {}
+          }
+          if (typeof prefs.singularitySpeed === 'number') {
+            setSingularitySpeedState(prefs.singularitySpeed);
+            try { localStorage.setItem(DOCTOR_SINGULARITY_SPEED_KEY, String(prefs.singularitySpeed)); } catch {}
+          }
+          if (typeof prefs.prescriptionLayout === 'string') {
+            setPrescriptionLayoutState(prefs.prescriptionLayout as 'classic' | 'wide');
+            try { localStorage.setItem(DOCTOR_PRESCRIPTION_LAYOUT_MODE_KEY, prefs.prescriptionLayout); } catch {}
+          }
+          if (typeof prefs.autoPrintEnabled === 'boolean') {
+            setAutoPrintEnabled(prefs.autoPrintEnabled);
+            try { localStorage.setItem(DOCTOR_AUTO_PRINT_KEY, String(prefs.autoPrintEnabled)); } catch {}
+          }
         }
       })
       .catch(() => {})
@@ -1123,8 +1151,16 @@ function DoctorWorkspace() {
       queueBlockDuration,
       followUpGapDays,
       lang,
+      timelineZoom,
+      timelineWarp,
+      singularityEnabled,
+      singularityModern,
+      singularitySpeed,
+      singularityPages,
+      prescriptionLayout,
+      autoPrintEnabled,
     });
-  }, [themeMode, customTheme, timelineTheme, emrBuilderV2Theme, emrBuilderLayout, timelineLayout, consoleCollapsible, consoleCollapsed, consoleWidth, slotDuration, queueBlockDuration, followUpGapDays, lang]);
+  }, [themeMode, customTheme, timelineTheme, emrBuilderV2Theme, emrBuilderLayout, timelineLayout, consoleCollapsible, consoleCollapsed, consoleWidth, slotDuration, queueBlockDuration, followUpGapDays, lang, timelineZoom, timelineWarp, singularityEnabled, singularityModern, singularitySpeed, singularityPages, prescriptionLayout, autoPrintEnabled]);
 
   const selectedQueuePatient = useMemo(() => {
     if (!activeAppointment) return null;

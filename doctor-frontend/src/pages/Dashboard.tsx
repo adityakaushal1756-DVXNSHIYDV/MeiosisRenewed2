@@ -1364,21 +1364,6 @@ export default function Dashboard(props: DashboardProps) {
   );
 
   /* ── Schedule ── */
-  const scheduleView = (
-    <div className="h-full">
-      <ScheduleManager
-        days={scheduleDays}
-        vacationNote={vacationNote}
-        lateStartDate={lateStartDate}
-        lateStartTime={lateStartTime}
-        onToggleOpen={onToggleDayOpen}
-        onChange={onScheduleChange}
-        onVacationNoteChange={onVacationNoteChange}
-        onLateStartDateChange={onLateStartDateChange}
-        onLateStartTimeChange={onLateStartTimeChange}
-      />
-    </div>
-  );
 
   /* ── Analytics ── */
   const analyticsView = (
@@ -2761,302 +2746,6 @@ export default function Dashboard(props: DashboardProps) {
           </div>
         </PlaceholderBlock>
 
-        {/* Appointment Scheduling */}
-        <section className="glass-card p-5">
-          <SectionHeader
-            icon={<Clock3 size={18} />}
-            title="Appointment Scheduling"
-            copy="Drag the sliders to set how long you spend per patient and how large each queue block is. Slots are generated live from your clinic hours."
-          />
-          <div className="space-y-5">
-            {/* ── Slider 1: Time per patient ────────────────────────────── */}
-            <div className="rounded-2xl border border-wire/8 bg-slate-950/20 p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <div className="font-medium text-white">Time per patient</div>
-                  <div className="mt-0.5 text-sm text-mist">
-                    Each appointment slot is this long. Clinic hours ÷ this
-                    value = total slots.
-                  </div>
-                </div>
-                <div className="flex items-baseline gap-1 shrink-0">
-                  <span className="text-3xl font-bold tabular-nums text-neon">
-                    {slotDuration}
-                  </span>
-                  <span className="text-sm text-mist">min</span>
-                </div>
-              </div>
-
-              {/* Slider track */}
-              <div className="relative">
-                <input
-                  type="range"
-                  min={4}
-                  max={20}
-                  step={1}
-                  value={Math.min(Math.max(slotDuration, 4), 20)}
-                  onChange={(e) => onSlotDurationChange(Number(e.target.value))}
-                  className="scheduling-slider w-full"
-                  aria-label="Time per patient in minutes"
-                  title="Time per patient"
-                  style={
-                    {
-                      "--pct": `${((Math.min(Math.max(slotDuration, 4), 20) - 4) / (20 - 4)) * 100}%`,
-                    } as React.CSSProperties
-                  }
-                />
-                <div className="mt-2 flex justify-between text-[10px] text-mist/50 tabular-nums">
-                  {[4, 8, 12, 16, 20].map((v) => (
-                    <span key={v}>{v}m</span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Custom time input */}
-              <div className="mt-3 flex items-center gap-3">
-                <span className="text-xs text-mist">Custom:</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={120}
-                  value={slotDuration}
-                  onChange={(e) => {
-                    const v = Math.max(
-                      1,
-                      Math.min(120, Number(e.target.value) || 1),
-                    );
-                    onSlotDurationChange(v);
-                  }}
-                  aria-label="Custom time per patient in minutes"
-                  title="Custom time per patient"
-                  placeholder="min"
-                  className="input-shell w-20 text-center text-sm tabular-nums"
-                />
-                <span className="text-xs text-mist">
-                  min &nbsp;(1–120 for custom)
-                </span>
-              </div>
-
-              {/* Derived stat + Apply button */}
-              {(() => {
-                const { slots } = generateTodaySlots(
-                  scheduleDays,
-                  slotDuration,
-                  queueBlockDuration,
-                );
-                return (
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                    {slots.length > 0 ? (
-                      <p className="text-xs text-mist/70">
-                        →{" "}
-                        <span className="font-semibold text-white">
-                          {slots.length} slots
-                        </span>{" "}
-                        generated for today's clinic hours
-                      </p>
-                    ) : (
-                      <p className="text-xs text-mist/50 italic">
-                        No clinic hours for today
-                      </p>
-                    )}
-                    <ApplyScheduleButton onSync={onSyncSchedule} />
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* ── Slider 2: Queue block size ────────────────────────────── */}
-            <div className="rounded-2xl border border-wire/8 bg-slate-950/20 p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <div className="font-medium text-white">
-                    Queue block duration
-                  </div>
-                  <div className="mt-0.5 text-sm text-mist">
-                    Consecutive slots are grouped into blocks of this length in
-                    the queue panel.
-                  </div>
-                </div>
-                <div className="flex items-baseline gap-1 shrink-0">
-                  <span className="text-3xl font-bold tabular-nums text-sky">
-                    {queueBlockDuration >= 60
-                      ? `${queueBlockDuration / 60}`
-                      : queueBlockDuration}
-                  </span>
-                  <span className="text-sm text-mist">
-                    {queueBlockDuration >= 60 ? "hr" : "min"}
-                  </span>
-                </div>
-              </div>
-
-              <div className="relative">
-                <input
-                  type="range"
-                  min={30}
-                  max={240}
-                  step={30}
-                  value={queueBlockDuration}
-                  onChange={(e) =>
-                    onQueueBlockDurationChange(Number(e.target.value))
-                  }
-                  className="scheduling-slider scheduling-slider--sky w-full"
-                  aria-label="Queue block duration in minutes"
-                  title="Queue block duration"
-                  style={
-                    {
-                      "--pct": `${((queueBlockDuration - 30) / (240 - 30)) * 100}%`,
-                    } as React.CSSProperties
-                  }
-                />
-                <div className="mt-2 flex justify-between text-[10px] text-mist/50 tabular-nums">
-                  {["30m", "1h", "1.5h", "2h", "3h", "4h"].map((v) => (
-                    <span key={v}>{v}</span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Derived stat */}
-              {(() => {
-                const { blocks } = generateTodaySlots(
-                  scheduleDays,
-                  slotDuration,
-                  queueBlockDuration,
-                );
-                const slotsPerBlock = blocks[0]?.slots.length ?? 0;
-                return blocks.length > 0 ? (
-                  <p className="mt-3 text-xs text-mist/70">
-                    →{" "}
-                    <span className="font-semibold text-white">
-                      {blocks.length} queue block
-                      {blocks.length !== 1 ? "s" : ""}
-                    </span>
-                    {slotsPerBlock > 0 && (
-                      <>
-                        , ~
-                        <span className="font-semibold text-white">
-                          {slotsPerBlock} patients
-                        </span>{" "}
-                        per block
-                      </>
-                    )}
-                  </p>
-                ) : null;
-              })()}
-            </div>
-
-            {/* ── Follow-up gap ──────────────────────────────────────────── */}
-            <div className="rounded-2xl border border-wire/8 bg-slate-950/20 p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <div className="font-medium text-white">
-                    Default follow-up gap
-                  </div>
-                  <div className="mt-0.5 text-sm text-mist">
-                    EMR Builder auto-fills the follow-up date to today + this
-                    many days.
-                  </div>
-                </div>
-                <div className="flex items-baseline gap-1 shrink-0">
-                  <span className="text-3xl font-bold tabular-nums text-neon">
-                    {followUpGapDays}
-                  </span>
-                  <span className="text-sm text-mist">
-                    day{followUpGapDays !== 1 ? "s" : ""}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  min={1}
-                  max={365}
-                  value={followUpGapDays}
-                  onChange={(e) => {
-                    const v = Math.max(
-                      1,
-                      Math.min(365, Number(e.target.value) || 1),
-                    );
-                    onFollowUpGapDaysChange(v);
-                  }}
-                  aria-label="Follow-up gap in days"
-                  className="input-shell w-24 text-center text-sm tabular-nums"
-                />
-                <span className="text-xs text-mist">days &nbsp;(1–365)</span>
-              </div>
-              <p className="mt-3 text-xs text-mist/70">
-                → Follow-up will default to{" "}
-                <span className="font-semibold text-white">
-                  {new Date(
-                    Date.now() + followUpGapDays * 86400000,
-                  ).toLocaleDateString("en-GB", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </span>
-              </p>
-            </div>
-
-            {/* ── Live slot preview ──────────────────────────────────────── */}
-            {(() => {
-              const { slots, blocks } = generateTodaySlots(
-                scheduleDays,
-                slotDuration,
-                queueBlockDuration,
-              );
-              if (slots.length === 0) {
-                return (
-                  <div className="rounded-2xl border border-wire/8 bg-slate-950/20 p-4">
-                    <div className="text-sm text-mist italic">
-                      No clinic hours scheduled for today — set your schedule
-                      above.
-                    </div>
-                  </div>
-                );
-              }
-              return (
-                <div className="rounded-2xl border border-wire/8 bg-slate-950/20 p-4">
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <div className="text-sm font-medium text-white">
-                      Today's slot preview
-                    </div>
-                    <span className="chip border-wire/10 bg-white/[0.04] text-white/70">
-                      {slots.length} slots · {blocks.length} block
-                      {blocks.length !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    {blocks.map((block) => (
-                      <div
-                        key={block.id}
-                        className="rounded-xl border border-wire/8 bg-slate-950/30 p-3"
-                      >
-                        <div className="mb-2 flex items-center justify-between">
-                          <span className="text-xs font-semibold uppercase tracking-widest text-neon/70">
-                            {block.title}
-                          </span>
-                          <span className="text-xs text-mist">
-                            {block.label}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {block.slots.map((slot) => (
-                            <span
-                              key={slot.id}
-                              className="rounded-xl border border-wire/10 bg-white/[0.04] px-2.5 py-1 text-xs text-white/75"
-                            >
-                              {slot.label}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        </section>
 
         {/* Account / Logout */}
         <section className="glass-card p-5">
@@ -3095,6 +2784,66 @@ export default function Dashboard(props: DashboardProps) {
               <LogOut size={15} />
               Log out
             </button>
+          </div>
+        </section>
+
+        {/* Follow-up gap (Preserved as per request) */}
+        <section className="glass-card p-5">
+          <SectionHeader
+            icon={<Clock3 size={18} />}
+            title="EMR Settings"
+            copy="Configure default behaviors for the Consultation Builder."
+          />
+          <div className="rounded-2xl border border-wire/8 bg-slate-950/20 p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <div className="font-medium text-white">
+                  Default follow-up gap
+                </div>
+                <div className="mt-0.5 text-sm text-mist">
+                  EMR Builder auto-fills the follow-up date to today + this
+                  many days.
+                </div>
+              </div>
+              <div className="flex items-baseline gap-1 shrink-0">
+                <span className="text-3xl font-bold tabular-nums text-neon">
+                  {followUpGapDays}
+                </span>
+                <span className="text-sm text-mist">
+                  day{followUpGapDays !== 1 ? "s" : ""}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min={1}
+                max={365}
+                value={followUpGapDays}
+                onChange={(e) => {
+                  const v = Math.max(
+                    1,
+                    Math.min(365, Number(e.target.value) || 1),
+                  );
+                  onFollowUpGapDaysChange(v);
+                }}
+                aria-label="Follow-up gap in days"
+                className="input-shell w-24 text-center text-sm tabular-nums"
+              />
+              <span className="text-xs text-mist">days &nbsp;(1–365)</span>
+            </div>
+            <p className="mt-3 text-xs text-mist/70">
+              → Follow-up will default to{" "}
+              <span className="font-semibold text-white">
+                {new Date(
+                  Date.now() + followUpGapDays * 86400000,
+                ).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+            </p>
           </div>
         </section>
       </div>
@@ -3300,11 +3049,6 @@ export default function Dashboard(props: DashboardProps) {
     messages: (
       <Suspense fallback={<DashboardLoadingFallback label="Loading Messages..." />}>
         {messagesView}
-      </Suspense>
-    ),
-    schedule: (
-      <Suspense fallback={<DashboardLoadingFallback label="Loading Schedule..." />}>
-        {scheduleView}
       </Suspense>
     ),
     calendar: (

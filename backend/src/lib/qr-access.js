@@ -22,11 +22,19 @@ function base64UrlDecode(input) {
 }
 
 function getQrSigningSecret() {
-  return process.env.QR_SIGNING_SECRET || process.env.TEMP_ACCESS_JWT_SECRET || JWT_SECRET;
+  const secret = process.env.QR_SIGNING_SECRET || process.env.TEMP_ACCESS_JWT_SECRET || JWT_SECRET;
+  if (secret === 'meiosis-super-secret-dev-key') {
+    console.warn('[QR-Access] Using DEFAULT development secret. Signature mismatch likely in production.');
+  }
+  return secret;
 }
 
 function getTempAccessSecret() {
-  return process.env.TEMP_ACCESS_JWT_SECRET || JWT_SECRET;
+  const secret = process.env.TEMP_ACCESS_JWT_SECRET || JWT_SECRET;
+  if (secret === 'meiosis-super-secret-dev-key') {
+    console.warn('[QR-Access] Using DEFAULT temp access secret.');
+  }
+  return secret;
 }
 
 function clampTtlSeconds(ttlSeconds) {
@@ -103,6 +111,7 @@ function generateSignedQrUrl({ patientId, ttlSeconds, gatewayBaseUrl, now = Date
   const url = new URL(gatewayBaseUrl || 'https://meiosis.app/gateway');
   url.searchParams.set('data', data);
   url.searchParams.set('sig', sig);
+  console.log(`[QR-Access] Generated URL. Env: ${process.env.NODE_ENV}, DataLen: ${data.length}`);
 
   return {
     url: url.toString(),

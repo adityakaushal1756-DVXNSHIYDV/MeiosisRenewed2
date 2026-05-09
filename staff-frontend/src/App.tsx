@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Hammer, HardHat, Construction, Loader2, UserCircle2, ArrowRight, ShieldCheck, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CommandDashboard } from './components/Dashboard/CommandDashboard';
+import { AuditDashboard } from './components/Dashboard/AuditDashboard';
+import { LayoutGrid, ShieldAlert, UserCircle2, Loader2, ShieldCheck, Power } from 'lucide-react';
 
 const queryClient = new QueryClient();
 
@@ -10,6 +10,7 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   const [role, setRole] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<'COMMAND' | 'AUDIT'>('COMMAND');
 
   useEffect(() => {
     const checkSession = () => {
@@ -27,7 +28,7 @@ export default function App() {
           console.error('Failed to parse session');
         }
       } else {
-        const saved = localStorage.getItem('meiosis_staff_session');
+        const saved = localStorage.getItem('meiosis_staff_session') || localStorage.getItem('meiosis_auth_session_v1');
         if (saved) {
           try {
             const session = JSON.parse(saved);
@@ -59,7 +60,7 @@ export default function App() {
         <h2 className="text-2xl font-bold mb-2">Authentication Required</h2>
         <p className="text-mist/40 max-w-xs mb-8">Please login through the main portal to access the clinical console.</p>
         <button 
-          onClick={() => window.location.href = '/login.html'}
+          onClick={() => window.location.href = '/staff-login.html'}
           className="px-8 py-3 bg-white/5 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all"
         >
           Return to Gateway
@@ -68,68 +69,49 @@ export default function App() {
     );
   }
 
-  // If role is RECEPTION or NURSE, show the Command Center
-  if (['RECEPTION', 'NURSE'].includes(role)) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <CommandDashboard />
-      </QueryClientProvider>
-    );
-  }
-
-  const roleLabels: Record<string, string> = {
-    'REGISTRAR': 'Registrar Intelligence',
-    'RESIDENT': 'Resident Workspace',
-    'INTERN': 'Intern Training Hub'
-  };
-
-  const currentLabel = roleLabels[role] || 'Staff Portal';
-
   return (
-    <div className="min-h-screen bg-[#0A0F1E] text-white flex flex-col font-sans overflow-hidden">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-500/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px]" />
+    <QueryClientProvider client={queryClient}>
+      <div className="flex h-screen bg-[#0A0F1E] overflow-hidden">
+        {/* Sidebar */}
+        <aside className="w-20 flex flex-col items-center py-8 border-r border-white/5 bg-black/40 backdrop-blur-xl z-50">
+          <div className="w-12 h-12 bg-purple-500 rounded-2xl flex items-center justify-center font-black text-2xl text-white shadow-lg shadow-purple-500/20 mb-12">
+            M
+          </div>
+          
+          <nav className="flex-1 space-y-6">
+            <SidebarIcon 
+              icon={<LayoutGrid size={22} />} 
+              active={view === 'COMMAND'} 
+              onClick={() => setView('COMMAND')}
+            />
+            <SidebarIcon 
+              icon={<ShieldAlert size={22} />} 
+              active={view === 'AUDIT'} 
+              onClick={() => setView('AUDIT')}
+            />
+          </nav>
+
+          <div className="space-y-6">
+            <SidebarIcon icon={<Power size={22} className="text-red-500/60" />} />
+          </div>
+        </aside>
+
+        {/* Main View Area */}
+        <div className="flex-1 flex flex-col relative overflow-hidden">
+          {view === 'COMMAND' ? <CommandDashboard /> : <AuditDashboard />}
+        </div>
       </div>
+    </QueryClientProvider>
+  );
+}
 
-      <header className="relative z-10 p-8 flex items-center justify-between border-b border-white/5 bg-black/20 backdrop-blur-md">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center font-black text-xl shadow-lg shadow-purple-500/20">M</div>
-          <div>
-            <h1 className="font-bold text-lg tracking-tight">Meiosis <span className="text-purple-400">OS</span></h1>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[10px] font-bold text-mist/40 uppercase tracking-[0.2em]">Clinical Core v2.4</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-2xl pl-4 pr-2 py-2">
-          <div className="text-right">
-            <p className="text-xs font-bold text-white">{user.name}</p>
-            <p className="text-[10px] text-mist/40 font-medium uppercase tracking-wider">{role}</p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-            <UserCircle2 size={24} />
-          </div>
-        </div>
-      </header>
-
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 text-center">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative">
-          <div className="relative mb-12 flex justify-center">
-            <motion.div animate={{ rotate: [0, 5, -5, 0], y: [0, -5, 0] }} transition={{ duration: 4, repeat: Infinity }} className="w-32 h-32 bg-gradient-to-br from-purple-500 to-blue-600 rounded-[40px] flex items-center justify-center shadow-2xl relative z-20">
-              <Construction size={56} className="text-white" strokeWidth={1.5} />
-            </motion.div>
-          </div>
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight">
-            {currentLabel} <br/>
-            <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Under Construction</span>
-          </h2>
-          <p className="text-mist/50 text-lg max-w-lg mx-auto leading-relaxed mb-12">
-            We're architecting a high-performance clinical environment for <span className="text-white font-semibold">{role}s</span>.
-          </p>
-        </motion.div>
-      </main>
+function SidebarIcon({ icon, active, onClick }: { icon: React.ReactNode, active?: boolean, onClick?: () => void }) {
+  return (
+    <div 
+      onClick={onClick}
+      className={`w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-all ${active ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20' : 'text-mist/20 hover:text-white hover:bg-white/5'}`}>
+      {icon}
     </div>
   );
 }
+
