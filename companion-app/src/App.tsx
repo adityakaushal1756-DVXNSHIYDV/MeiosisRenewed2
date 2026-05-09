@@ -181,8 +181,8 @@ const Scanner: React.FC<{ doctor: any; onLogout: () => void }> = ({ doctor, onLo
   const [status, setStatus] = useState<'idle' | 'scanning' | 'loading' | 'success' | 'error'>('scanning');
   const [errorMsg, setErrorMsg] = useState('');
   const [doctorStatus, setDoctorStatus] = useState<'active_doc' | 'inactive_doc' | 'unknown'>('unknown');
+  const isProcessingRef = useRef(false);
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     initScanner();
@@ -223,8 +223,10 @@ const Scanner: React.FC<{ doctor: any; onLogout: () => void }> = ({ doctor, onLo
   };
 
   const onScanSuccess = async (decodedText: string) => {
-    // Prevent double-firing while already processing
-    if (status === 'loading' || status === 'success') return;
+    // Prevent double-firing while already processing (using Ref for synchronous check)
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+    
     setStatus('loading');
 
     // ── Step 1: Robustly extract a patient identifier from the QR ──
@@ -262,6 +264,7 @@ const Scanner: React.FC<{ doctor: any; onLogout: () => void }> = ({ doctor, onLo
         setPatient(null);
         setStatus('scanning');
         setDoctorStatus('unknown');
+        isProcessingRef.current = false;
       }, 6000);
     } catch (err: any) {
       const msg = err.response?.data?.error === 'patient_not_found'
@@ -270,13 +273,16 @@ const Scanner: React.FC<{ doctor: any; onLogout: () => void }> = ({ doctor, onLo
       console.error('[Scan] Error:', msg, err);
       setErrorMsg(msg);
       setStatus('error');
-      setTimeout(() => setStatus('scanning'), 3500);
+      setTimeout(() => {
+        setStatus('scanning');
+        isProcessingRef.current = false;
+      }, 3500);
     }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || isProcessingRef.current) return;
 
     setStatus('loading');
     const html5QrCode = new Html5Qrcode("reader-hidden");

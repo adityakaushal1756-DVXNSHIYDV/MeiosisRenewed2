@@ -366,6 +366,25 @@ router.post('/remote-scan', authMiddleware, asyncHandler(async (req, res) => {
   const isActive = doctor.lastActiveAt && (new Date() - new Date(doctor.lastActiveAt)) < 120000;
 
   try {
+    // Deduplication: Avoid flooding the DB with duplicate commands if the camera scans multiple times
+    const existing = await prisma.remoteCommand.findFirst({
+      where: {
+        doctorId,
+        command: 'OPEN_PATIENT',
+        isRead: false,
+        createdAt: { gte: new Date(Date.now() - 10000) }
+      }
+    });
+
+    if (existing) {
+      console.log(`[RemoteScan] Command already exists for ${doctorId}, skipping duplicate.`);
+      return res.json({ 
+        status: 'ALREADY_QUEUED', 
+        message: 'Command already in flight', 
+        doctorStatus: isActive ? 'active_doc' : 'inactive_doc' 
+      });
+    }
+
     await prisma.remoteCommand.create({
       data: {
         doctorId,
