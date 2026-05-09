@@ -23,6 +23,9 @@ export function StaffConsole({ doctorId, onClose, showToast }: StaffConsoleProps
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'staff' | 'ledger'>('staff');
+  const [ledger, setLedger] = useState<any[]>([]);
+  const [isLoadingLedger, setIsLoadingLedger] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -71,8 +74,28 @@ export function StaffConsole({ doctorId, onClose, showToast }: StaffConsoleProps
   };
 
   useEffect(() => {
-    if (doctorId) fetchStaff();
+    if (doctorId) {
+      fetchStaff();
+      fetchLedger();
+    }
   }, [doctorId]);
+
+  const fetchLedger = async () => {
+    setIsLoadingLedger(true);
+    try {
+      const res = await fetch(apiUrl(`/doctors/${doctorId}/access-logs`), {
+        headers: getAuthHeader()
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLedger(data);
+      }
+    } catch (err) {
+      console.error('[StaffConsole] Ledger fetch failed:', err);
+    } finally {
+      setIsLoadingLedger(false);
+    }
+  };
 
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,90 +167,180 @@ export function StaffConsole({ doctorId, onClose, showToast }: StaffConsoleProps
           </h2>
           <p className="text-sm text-mist/60 mt-1">Manage your clinic's workforce and access roles.</p>
         </div>
-        <button 
-          onClick={() => setIsAdding(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-purple-500 text-white rounded-2xl font-bold text-sm hover:bg-purple-600 transition-all shadow-lg shadow-purple-500/20"
-        >
-          <UserPlus size={18} />
-          Add Staff Member
-        </button>
+        <div className="flex items-center bg-white/[0.03] border border-white/5 rounded-2xl p-1">
+          <button 
+            onClick={() => setActiveTab('staff')}
+            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'staff' ? 'bg-purple-500 text-white' : 'text-mist hover:text-white'}`}
+          >
+            Staff Registry
+          </button>
+          <button 
+            onClick={() => setActiveTab('ledger')}
+            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'ledger' ? 'bg-sky-500 text-white' : 'text-mist hover:text-white'}`}
+          >
+            Audit Ledger
+          </button>
+        </div>
+        {activeTab === 'staff' && (
+          <button 
+            onClick={() => setIsAdding(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-purple-500 text-white rounded-2xl font-bold text-sm hover:bg-purple-600 transition-all shadow-lg shadow-purple-500/20"
+          >
+            <UserPlus size={18} />
+            Add Staff Member
+          </button>
+        )}
       </div>
+
+      {/* Ledger specific toolbar */}
+      {activeTab === 'ledger' && (
+        <div className="px-6 py-3 bg-sky-500/5 border-b border-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sky-400">
+            <ShieldCheck size={16} />
+            <span className="text-[10px] font-black uppercase tracking-widest">Real-time DPDP Compliance Monitoring</span>
+          </div>
+          <button onClick={fetchLedger} className="text-[10px] font-bold text-mist hover:text-white uppercase tracking-wider">
+            Refresh Logs
+          </button>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-6">
-        <div className="mb-6 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-mist/40" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search by name, email or role..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/[0.03] border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-mist/30 focus:border-purple-500/50 outline-none transition-all"
-          />
-        </div>
+        {activeTab === 'staff' ? (
+          <>
+            <div className="mb-6 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-mist/40" size={18} />
+              <input 
+                type="text" 
+                placeholder="Search by name, email or role..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white/[0.03] border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-mist/30 focus:border-purple-500/50 outline-none transition-all"
+              />
+            </div>
 
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-mist/40">
-            <Loader2 className="animate-spin mb-4" size={32} />
-            <p>Syncing staff records...</p>
-          </div>
-        ) : fetchError ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-20 h-20 bg-red-500/10 rounded-[32px] flex items-center justify-center mb-6 border border-dashed border-red-500/20 text-red-500/40">
-              <X size={32} />
-            </div>
-            <h3 className="text-lg font-bold text-white">Connection Failed</h3>
-            <p className="text-sm text-mist/40 max-w-xs mt-2 mb-8">
-              We couldn't reach the clinic database. Please check your connection and try again.
-            </p>
-            <button 
-              onClick={() => fetchStaff()}
-              className="px-8 py-3 bg-white/5 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all"
-            >
-              Retry Connection
-            </button>
-          </div>
-        ) : filteredStaff.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredStaff.map(staff => {
-              const roleInfo = roles.find(r => r.id === staff.role) || roles[0];
-              return (
-                <motion.div 
-                  key={staff.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white/[0.02] border border-white/5 p-5 rounded-3xl hover:bg-white/[0.04] transition-all group"
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 text-mist/40">
+                <Loader2 className="animate-spin mb-4" size={32} />
+                <p>Syncing staff records...</p>
+              </div>
+            ) : fetchError ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-20 h-20 bg-red-500/10 rounded-[32px] flex items-center justify-center mb-6 border border-dashed border-red-500/20 text-red-500/40">
+                  <X size={32} />
+                </div>
+                <h3 className="text-lg font-bold text-white">Connection Failed</h3>
+                <p className="text-sm text-mist/40 max-w-xs mt-2 mb-8">
+                  We couldn't reach the clinic database. Please check your connection and try again.
+                </p>
+                <button 
+                  onClick={() => fetchStaff()}
+                  className="px-8 py-3 bg-white/5 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all"
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-mist/40 group-hover:scale-110 transition-transform">
-                      <UserCircle2 size={24} />
-                    </div>
-                    <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border ${roleInfo.color}`}>
-                      {roleInfo.label}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-1">{staff.name}</h3>
-                  <p className="text-xs text-mist/50 flex items-center gap-2 mb-4">
-                    <Mail size={12} />
-                    {staff.email}
-                  </p>
-                  <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                    <span className="text-[10px] text-mist/30 font-medium">Added {new Date(staff.createdAt).toLocaleDateString()}</span>
-                    <button className="text-xs font-bold text-purple-400 hover:text-white transition-colors">Manage Permissions</button>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
+                  Retry Connection
+                </button>
+              </div>
+            ) : filteredStaff.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredStaff.map(staff => {
+                  const roleInfo = roles.find(r => r.id === staff.role) || roles[0];
+                  return (
+                    <motion.div 
+                      key={staff.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-white/[0.02] border border-white/5 p-5 rounded-3xl hover:bg-white/[0.04] transition-all group"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-mist/40 group-hover:scale-110 transition-transform">
+                          <UserCircle2 size={24} />
+                        </div>
+                        <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border ${roleInfo.color}`}>
+                          {roleInfo.label}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-bold text-white mb-1">{staff.name}</h3>
+                      <p className="text-xs text-mist/50 flex items-center gap-2 mb-4">
+                        <Mail size={12} />
+                        {staff.email}
+                      </p>
+                      <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                        <span className="text-[10px] text-mist/30 font-medium">Added {new Date(staff.createdAt).toLocaleDateString()}</span>
+                        <button className="text-xs font-bold text-purple-400 hover:text-white transition-colors">Manage Permissions</button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-20 h-20 bg-white/5 rounded-[32px] flex items-center justify-center mb-6 border border-dashed border-white/10 text-mist/20">
+                  <Users size={32} />
+                </div>
+                <h3 className="text-lg font-bold text-white">No Staff Found</h3>
+                <p className="text-sm text-mist/40 max-w-xs mt-2">
+                  {searchQuery ? "No staff members match your search criteria." : "Start building your clinic's workforce by adding your first staff member."}
+                </p>
+              </div>
+            )}
+          </>
         ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-20 h-20 bg-white/5 rounded-[32px] flex items-center justify-center mb-6 border border-dashed border-white/10 text-mist/20">
-              <Users size={32} />
-            </div>
-            <h3 className="text-lg font-bold text-white">No Staff Found</h3>
-            <p className="text-sm text-mist/40 max-w-xs mt-2">
-              {searchQuery ? "No staff members match your search criteria." : "Start building your clinic's workforce by adding your first staff member."}
-            </p>
+          <div className="space-y-4">
+            {isLoadingLedger ? (
+              <div className="flex flex-col items-center justify-center py-20 text-mist/40">
+                <Loader2 className="animate-spin mb-4" size={32} />
+                <p>Retrieving access logs...</p>
+              </div>
+            ) : ledger.length > 0 ? (
+              <div className="bg-white/[0.02] border border-white/5 rounded-[32px] overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-white/[0.02] border-b border-white/5 text-[10px] font-black uppercase tracking-widest text-mist/40">
+                      <th className="px-6 py-4">Patient</th>
+                      <th className="px-6 py-4">Action</th>
+                      <th className="px-6 py-4">Method</th>
+                      <th className="px-6 py-4">Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {ledger.map((log, idx) => (
+                      <motion.tr 
+                        key={log.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="text-sm group hover:bg-white/[0.02] transition-all"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-sky-500/10 flex items-center justify-center text-sky-400 font-bold text-xs">
+                              {log.patient?.name?.[0] || 'P'}
+                            </div>
+                            <span className="font-bold text-white">{log.patient?.name || 'Unknown Patient'}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="chip bg-sky-500/10 text-sky-400 border-sky-500/20 py-1">SCAN_RESOLVE</span>
+                        </td>
+                        <td className="px-6 py-4 text-mist/60 font-medium">Companion Camera</td>
+                        <td className="px-6 py-4 text-xs text-mist/40">{new Date(log.createdAt).toLocaleString()}</td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-20 h-20 bg-white/5 rounded-[32px] flex items-center justify-center mb-6 border border-dashed border-white/10 text-mist/20">
+                  <ShieldCheck size={32} />
+                </div>
+                <h3 className="text-lg font-bold text-white">No Access Logs</h3>
+                <p className="text-sm text-mist/40 max-w-xs mt-2">
+                  When patients scan their QR codes at your clinic, the logs will appear here in real-time.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

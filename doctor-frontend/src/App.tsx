@@ -196,8 +196,25 @@ const defaultSchedule: DailySchedule[] = [
   { day: 'Sunday', open: false, morningStart: '00:00', morningEnd: '00:00', eveningStart: '00:00', eveningEnd: '00:00' }
 ];
 
+import { CompanionCamera } from './components/CompanionCamera';
+
 function DoctorWorkspace() {
+  const [companionCameraActive, setCompanionCameraActive] = useState(() => {
+    try {
+      return localStorage.getItem('meiosis_companion_camera_enabled') === 'true';
+    } catch { return false; }
+  });
+
+  const toggleCompanionCamera = (active: boolean) => {
+    setCompanionCameraActive(active);
+    localStorage.setItem('meiosis_companion_camera_enabled', String(active));
+  };
+
   const {
+    nav,
+    onNavChange,
+    // ...
+  } = props; // This is a simplified view, I'll use multi_replace for accuracy
     patients,
     setPatients,
     query,
@@ -1919,6 +1936,19 @@ function DoctorWorkspace() {
                 onPrescriptionLayoutChange={setPrescriptionLayout}
                 autoPrintEnabled={autoPrintEnabled}
                 onAutoPrintEnabledChange={handleAutoPrintEnabledChange}
+                companionCameraActive={companionCameraActive}
+                onToggleCompanionCamera={toggleCompanionCamera}
+              />
+
+              <CompanionCamera 
+                active={companionCameraActive} 
+                onPatientResolved={(id) => {
+                  handleSelectPatient(id);
+                  // Also ensure we are in a view that can show the patient
+                  if (nav !== 'dashboard' && nav !== 'search') {
+                    setNav('dashboard');
+                  }
+                }} 
               />
 
 

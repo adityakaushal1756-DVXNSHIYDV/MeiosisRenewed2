@@ -231,6 +231,8 @@ interface DashboardProps {
   onPrescriptionLayoutChange: (mode: 'classic' | 'wide') => void;
   autoPrintEnabled: boolean;
   onAutoPrintEnabledChange: (enabled: boolean) => void;
+  companionCameraActive: boolean;
+  onToggleCompanionCamera: (active: boolean) => void;
 }
 
 /* ── Shared primitives ───────────────────────────────────── */
@@ -799,6 +801,8 @@ export default function Dashboard(props: DashboardProps) {
     onCloseEmrComposer,
     onViewRecords,
     onCloseRecords,
+    companionCameraActive,
+    onToggleCompanionCamera,
     viewRecordsPatientId,
     onSyncSchedule,
     onToggleDayOpen,
@@ -3003,20 +3007,30 @@ export default function Dashboard(props: DashboardProps) {
           </button>
 
           <button
-            onClick={() => setPatientListV2Open(true)}
-            className="group relative flex flex-col items-center justify-center gap-3 rounded-[26px] border border-wire/10 bg-white/[0.03] p-6 transition-all hover:-translate-y-1 hover:bg-white/[0.06] hover:border-amber-400/30"
+            onClick={() => onToggleCompanionCamera(!companionCameraActive)}
+            className={`group relative flex flex-col items-center justify-center gap-3 rounded-[26px] border p-6 transition-all hover:-translate-y-1 ${
+              companionCameraActive 
+                ? 'bg-neon/10 border-neon/50 shadow-[0_0_20px_rgba(82,255,157,0.1)]' 
+                : 'bg-white/[0.03] border-wire/10 hover:bg-white/[0.06] hover:border-[#38bdf8]/30'
+            }`}
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-400 group-hover:scale-110 transition-transform">
-              <LayoutList size={24} />
+            <div className={`flex h-12 w-12 items-center justify-center rounded-2xl transition-all group-hover:scale-110 ${
+              companionCameraActive ? 'bg-neon text-slate-950' : 'bg-white/5 text-mist group-hover:text-[#38bdf8]'
+            }`}>
+              {companionCameraActive ? <ScanLine size={24} className="animate-pulse" /> : <Camera size={24} />}
             </div>
-            <span className="text-sm font-semibold text-white">Patient List v2</span>
-            <div className="absolute -top-1 -right-1 flex h-5 px-2 items-center justify-center rounded-full bg-amber-500 text-[10px] font-black text-white shadow-[0_0_15px_rgba(245,158,11,0.5)]">
-              BETA
+            <span className={`text-sm font-semibold ${companionCameraActive ? 'text-neon' : 'text-white'}`}>
+              {companionCameraActive ? 'Camera Active' : 'Companion Cam'}
+            </span>
+            <div className="absolute -top-1 -right-1 flex h-5 px-2 items-center justify-center rounded-full bg-[#38bdf8] text-[10px] font-black text-white shadow-[0_0_15px_rgba(56,189,248,0.5)]">
+              KIOSK
             </div>
-            <div className="absolute inset-0 -z-10 rounded-[26px] bg-amber-400/5 opacity-0 blur-xl transition-opacity group-hover:opacity-100" />
+            <div className={`absolute inset-0 -z-10 rounded-[26px] blur-xl transition-opacity group-hover:opacity-100 ${
+              companionCameraActive ? 'bg-neon/10 opacity-100' : 'bg-[#38bdf8]/5 opacity-0'
+            }`} />
           </button>
           
-          {[1, 2, 3, 4, 5].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
               className="flex flex-col items-center justify-center gap-3 rounded-[26px] border border-wire/5 bg-white/[0.01] p-6 opacity-40 grayscale"
