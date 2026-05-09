@@ -27,6 +27,7 @@ const { authMiddleware } = require('./middleware/auth-middleware');
 const fs = require('fs');
 const app = express();
 app.set('trust proxy', 1); // Trust Vercel proxy
+console.log(`[Backend] Initializing Meiosis Backend (Vercel: ${!!process.env.VERCEL})`);
 app.use((req, res, next) => {
   console.log(`[HTTP] ${req.method} ${req.url}`);
   next();

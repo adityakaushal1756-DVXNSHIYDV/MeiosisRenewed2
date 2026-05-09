@@ -244,44 +244,53 @@ async function checkBackendHealth() {
   newBadge.className = "auth-backend-pill auth-backend-pill-pending";
   newBadge.textContent = "Checking backend...";
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5000); // 5s timeout
-  
-  try {
-    const response = await fetch(`${BACKEND_ORIGIN}/health`, {
-      method: "GET",
-      signal: controller.signal,
-      cache: "no-store",
-    });
-    clearTimeout(timer);
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000); // 8s for cold starts
     
-    const bodyText = await response.clone().text().catch(() => "");
-    
-    if (response.status === 401 && /authentication required/i.test(bodyText) && /vercel/i.test(bodyText)) {
-      newBadge.className = "auth-backend-pill auth-backend-pill-offline";
-      newBadge.textContent = "Vercel Protection is blocking the backend API.";
-      return;
-    }
+    try {
+      const response = await fetch(`${BACKEND_ORIGIN}/health`, {
+        method: "GET",
+        signal: controller.signal,
+        cache: "no-store",
+      });
+      clearTimeout(timer);
+      
+      const bodyText = await response.clone().text().catch(() => "");
+      
+      if (response.status === 401 && /authentication required/i.test(bodyText) && /vercel/i.test(bodyText)) {
+        newBadge.className = "auth-backend-pill auth-backend-pill-offline";
+        newBadge.textContent = "Vercel Protection is blocking the backend API.";
+        return;
+      }
 
-    if (!response.ok) throw new Error(`Status ${response.status}`);
-    
-    const health = bodyText ? JSON.parse(bodyText) : null;
-    backendReachable = true;
-    
-    if (health?.database === "degraded") {
-      newBadge.className = "auth-backend-pill auth-backend-pill-pending";
-      newBadge.textContent = "Backend reachable, but database is unavailable.";
+      if (!response.ok) throw new Error(`Status ${response.status}`);
+      
+      const health = bodyText ? JSON.parse(bodyText) : null;
+      backendReachable = true;
+      
+      if (health?.database === "degraded") {
+        newBadge.className = "auth-backend-pill auth-backend-pill-pending";
+        newBadge.textContent = "Backend reachable, but database is unavailable.";
+        appendRetry(newBadge);
+      } else {
+        newBadge.className = "auth-backend-pill auth-backend-pill-online";
+        newBadge.textContent = `Backend connected at ${new URL(BACKEND_ORIGIN).hostname}`;
+      }
+      return; // Success, exit loop
+    } catch (error) {
+      clearTimeout(timer);
+      backendReachable = false;
+      if (attempt < 4) {
+        newBadge.className = "auth-backend-pill auth-backend-pill-pending";
+        newBadge.textContent = `Waking up backend... (${attempt + 1}/4)`;
+        await delay(2000);
+        continue;
+      }
+      newBadge.className = "auth-backend-pill auth-backend-pill-offline";
+      newBadge.textContent = "Backend unreachable. ";
       appendRetry(newBadge);
-    } else {
-      newBadge.className = "auth-backend-pill auth-backend-pill-online";
-      newBadge.textContent = `Backend connected at ${new URL(BACKEND_ORIGIN).hostname}`;
     }
-  } catch (error) {
-    clearTimeout(timer);
-    backendReachable = false;
-    newBadge.className = "auth-backend-pill auth-backend-pill-offline";
-    newBadge.textContent = "Backend unreachable. ";
-    appendRetry(newBadge);
   }
 }
 
