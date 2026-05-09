@@ -3,7 +3,7 @@ import { FileText, FlaskConical, Stethoscope, Search } from 'lucide-react';
 
 interface Props { data: any; }
 
-const TYPE_CONFIG: Record<string, { label: string; color: string; icon: React.ComponentType<{size?: number}> }> = {
+const TYPE_CONFIG: Record<string, { label: string; color: string; icon: React.ComponentType<{size?: number | string}> }> = {
   PRESCRIPTION:  { label: 'Prescription',  color: 'var(--neon)', icon: FileText },
   LAB_REPORT:    { label: 'Lab Report',    color: 'var(--sky)',  icon: FlaskConical },
   CONSULTATION:  { label: 'Consultation',  color: '#a78bfa',    icon: Stethoscope },
