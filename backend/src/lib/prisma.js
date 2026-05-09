@@ -28,16 +28,21 @@ if (!base) {
   console.error("[Prisma] CRITICAL: DATABASE_URL is not set. Check your Vercel Environment Variables.");
 }
 
+// Aggressive timeouts for Serverless/Supabase stability
+const DB_CONNECT_TIMEOUT = 20; // 20 seconds
+const DB_POOL_TIMEOUT = 20;    // 20 seconds
+const DB_STATEMENT_TIMEOUT = 15000; // 15 seconds
+
 let url = appendQueryParam(base, 'connection_limit', 1);
-url = appendQueryParam(url, 'connect_timeout', DB_CONNECT_TIMEOUT_SECONDS);
-url = appendQueryParam(url, 'pool_timeout', DB_POOL_TIMEOUT_SECONDS);
+url = appendQueryParam(url, 'connect_timeout', DB_CONNECT_TIMEOUT);
+url = appendQueryParam(url, 'pool_timeout', DB_POOL_TIMEOUT);
 
 if (isPGBouncer || base.includes('supabase.co')) {
   url = appendQueryParam(url, 'pgbouncer', 'true');
 }
 
 // Statement timeout to prevent hanging connections
-url = appendQueryParam(url, 'statement_timeout', 10000);
+url = appendQueryParam(url, 'statement_timeout', DB_STATEMENT_TIMEOUT);
 
 // Prisma client should be a singleton in serverless environments
 // to prevent exhausting database connections during horizontal scaling.
@@ -71,20 +76,46 @@ function withDatabaseTimeout(execute, label) {
   });
 }
 
+async function withRetry(operation, maxRetries = 2, delayMs = 1000) {
+  let lastError;
+  for (let i = 0; i <= maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (err) {
+      lastError = err;
+      const isRetryable = 
+        err.message?.includes('pool') || 
+        err.message?.includes('timeout') || 
+        err.code === 'P2024' || // Connection pool timeout
+        err.code === 'P2025';    // Transient not found/connection issues
+      
+      if (!isRetryable || i === maxRetries) break;
+      
+      console.warn(`[Prisma] Operation failed (attempt ${i + 1}/${maxRetries + 1}). Retrying in ${delayMs}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError;
+}
+
 const prismaWithTimeout = prisma.$extends({
   query: {
     $allModels: {
       async $allOperations({ model, operation, args, query }) {
-        return withDatabaseTimeout(
-          () => query(args),
-          `${model}.${operation}`,
+        return withRetry(() => 
+          withDatabaseTimeout(
+            () => query(args),
+            `${model}.${operation}`,
+          )
         );
       },
     },
     async $allOperations({ model, operation, args, query }) {
-      return withDatabaseTimeout(
-        () => query(args),
-        `${model || 'raw'}.${operation}`,
+      return withRetry(() => 
+        withDatabaseTimeout(
+          () => query(args),
+          `${model || 'raw'}.${operation}`,
+        )
       );
     },
   },
